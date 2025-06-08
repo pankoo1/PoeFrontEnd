@@ -228,16 +228,16 @@ export default ReponedorTareas;
   };
 
   // Función para actualizar el estado de una tarea
-  const updateTaskStatus = (taskId: number, newStatus: string) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        return { ...task, status: newStatus };
+  const updateTaskStatus = (tareaId: number, nuevoEstado: string) => {
+    setTareas(tareas.map(tarea => {
+      if (tarea.id === tareaId) {
+        return { ...tarea, estado: nuevoEstado };
       }
-      return task;
+      return tarea;
     }));
 
     toast({
-      title: `Tarea ${newStatus.toLowerCase()}`,
-      description: `La tarea ha sido ${newStatus.toLowerCase()} exitosamente`,
+      title: `Tarea ${nuevoEstado.toLowerCase()}`,
+      description: `La tarea ha sido ${nuevoEstado.toLowerCase()} exitosamente`,
     });
   };
