@@ -54,6 +54,17 @@ const Login = () => {
       } 
       // Verificar si es un usuario registrado en localStorage
       else if (user) {
+        // Verificar si el usuario está activo
+        if (user.status === 'Inactivo') {
+          toast({
+            title: "Acceso denegado",
+            description: "Tu cuenta está inactiva. Contacta al administrador.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         const role = user.role === 'Supervisor' ? 'supervisor' : 'reponedor';
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', role.toLowerCase());

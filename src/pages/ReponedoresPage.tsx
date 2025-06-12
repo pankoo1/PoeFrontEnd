@@ -8,26 +8,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Search, Eye, Edit } from 'lucide-react';
+import { ArrowLeft, Users, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import ReponedorForm from '../components/forms/ReponedorForm';
+import { useReponedores } from '@/contexts/ReponedoresContext';
 
 const ReponedoresPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { reponedores, updateReponedor, deleteReponedor } = useReponedores();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingReponedor, setViewingReponedor] = useState(null);
   const [editingReponedor, setEditingReponedor] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [reponedorToDelete, setReponedorToDelete] = useState(null);
   
-  const [reponedores, setReponedores] = useState([
-    { id: 1, name: 'Carlos Martínez', email: 'carlos@empresa.com', telefono: '+123456789', area: 'Lácteos', estado: 'Activo', tareasAsignadas: 5, supervisor: 'María González', fechaIngreso: '2023-03-15' },
-    { id: 2, name: 'Ana López', email: 'ana@empresa.com', telefono: '+123456788', area: 'Frutas y Verduras', estado: 'Activo', tareasAsignadas: 3, supervisor: 'María González', fechaIngreso: '2023-05-20' },
-    { id: 3, name: 'Miguel Santos', email: 'miguel@empresa.com', telefono: '+123456787', area: 'Panadería', estado: 'En Descanso', tareasAsignadas: 0, supervisor: 'María González', fechaIngreso: '2023-01-10' },
-    { id: 4, name: 'Laura Pérez', email: 'laura@empresa.com', telefono: '+123456786', area: 'Carnicería', estado: 'Activo', tareasAsignadas: 2, supervisor: 'María González', fechaIngreso: '2023-07-08' },
-  ]);
-
   const verDetalles = (reponedor) => {
     setViewingReponedor(reponedor);
     setViewDialogOpen(true);
@@ -39,9 +36,7 @@ const ReponedoresPage = () => {
   };
 
   const guardarEdicion = () => {
-    setReponedores(reponedores.map(reponedor => 
-      reponedor.id === editingReponedor.id ? editingReponedor : reponedor
-    ));
+    updateReponedor(editingReponedor.id, editingReponedor);
     setEditDialogOpen(false);
     setEditingReponedor(null);
     toast({
@@ -50,9 +45,26 @@ const ReponedoresPage = () => {
     });
   };
 
+  const confirmarEliminarReponedor = (reponedor) => {
+    setReponedorToDelete(reponedor);
+    setConfirmDeleteDialogOpen(true);
+  };
+
+  const eliminarReponedor = () => {
+    if (reponedorToDelete) {
+      deleteReponedor(reponedorToDelete.id);
+      setConfirmDeleteDialogOpen(false);
+      setReponedorToDelete(null);
+      toast({
+        title: "Reponedor eliminado",
+        description: `${reponedorToDelete.name} ha sido eliminado del sistema`,
+      });
+    }
+  };
+
   const filteredReponedores = reponedores.filter(reponedor =>
     reponedor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    reponedor.area.toLowerCase().includes(searchTerm.toLowerCase())
+    reponedor.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -103,8 +115,6 @@ const ReponedoresPage = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Área</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Tareas</TableHead>
                   <TableHead>Acciones</TableHead>
@@ -115,8 +125,6 @@ const ReponedoresPage = () => {
                   <TableRow key={reponedor.id}>
                     <TableCell className="font-medium">{reponedor.name}</TableCell>
                     <TableCell>{reponedor.email}</TableCell>
-                    <TableCell>{reponedor.telefono}</TableCell>
-                    <TableCell>{reponedor.area}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         reponedor.estado === 'Activo' 
@@ -144,6 +152,15 @@ const ReponedoresPage = () => {
                         >
                           <Edit className="w-3 h-3 mr-1" />
                           Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => confirmarEliminarReponedor(reponedor)}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Eliminar
                         </Button>
                       </div>
                     </TableCell>
@@ -174,16 +191,6 @@ const ReponedoresPage = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-semibold">Teléfono</Label>
-                    <p className="text-sm text-muted-foreground">{viewingReponedor.telefono}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">Área Asignada</Label>
-                    <p className="text-sm text-muted-foreground">{viewingReponedor.area}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
                     <Label className="text-sm font-semibold">Estado</Label>
                     <p className="text-sm text-muted-foreground">{viewingReponedor.estado}</p>
                   </div>
@@ -192,15 +199,9 @@ const ReponedoresPage = () => {
                     <p className="text-sm text-muted-foreground">{viewingReponedor.tareasAsignadas}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-semibold">Supervisor</Label>
-                    <p className="text-sm text-muted-foreground">{viewingReponedor.supervisor}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">Fecha de Ingreso</Label>
-                    <p className="text-sm text-muted-foreground">{viewingReponedor.fechaIngreso}</p>
-                  </div>
+                <div>
+                  <Label className="text-sm font-semibold">Supervisor</Label>
+                  <p className="text-sm text-muted-foreground">{viewingReponedor.supervisor}</p>
                 </div>
                 <div className="flex justify-end mt-4">
                   <Button onClick={() => setViewDialogOpen(false)}>
@@ -239,28 +240,15 @@ const ReponedoresPage = () => {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-telefono" className="text-right">Teléfono</Label>
+                  <Label htmlFor="edit-password" className="text-right">Contraseña</Label>
                   <Input
-                    id="edit-telefono"
-                    value={editingReponedor.telefono}
-                    onChange={(e) => setEditingReponedor({...editingReponedor, telefono: e.target.value})}
+                    id="edit-password"
+                    type="password"
+                    placeholder="Nueva contraseña"
+                    value={editingReponedor.password || ''}
+                    onChange={(e) => setEditingReponedor({...editingReponedor, password: e.target.value})}
                     className="col-span-3"
                   />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-area" className="text-right">Área</Label>
-                  <Select value={editingReponedor.area} onValueChange={(value) => setEditingReponedor({...editingReponedor, area: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Lácteos">Lácteos</SelectItem>
-                      <SelectItem value="Frutas y Verduras">Frutas y Verduras</SelectItem>
-                      <SelectItem value="Panadería">Panadería</SelectItem>
-                      <SelectItem value="Carnicería">Carnicería</SelectItem>
-                      <SelectItem value="Bebidas">Bebidas</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-estado" className="text-right">Estado</Label>
@@ -281,6 +269,29 @@ const ReponedoresPage = () => {
                   </Button>
                   <Button onClick={guardarEdicion}>
                     Guardar Cambios
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para confirmar eliminación */}
+        <Dialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Confirmar Eliminación</DialogTitle>
+            </DialogHeader>
+            {reponedorToDelete && (
+              <div className="py-4">
+                <p className="text-center mb-4">¿Está seguro que desea eliminar a <span className="font-semibold">{reponedorToDelete.name}</span>?</p>
+                <p className="text-center text-sm text-muted-foreground mb-6">Esta acción no se puede deshacer.</p>
+                <div className="flex justify-center space-x-4">
+                  <Button variant="outline" onClick={() => setConfirmDeleteDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={eliminarReponedor}>
+                    Eliminar
                   </Button>
                 </div>
               </div>

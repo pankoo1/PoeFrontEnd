@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,17 +19,32 @@ const ProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   
-  // Datos de ejemplo actualizados para supermercado
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Leche Entera 1L', category: 'Lácteos', price: '$2.50', stock: 45, status: 'Disponible', proveedor: 'Lácteos del Valle' },
-    { id: 2, name: 'Pan Integral', category: 'Panadería', price: '$1.25', stock: 20, status: 'Disponible', proveedor: 'Panadería Central' },
-    { id: 3, name: 'Manzanas Rojas 1kg', category: 'Frutas y Verduras', price: '$3.80', stock: 0, status: 'Agotado', proveedor: 'Frutas Frescas' },
-    { id: 4, name: 'Pollo Entero', category: 'Carnes', price: '$8.90', stock: 12, status: 'Disponible', proveedor: 'Carnes Premium' },
-    { id: 5, name: 'Coca Cola 2L', category: 'Bebidas', price: '$2.80', stock: 30, status: 'Disponible', proveedor: 'Distribuidora Bebidas' },
-  ]);
+  // Estado para almacenar los productos
+  const [products, setProducts] = useState([]);
+
+  // Cargar productos desde localStorage al iniciar
+  useEffect(() => {
+    const storedProducts = localStorage.getItem('products');
+    if (storedProducts) {
+      setProducts(JSON.parse(storedProducts));
+    } else {
+      // Datos de ejemplo si no hay productos en localStorage
+      const exampleProducts = [
+        { id: 1, name: 'Leche Entera 1L', category: 'Lácteos', tipoUnidad: 'Litro', cantidadUnidad: 1, codigoProducto: 'LAC001', status: 'Disponible' },
+        { id: 2, name: 'Pan Integral', category: 'Panadería', tipoUnidad: 'Gramo', cantidadUnidad: 500, codigoProducto: 'PAN002', status: 'Disponible' },
+        { id: 3, name: 'Manzanas Rojas 1kg', category: 'Frutas y Verduras', tipoUnidad: 'Kilogramo', cantidadUnidad: 1, codigoProducto: 'FRU003', status: 'Agotado' },
+        { id: 4, name: 'Pollo Entero', category: 'Carnes', tipoUnidad: 'Kilogramo', cantidadUnidad: 1.5, codigoProducto: 'CAR004', status: 'Disponible' },
+        { id: 5, name: 'Coca Cola 2L', category: 'Bebidas', tipoUnidad: 'Litro', cantidadUnidad: 2, codigoProducto: 'BEB005', status: 'Disponible' },
+      ];
+      setProducts(exampleProducts);
+      localStorage.setItem('products', JSON.stringify(exampleProducts));
+    }
+  }, []);
 
   const eliminarProducto = (id: number, nombre: string) => {
-    setProducts(products.filter(product => product.id !== id));
+    const updatedProducts = products.filter(product => product.id !== id);
+    setProducts(updatedProducts);
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
     toast({
       title: "Producto eliminado",
       description: `${nombre} ha sido eliminado del inventario`,
@@ -42,9 +57,11 @@ const ProductsPage = () => {
   };
 
   const guardarEdicion = () => {
-    setProducts(products.map(product => 
+    const updatedProducts = products.map(product => 
       product.id === editingProduct.id ? editingProduct : product
-    ));
+    );
+    setProducts(updatedProducts);
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
     setEditDialogOpen(false);
     setEditingProduct(null);
     toast({
@@ -56,7 +73,7 @@ const ProductsPage = () => {
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
+    product.codigoProducto.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -107,53 +124,61 @@ const ProductsPage = () => {
                 <TableRow>
                   <TableHead>Producto</TableHead>
                   <TableHead>Categoría</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Proveedor</TableHead>
+                  <TableHead>Tipo Unidad</TableHead>
+                  <TableHead>Cantidad de unidad</TableHead>
+                  <TableHead>Código de producto</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.price}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell>{product.proveedor}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        product.status === 'Disponible' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => editarProducto(product)}
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => eliminarProducto(product.id, product.name)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Eliminar
-                        </Button>
-                      </div>
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{product.tipoUnidad}</TableCell>
+                      <TableCell>{product.cantidadUnidad}</TableCell>
+                      <TableCell>{product.codigoProducto}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          product.status === 'Disponible' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {product.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => editarProducto(product)}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => eliminarProducto(product.id, product.name)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                      No se encontraron productos. Agrega uno nuevo.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -194,30 +219,38 @@ const ProductsPage = () => {
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-price" className="text-right">Precio</Label>
-                  <Input
-                    id="edit-price"
-                    value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
-                    className="col-span-3"
-                  />
+                  <Label htmlFor="edit-tipo-unidad" className="text-right">Tipo Unidad</Label>
+                  <Select value={editingProduct.tipoUnidad} onValueChange={(value) => setEditingProduct({...editingProduct, tipoUnidad: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Kilogramo">Kilogramo</SelectItem>
+                      <SelectItem value="Gramo">Gramo</SelectItem>
+                      <SelectItem value="Litro">Litro</SelectItem>
+                      <SelectItem value="Mililitro">Mililitro</SelectItem>
+                      <SelectItem value="Unidad">Unidad</SelectItem>
+                      <SelectItem value="Paquete">Paquete</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-stock" className="text-right">Stock</Label>
+                  <Label htmlFor="edit-cantidad-unidad" className="text-right">Cantidad de unidad</Label>
                   <Input
-                    id="edit-stock"
+                    id="edit-cantidad-unidad"
                     type="number"
-                    value={editingProduct.stock}
-                    onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})}
+                    step="0.01"
+                    value={editingProduct.cantidadUnidad}
+                    onChange={(e) => setEditingProduct({...editingProduct, cantidadUnidad: parseFloat(e.target.value)})}
                     className="col-span-3"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-proveedor" className="text-right">Proveedor</Label>
+                  <Label htmlFor="edit-codigo-producto" className="text-right">Código de producto</Label>
                   <Input
-                    id="edit-proveedor"
-                    value={editingProduct.proveedor}
-                    onChange={(e) => setEditingProduct({...editingProduct, proveedor: e.target.value})}
+                    id="edit-codigo-producto"
+                    value={editingProduct.codigoProducto}
+                    onChange={(e) => setEditingProduct({...editingProduct, codigoProducto: e.target.value})}
                     className="col-span-3"
                   />
                 </div>

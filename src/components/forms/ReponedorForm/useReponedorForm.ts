@@ -1,24 +1,16 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useToast } from "@/hooks/use-toast";
-interface ReponedorFormData {
-  nombre: string;
-  email: string;
-  telefono: string;
-  area: string;
-  turno: string;
-  fechaIngreso: string;
-}
+import { ReponedorFormData } from './types';
+import { useReponedores } from '@/contexts/ReponedoresContext';
 
 export const useReponedorForm = () => {
   const { toast } = useToast();
+  const { addReponedor } = useReponedores();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<ReponedorFormData>({
     nombre: '',
     email: '',
-    telefono: '',
-    area: '',
-    turno: '',
-    fechaIngreso: ''
+    password: ''
   });
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -26,28 +18,30 @@ export const useReponedorForm = () => {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   const resetForm = () => {
     setFormData({
       nombre: '',
       email: '',
-      telefono: '',
-      area: '',
-      turno: '',
-      fechaIngreso: ''
+      password: ''
     });
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    console.log('Nuevo reponedor:', formData);
+    
+    // Agregar el nuevo reponedor al contexto
+    addReponedor({
+      name: formData.nombre,
+      email: formData.email,
+      estado: 'Activo', // Estado por defecto
+      password: formData.password
+    });
+    
     toast({
       title: "Reponedor registrado",
-      description: `${formData.nombre} ha sido asignado al área de ${formData.area}`,
+      description: `${formData.nombre} ha sido registrado correctamente`,
     });
+    
     resetForm();
     setIsOpen(false);
   };
@@ -57,8 +51,6 @@ export const useReponedorForm = () => {
     setIsOpen,
     formData,
     handleInputChange,
-    handleSelectChange,
     handleSubmit,
-    resetForm
   };
 };

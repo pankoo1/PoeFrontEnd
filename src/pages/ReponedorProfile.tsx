@@ -14,12 +14,8 @@ const ReponedorProfile = () => {
   const [profileData] = useState({
     nombre: 'Juan Pérez',
     email: 'reponedor@reponedor.com',
-    telefono: '+57 300 123 4567',
     supervisor: 'María González',
     sucursal: 'Supermercado Central',
-    turno: 'Mañana (6:00 AM - 2:00 PM)',
-    fechaIngreso: '2023-01-15',
-    area: 'Lácteos',
     empleadoId: 'EMP-2023-0045'
   });
 
@@ -90,15 +86,6 @@ const ReponedorProfile = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="telefono">Teléfono</Label>
-                    <Input
-                      id="telefono"
-                      value={profileData.telefono}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="empleadoId">ID Empleado</Label>
                     <Input
                       id="empleadoId"
@@ -107,9 +94,6 @@ const ReponedorProfile = () => {
                       className="bg-muted"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="supervisor">Supervisor Asignado</Label>
                     <Input
@@ -119,43 +103,13 @@ const ReponedorProfile = () => {
                       className="bg-muted"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="area">Área de Trabajo</Label>
-                    <Input
-                      id="area"
-                      value={profileData.area}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sucursal">Sucursal</Label>
-                    <Input
-                      id="sucursal"
-                      value={profileData.sucursal}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="turno">Turno de Trabajo</Label>
-                    <Input
-                      id="turno"
-                      value={profileData.turno}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
+                  <Label htmlFor="sucursal">Sucursal</Label>
                   <Input
-                    id="fechaIngreso"
-                    value={profileData.fechaIngreso}
+                    id="sucursal"
+                    value={profileData.sucursal}
                     readOnly
                     className="bg-muted"
                   />

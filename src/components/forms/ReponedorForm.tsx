@@ -9,55 +9,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
-interface UserFormProps {
-  onUserAdded: (newUser: any) => void;
-}
-
-const UserForm = ({ onUserAdded }: UserFormProps) => {
+const ReponedorForm = () => {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
-    rol: '',
-    password: '',
-    estado: 'Activo'
+    telefono: '',
+    area: '',
+    turno: '',
+    fechaIngreso: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Crear nuevo usuario con ID único
-    const newUser = {
-      id: Date.now(),
-      name: formData.nombre,
-      email: formData.email,
-      role: formData.rol === 'supervisor' ? 'Supervisor' : 'Reponedor',
-      status: formData.estado,
-      password: formData.password
-    };
-    
-    // Guardar en localStorage
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = [...existingUsers, newUser];
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    
-    // Notificar al componente padre
-    onUserAdded(newUser);
-    
-    console.log('Nuevo usuario:', newUser);
+    console.log('Nuevo reponedor:', formData);
     toast({
-      title: "Usuario creado",
-      description: `${newUser.role} ${newUser.name} ha sido registrado exitosamente`,
+      title: "Reponedor registrado",
+      description: `${formData.nombre} ha sido asignado al área de ${formData.area}`,
     });
-    
-    // Resetear formulario
     setFormData({
       nombre: '',
       email: '',
-      rol: '',
-      password: '',
-      estado: 'Activo'
+      telefono: '',
+      area: '',
+      turno: '',
+      fechaIngreso: ''
     });
     setIsOpen(false);
   };
@@ -67,12 +44,12 @@ const UserForm = ({ onUserAdded }: UserFormProps) => {
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Nuevo Usuario
+          Registrar Reponedor
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar Nuevo Usuario</DialogTitle>
+          <DialogTitle>Registrar Nuevo Reponedor</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -95,45 +72,61 @@ const UserForm = ({ onUserAdded }: UserFormProps) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rol">Rol</Label>
-            <Select value={formData.rol} onValueChange={(value) => setFormData({...formData, rol: value})} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="reponedor">Reponedor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="telefono">Teléfono</Label>
             <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              id="telefono"
+              value={formData.telefono}
+              onChange={(e) => setFormData({...formData, telefono: e.target.value})}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="estado">Estado</Label>
-            <Select value={formData.estado} onValueChange={(value) => setFormData({...formData, estado: value})} required>
+            <Label htmlFor="area">Área Asignada</Label>
+            <Select value={formData.area} onValueChange={(value) => setFormData({...formData, area: value})}>
               <SelectTrigger>
-                <SelectValue placeholder="Seleccionar estado" />
+                <SelectValue placeholder="Seleccionar área" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Inactivo">Inactivo</SelectItem>
+                <SelectItem value="lacteos">Lácteos</SelectItem>
+                <SelectItem value="frutas-verduras">Frutas y Verduras</SelectItem>
+                <SelectItem value="carnes">Carnes y Embutidos</SelectItem>
+                <SelectItem value="panaderia">Panadería</SelectItem>
+                <SelectItem value="bebidas">Bebidas</SelectItem>
+                <SelectItem value="enlatados">Enlatados y Conservas</SelectItem>
+                <SelectItem value="limpieza">Productos de Limpieza</SelectItem>
+                <SelectItem value="higiene">Higiene Personal</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="turno">Turno de Trabajo</Label>
+            <Select value={formData.turno} onValueChange={(value) => setFormData({...formData, turno: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar turno" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mañana">Mañana (6:00 AM - 2:00 PM)</SelectItem>
+                <SelectItem value="tarde">Tarde (2:00 PM - 10:00 PM)</SelectItem>
+                <SelectItem value="noche">Noche (10:00 PM - 6:00 AM)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
+            <Input
+              id="fechaIngreso"
+              type="date"
+              value={formData.fechaIngreso}
+              onChange={(e) => setFormData({...formData, fechaIngreso: e.target.value})}
+              required
+            />
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button type="submit">
-              Registrar Usuario
+              Registrar Reponedor
             </Button>
           </div>
         </form>
@@ -142,4 +135,4 @@ const UserForm = ({ onUserAdded }: UserFormProps) => {
   );
 };
 
-export default UserForm;
+export default ReponedorForm;

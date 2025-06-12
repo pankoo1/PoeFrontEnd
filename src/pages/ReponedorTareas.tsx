@@ -229,13 +229,14 @@ export default ReponedorTareas;
 
   // Función para actualizar el estado de una tarea
   const updateTaskStatus = (tareaId: number, nuevoEstado: string) => {
-    setTareas(tareas.map(tarea => {
+    const [tareas, setTareas] = useState(prev => prev.map(tarea => {
       if (tarea.id === tareaId) {
         return { ...tarea, estado: nuevoEstado };
       }
       return tarea;
     }));
 
+    const { toast } = useToast();
     toast({
       title: `Tarea ${nuevoEstado.toLowerCase()}`,
       description: `La tarea ha sido ${nuevoEstado.toLowerCase()} exitosamente`,
