@@ -1,79 +1,126 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Search, Edit, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { ApiService } from '@/services/api';
+import { Producto, UpdateProductoData } from '@/types/producto';
 import ProductForm from '../components/forms/ProductForm';
 
 const ProductsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Estado para almacenar los productos
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Producto[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
 
-  // Cargar productos desde localStorage al iniciar
-  useEffect(() => {
-    const storedProducts = localStorage.getItem('products');
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      // Datos de ejemplo si no hay productos en localStorage
-      const exampleProducts = [
-        { id: 1, name: 'Leche Entera 1L', category: 'Lácteos', tipoUnidad: 'Litro', cantidadUnidad: 1, codigoProducto: 'LAC001', status: 'Disponible' },
-        { id: 2, name: 'Pan Integral', category: 'Panadería', tipoUnidad: 'Gramo', cantidadUnidad: 500, codigoProducto: 'PAN002', status: 'Disponible' },
-        { id: 3, name: 'Manzanas Rojas 1kg', category: 'Frutas y Verduras', tipoUnidad: 'Kilogramo', cantidadUnidad: 1, codigoProducto: 'FRU003', status: 'Agotado' },
-        { id: 4, name: 'Pollo Entero', category: 'Carnes', tipoUnidad: 'Kilogramo', cantidadUnidad: 1.5, codigoProducto: 'CAR004', status: 'Disponible' },
-        { id: 5, name: 'Coca Cola 2L', category: 'Bebidas', tipoUnidad: 'Litro', cantidadUnidad: 2, codigoProducto: 'BEB005', status: 'Disponible' },
-      ];
-      setProducts(exampleProducts);
-      localStorage.setItem('products', JSON.stringify(exampleProducts));
+  // Cargar productos al iniciar
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
+      const data = await ApiService.getProductos() as { productos: Producto[] };
+      setProducts(data.productos);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los productos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
-
-  const eliminarProducto = (id: number, nombre: string) => {
-    const updatedProducts = products.filter(product => product.id !== id);
-    setProducts(updatedProducts);
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-    toast({
-      title: "Producto eliminado",
-      description: `${nombre} ha sido eliminado del inventario`,
-    });
   };
 
-  const editarProducto = (product) => {
+  useEffect(() => {
+    loadProducts();
+  }, [page]);
+
+  const handleProductAdded = (newProduct: Producto) => {
+    setProducts(prevProducts => [...prevProducts, newProduct]);
+  };
+
+  const handleDeleteProduct = async (id: number, nombre: string) => {
+    try {
+      await ApiService.deleteProducto(id);
+      // En lugar de eliminar el producto, actualizamos su estado
+      setProducts(prevProducts => prevProducts.map(product => 
+        product.id_producto === id 
+          ? { ...product, estado: 'inactivo' } 
+          : product
+      ));
+      toast({
+        title: "Producto desactivado",
+        description: `${nombre} ha sido marcado como inactivo`,
+      });
+    } catch (error) {
+      console.error('Error al desactivar producto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo desactivar el producto",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditClick = (product: Producto) => {
     setEditingProduct(product);
     setEditDialogOpen(true);
   };
 
-  const guardarEdicion = () => {
-    const updatedProducts = products.map(product => 
-      product.id === editingProduct.id ? editingProduct : product
-    );
-    setProducts(updatedProducts);
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-    setEditDialogOpen(false);
-    setEditingProduct(null);
-    toast({
-      title: "Producto actualizado",
-      description: `La información de ${editingProduct.name} ha sido actualizada`,
-    });
+  const handleEditSave = async () => {
+    if (!editingProduct) return;
+
+    try {
+      const updateData: UpdateProductoData = {
+        nombre: editingProduct.nombre,
+        categoria: editingProduct.categoria,
+        codigo_unico: editingProduct.codigo_unico
+      };
+
+      const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData);
+      
+      setProducts((prevProducts: Producto[]) => prevProducts.map((product: Producto) =>
+        product.id_producto === (updatedProduct as Producto).id_producto ? (updatedProduct as Producto) : product
+      ));
+
+      toast({
+        title: "Producto actualizado",
+        description: `La información de ${(updatedProduct as Producto).nombre} ha sido actualizada`,
+      });
+
+      setEditDialogOpen(false);
+      setEditingProduct(null);
+      
+      // Recargar la lista para asegurar sincronización
+      await loadProducts();
+
+    } catch (error) {
+      console.error('Error al actualizar producto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el producto",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.codigoProducto.toLowerCase().includes(searchTerm.toLowerCase())
+    product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.codigo_unico.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -103,7 +150,7 @@ const ProductsPage = () => {
                 </div>
                 <CardTitle className="text-2xl">Inventario de Supermercado</CardTitle>
               </div>
-              <ProductForm />
+              <ProductForm onProductAdded={handleProductAdded} />
             </div>
           </CardHeader>
           <CardContent>
@@ -122,31 +169,37 @@ const ProductsPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Código</TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Tipo Unidad</TableHead>
-                  <TableHead>Cantidad de unidad</TableHead>
-                  <TableHead>Código de producto</TableHead>
+                  <TableHead>Cantidad</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.length > 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4">
+                      Cargando productos...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>{product.tipoUnidad}</TableCell>
-                      <TableCell>{product.cantidadUnidad}</TableCell>
-                      <TableCell>{product.codigoProducto}</TableCell>
+                    <TableRow key={product.id_producto}>
+                      <TableCell>{product.codigo_unico}</TableCell>
+                      <TableCell className="font-medium">{product.nombre}</TableCell>
+                      <TableCell>{product.categoria}</TableCell>
+                      <TableCell>{product.unidad_tipo}</TableCell>
+                      <TableCell>{product.unidad_cantidad}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                          product.status === 'Disponible' 
+                          product.estado === 'activo' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {product.status}
+                          {product.estado === 'activo' ? 'Disponible' : 'No disponible'}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -154,7 +207,7 @@ const ProductsPage = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => editarProducto(product)}
+                            onClick={() => handleEditClick(product)}
                           >
                             <Edit className="w-3 h-3 mr-1" />
                             Editar
@@ -162,7 +215,7 @@ const ProductsPage = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => eliminarProducto(product.id, product.name)}
+                            onClick={() => handleDeleteProduct(product.id_producto, product.nombre)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="w-3 h-3 mr-1" />
@@ -196,73 +249,41 @@ const ProductsPage = () => {
                   <Label htmlFor="edit-name" className="text-right">Nombre</Label>
                   <Input
                     id="edit-name"
-                    value={editingProduct.name}
-                    onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                    value={editingProduct.nombre}
+                    onChange={(e) => setEditingProduct({...editingProduct, nombre: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-category" className="text-right">Categoría</Label>
-                  <Select value={editingProduct.category} onValueChange={(value) => setEditingProduct({...editingProduct, category: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Lácteos">Lácteos</SelectItem>
-                      <SelectItem value="Panadería">Panadería</SelectItem>
-                      <SelectItem value="Frutas y Verduras">Frutas y Verduras</SelectItem>
-                      <SelectItem value="Carnes">Carnes</SelectItem>
-                      <SelectItem value="Bebidas">Bebidas</SelectItem>
-                      <SelectItem value="Limpieza">Limpieza</SelectItem>
-                      <SelectItem value="Congelados">Congelados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-tipo-unidad" className="text-right">Tipo Unidad</Label>
-                  <Select value={editingProduct.tipoUnidad} onValueChange={(value) => setEditingProduct({...editingProduct, tipoUnidad: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Kilogramo">Kilogramo</SelectItem>
-                      <SelectItem value="Gramo">Gramo</SelectItem>
-                      <SelectItem value="Litro">Litro</SelectItem>
-                      <SelectItem value="Mililitro">Mililitro</SelectItem>
-                      <SelectItem value="Unidad">Unidad</SelectItem>
-                      <SelectItem value="Paquete">Paquete</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-cantidad-unidad" className="text-right">Cantidad de unidad</Label>
                   <Input
-                    id="edit-cantidad-unidad"
-                    type="number"
-                    step="0.01"
-                    value={editingProduct.cantidadUnidad}
-                    onChange={(e) => setEditingProduct({...editingProduct, cantidadUnidad: parseFloat(e.target.value)})}
+                    id="edit-category"
+                    value={editingProduct.categoria}
+                    onChange={(e) => setEditingProduct({...editingProduct, categoria: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-codigo-producto" className="text-right">Código de producto</Label>
+                  <Label htmlFor="edit-codigo" className="text-right">Código único</Label>
                   <Input
-                    id="edit-codigo-producto"
-                    value={editingProduct.codigoProducto}
-                    onChange={(e) => setEditingProduct({...editingProduct, codigoProducto: e.target.value})}
+                    id="edit-codigo"
+                    value={editingProduct.codigo_unico}
+                    onChange={(e) => setEditingProduct({...editingProduct, codigo_unico: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-status" className="text-right">Estado</Label>
-                  <Select value={editingProduct.status} onValueChange={(value) => setEditingProduct({...editingProduct, status: value})}>
+                  <Select 
+                    value={editingProduct.estado} 
+                    onValueChange={(value) => setEditingProduct({...editingProduct, estado: value})}
+                  >
                     <SelectTrigger className="col-span-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Disponible">Disponible</SelectItem>
-                      <SelectItem value="Agotado">Agotado</SelectItem>
+                      <SelectItem value="activo">Disponible</SelectItem>
+                      <SelectItem value="inactivo">No disponible</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -270,7 +291,7 @@ const ProductsPage = () => {
                   <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button onClick={guardarEdicion}>
+                  <Button onClick={handleEditSave}>
                     Guardar Cambios
                   </Button>
                 </div>

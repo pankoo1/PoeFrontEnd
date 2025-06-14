@@ -257,6 +257,21 @@ export class ApiService {
         });
     }
 
+    // Método para actualizar un producto
+    static async updateProducto(productoId: number, productoData: any) {
+        return await this.fetchApi(`${API_ENDPOINTS.productos}/${productoId}`, {
+            method: 'PUT',
+            body: JSON.stringify(productoData),
+        });
+    }
+
+    // Método para eliminar un producto
+    static async deleteProducto(productoId: number) {
+        return await this.fetchApi(`${API_ENDPOINTS.productos}/${productoId}`, {
+            method: 'DELETE',
+        });
+    }
+
     // Método para actualizar un usuario
     static async updateUsuario(userId: number, userData: UpdateUsuarioData): Promise<Usuario> {
         try {
@@ -364,4 +379,4 @@ export class ApiService {
             throw error;
         }
     }
-} 
+}

@@ -1,71 +1,62 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { ApiService } from '@/services/api';
+import { Producto, CreateProductoData } from '@/types/producto';
 
-const ProductForm = () => {
+interface ProductFormProps {
+  onProductAdded: (producto: Producto) => void;
+}
+
+const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<CreateProductoData>({
     nombre: '',
     categoria: '',
-    tipoUnidad: '',
-    cantidadUnidad: '',
-    codigoProducto: ''
+    unidad_tipo: '',
+    unidad_cantidad: 1,
+    codigo_unico: ''
   });
 
-  // Obtener la lista de productos actual del localStorage o inicializar como array vacío
-  const getProductsFromStorage = () => {
-    const storedProducts = localStorage.getItem('products');
-    return storedProducts ? JSON.parse(storedProducts) : [];
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Crear nuevo producto con ID único y estado por defecto
-    const newProduct = {
-      id: Date.now(), // Usar timestamp como ID único
-      name: formData.nombre,
-      category: formData.categoria,
-      tipoUnidad: formData.tipoUnidad,
-      cantidadUnidad: parseFloat(formData.cantidadUnidad) || 0,
-      codigoProducto: formData.codigoProducto,
-      status: 'Disponible' // Estado por defecto
-    };
-    
-    // Obtener productos actuales y agregar el nuevo
-    const currentProducts = getProductsFromStorage();
-    const updatedProducts = [...currentProducts, newProduct];
-    
-    // Guardar en localStorage
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-    
-    // Mostrar notificación
-    toast({
-      title: "Producto agregado",
-      description: `${formData.nombre} ha sido registrado en el inventario`,
-    });
-    
-    // Limpiar formulario
-    setFormData({
-      nombre: '',
-      categoria: '',
-      tipoUnidad: '',
-      cantidadUnidad: '',
-      codigoProducto: ''
-    });
-    
-    setIsOpen(false);
-    
-    // Recargar la página para mostrar el nuevo producto
-    window.location.reload();
+    setIsLoading(true);
+
+    try {
+      const newProduct = await ApiService.createProducto(formData) as Producto;
+      onProductAdded(newProduct);
+
+      toast({
+        title: "Producto agregado",
+        description: `${formData.nombre} ha sido registrado en el inventario`,
+      });
+
+      setFormData({
+        nombre: '',
+        categoria: '',
+        unidad_tipo: '',
+        unidad_cantidad: 1,
+        codigo_unico: ''
+      });
+
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error al crear producto:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo crear el producto",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -87,71 +78,67 @@ const ProductForm = () => {
               id="nombre"
               value={formData.nombre}
               onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+              placeholder="Ingrese el nombre del producto"
               required
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="categoria">Categoría</Label>
-            <Select value={formData.categoria} onValueChange={(value) => setFormData({...formData, categoria: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Lácteos">Lácteos</SelectItem>
-                <SelectItem value="Frutas y Verduras">Frutas y Verduras</SelectItem>
-                <SelectItem value="Carnes">Carnes y Embutidos</SelectItem>
-                <SelectItem value="Panadería">Panadería</SelectItem>
-                <SelectItem value="Bebidas">Bebidas</SelectItem>
-                <SelectItem value="Enlatados">Enlatados y Conservas</SelectItem>
-                <SelectItem value="Limpieza">Productos de Limpieza</SelectItem>
-                <SelectItem value="Higiene">Higiene Personal</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              id="categoria"
+              placeholder="Ej: Lácteos, Frutas, etc."
+              value={formData.categoria}
+              onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+              required
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="tipoUnidad">Tipo Unidad</Label>
-              <Select value={formData.tipoUnidad} onValueChange={(value) => setFormData({...formData, tipoUnidad: value})}>
+              <Label htmlFor="unidad_tipo">Tipo Unidad</Label>
+              <Select 
+                value={formData.unidad_tipo} 
+                onValueChange={(value) => setFormData({...formData, unidad_tipo: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Kilogramo">Kilogramo</SelectItem>
-                  <SelectItem value="Gramo">Gramo</SelectItem>
-                  <SelectItem value="Litro">Litro</SelectItem>
-                  <SelectItem value="Mililitro">Mililitro</SelectItem>
-                  <SelectItem value="Unidad">Unidad</SelectItem>
-                  <SelectItem value="Paquete">Paquete</SelectItem>
+                  <SelectItem value="unidad">Unidad</SelectItem>
+                  <SelectItem value="kg">Kilogramo</SelectItem>
+                  <SelectItem value="g">Gramo</SelectItem>
+                  <SelectItem value="l">Litro</SelectItem>
+                  <SelectItem value="ml">Mililitro</SelectItem>
+                  <SelectItem value="paquete">Paquete</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cantidadUnidad">Cantidad de unidad</Label>
+              <Label htmlFor="unidad_cantidad">Cantidad por Unidad</Label>
               <Input
-                id="cantidadUnidad"
+                id="unidad_cantidad"
                 type="number"
-                step="0.01"
-                value={formData.cantidadUnidad}
-                onChange={(e) => setFormData({...formData, cantidadUnidad: e.target.value})}
+                step="1"
+                min="1"
+                value={formData.unidad_cantidad}
+                onChange={(e) => setFormData({...formData, unidad_cantidad: parseInt(e.target.value)})}
                 required
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="codigoProducto">Código de Producto</Label>
+            <Label htmlFor="codigo_unico">Código de Producto (opcional)</Label>
             <Input
-              id="codigoProducto"
-              value={formData.codigoProducto}
-              onChange={(e) => setFormData({...formData, codigoProducto: e.target.value})}
-              required
+              id="codigo_unico"
+              value={formData.codigo_unico}
+              onChange={(e) => setFormData({...formData, codigo_unico: e.target.value})}
             />
           </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit">
-              Agregar Producto
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Creando...' : 'Agregar Producto'}
             </Button>
           </div>
         </form>
