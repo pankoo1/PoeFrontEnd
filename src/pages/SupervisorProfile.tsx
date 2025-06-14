@@ -1,24 +1,86 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Info } from 'lucide-react';
+import { ArrowLeft, User, Save } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { ApiService } from '@/services/api';
+
+interface ProfileData {
+  nombre: string;
+  correo: string;
+  rol: string;
+  estado: string;
+}
 
 const SupervisorProfile = () => {
   const navigate = useNavigate();
-  const [profileData] = useState({
-    name: 'Supervisor Principal',
-    email: 'supervisor@supervisor.com',
-    phone: '+1234567890',
-    role: 'Supervisor de Supermercado',
-    sucursal: 'Sucursal Centro',
-    reponedoresACargo: '12',
-    fechaIngreso: '2023-03-15',
-    supervisor: 'Administrador Principal'
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<ProfileData>({
+    nombre: '',
+    correo: '',
+    rol: '',
+    estado: ''
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState<ProfileData>({
+    nombre: '',
+    correo: '',
+    rol: '',
+    estado: ''
+  });
+
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await ApiService.getSupervisorProfile();
+      setProfileData(response);
+      setEditedData(response);
+    } catch (error) {
+      console.error('Error al cargar datos del perfil:', error);
+      toast({
+        title: "Error al cargar perfil",
+        description: "No se pudieron cargar los datos del perfil. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Solo enviamos los campos que pueden ser actualizados
+      const updateData = {
+        nombre: editedData.nombre,
+        correo: editedData.correo
+      };
+
+      await ApiService.updateSupervisorProfile(updateData);
+      
+      setProfileData(editedData);
+      setIsEditing(false);
+      
+      toast({
+        title: "Perfil actualizado",
+        description: "Los datos han sido actualizados exitosamente",
+      });
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      toast({
+        title: "Error al actualizar perfil",
+        description: error instanceof Error ? error.message : "Ha ocurrido un error al actualizar el perfil",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,7 +89,7 @@ const SupervisorProfile = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate('/supervisor-dashboard')}
+            onClick={() => navigate('/supervisor/dashboard')}
             className="mr-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -43,34 +105,46 @@ const SupervisorProfile = () => {
             <CardHeader>
               <div className="flex items-center space-x-4">
                 <div className="p-3 rounded-lg bg-blue-500 text-white">
-                  <User className="w-6 h-6" />
+                  <User className="w-8 h-8" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-2xl">Información Personal</CardTitle>
-                  <CardDescription>
-                    Tu información personal. Para modificar estos datos, contacta al administrador.
-                  </CardDescription>
                 </div>
+                {!isEditing ? (
+                  <Button onClick={() => setIsEditing(true)}>
+                    Editar Datos
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button variant="outline" onClick={() => {
+                      setIsEditing(false);
+                      setEditedData(profileData);
+                    }}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSave}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Guardar
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-3">
-                <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium">Información de solo lectura</p>
-                  <p>Si necesitas actualizar algún dato, envía una solicitud al administrador del sistema.</p>
+            <CardContent className="space-y-6">
+              {isLoading ? (
+                <div className="text-center py-4">
+                  <p>Cargando datos del perfil...</p>
                 </div>
-              </div>
-
-              <div className="space-y-6">
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nombre Completo</Label>
                     <Input
                       id="name"
-                      value={profileData.name}
-                      readOnly
-                      className="bg-muted"
+                      value={isEditing ? editedData.nombre : profileData.nombre}
+                      onChange={(e) => setEditedData({...editedData, nombre: e.target.value})}
+                      disabled={!isEditing}
+                      className={!isEditing ? "bg-muted" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -78,82 +152,32 @@ const SupervisorProfile = () => {
                     <Input
                       id="email"
                       type="email"
-                      value={profileData.email}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      value={profileData.phone}
-                      readOnly
-                      className="bg-muted"
+                      value={isEditing ? editedData.correo : profileData.correo}
+                      onChange={(e) => setEditedData({...editedData, correo: e.target.value})}
+                      disabled={!isEditing}
+                      className={!isEditing ? "bg-muted" : ""}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Rol</Label>
                     <Input
                       id="role"
-                      value={profileData.role}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sucursal">Sucursal</Label>
-                    <Input
-                      id="sucursal"
-                      value={profileData.sucursal}
-                      readOnly
+                      value={profileData.rol}
+                      disabled
                       className="bg-muted"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reponedores">Reponedores a Cargo</Label>
+                    <Label htmlFor="status">Estado</Label>
                     <Input
-                      id="reponedores"
-                      value={profileData.reponedoresACargo}
-                      readOnly
+                      id="status"
+                      value={profileData.estado}
+                      disabled
                       className="bg-muted"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
-                    <Input
-                      id="fechaIngreso"
-                      value={profileData.fechaIngreso}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="supervisor">Supervisor</Label>
-                    <Input
-                      id="supervisor"
-                      value={profileData.supervisor}
-                      readOnly
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => navigate('/supervisor-dashboard')}>
-                    Volver al Dashboard
-                  </Button>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

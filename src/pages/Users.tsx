@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,90 +10,138 @@ import { ArrowLeft, Pencil, Trash2, Search, Edit, Users as UsersIcon } from 'luc
 import UserForm from '@/components/forms/UserForm';
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-}
+import { ApiService, Usuario } from '@/services/api';
 
 const Users = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Usuario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null);
 
+  // Cargar usuarios al montar el componente
   useEffect(() => {
-    // Cargar usuarios desde localStorage
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    setUsers(storedUsers);
+    loadUsers();
   }, []);
 
-  const handleUserAdded = (newUser: User) => {
-    setUsers([...users, newUser]);
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const loadedUsers = await ApiService.getUsuarios();
+      setUsers(loadedUsers);
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
+      toast({
+        title: "Error al cargar usuarios",
+        description: "No se pudieron cargar los usuarios. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteUser = (userId: number) => {
-    // Filtrar usuarios para eliminar el seleccionado
-    const updatedUsers = users.filter(user => user.id !== userId);
+  const handleUserAdded = async (newUser: Usuario) => {
+    // Asegurarnos de que el nuevo usuario tenga todos los campos necesarios
+    const userWithRole = {
+      ...newUser,
+      rol: newUser.rol || 'Reponedor' // Valor por defecto en caso de que no venga
+    };
     
-    // Actualizar localStorage
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    setUsers(prevUsers => [...prevUsers, userWithRole]);
     
-    // Actualizar estado
-    setUsers(updatedUsers);
-    
-    toast({
-      title: "Usuario eliminado",
-      description: "El usuario ha sido eliminado exitosamente",
-    });
+    // Forzar una actualización de la tabla
+    await loadUsers();
   };
 
-  const handleEditUser = (user: User) => {
+  const handleDeleteClick = (user: Usuario) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await ApiService.deleteUsuario(userToDelete.id_usuario);
+      
+      // Actualizar el estado local
+      setUsers(prevUsers => prevUsers.filter(user => user.id_usuario !== userToDelete.id_usuario));
+      
+      toast({
+        title: "Usuario eliminado",
+        description: "El usuario ha sido eliminado exitosamente",
+      });
+
+      // Cerrar el diálogo y limpiar el usuario seleccionado
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+
+      // Recargar la lista de usuarios
+      await loadUsers();
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      toast({
+        title: "Error al eliminar usuario",
+        description: error instanceof Error ? error.message : "Ha ocurrido un error al eliminar el usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUser = (user: Usuario) => {
     setEditingUser(user);
     setIsEditDialogOpen(true);
   };
 
-  const guardarEdicion = () => {
-    if (editingUser) {
-      // Si el campo de contraseña está vacío, mantener la contraseña existente
-      if (!('password' in editingUser)) {
-        const currentUser = users.find(user => user.id === editingUser.id);
-        if (currentUser && 'password' in currentUser) {
-          (editingUser as any).password = (currentUser as any).password;
-        }
-      }
+  const guardarEdicion = async () => {
+    if (!editingUser) return;
+
+    try {
+      const userData = {
+        nombre: editingUser.nombre,
+        correo: editingUser.correo,
+        rol: editingUser.rol,
+        estado: editingUser.estado
+      };
+
+      const usuarioActualizado = await ApiService.updateUsuario(editingUser.id_usuario, userData);
       
-      // Actualizar usuario en el array
-      const updatedUsers = users.map(user => 
-        user.id === editingUser.id ? editingUser : user
-      );
+      // Actualizar el estado local inmediatamente
+      setUsers(prevUsers => prevUsers.map(user => 
+        user.id_usuario === editingUser.id_usuario 
+          ? { ...usuarioActualizado, rol: usuarioActualizado.rol } 
+          : user
+      ));
       
-      // Actualizar localStorage
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      // Actualizar estado
-      setUsers(updatedUsers);
+      // Forzar una recarga de los datos
+      await loadUsers();
       
       toast({
         title: "Usuario actualizado",
         description: "Los datos del usuario han sido actualizados exitosamente",
       });
       
-      // Cerrar diálogo
       setIsEditDialogOpen(false);
       setEditingUser(null);
+    } catch (error) {
+      console.error('Error al actualizar usuario:', error);
+      toast({
+        title: "Error al actualizar usuario",
+        description: error instanceof Error ? error.message : "Ha ocurrido un error al actualizar el usuario",
+        variant: "destructive",
+      });
     }
   };
 
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.correo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.rol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -140,52 +187,58 @@ const Users = () => {
               </div>
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${user.status === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {user.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Eliminar
-                        </Button>
-                      </div>
-                    </TableCell>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p>Cargando usuarios...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id_usuario}>
+                      <TableCell className="font-medium">{user.nombre}</TableCell>
+                      <TableCell>{user.correo}</TableCell>
+                      <TableCell>{user.rol}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${user.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(user)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
@@ -200,8 +253,8 @@ const Users = () => {
                 <Label htmlFor="edit-name">Nombre</Label>
                 <Input
                   id="edit-name"
-                  value={editingUser?.name || ''}
-                  onChange={(e) => setEditingUser(prev => prev ? {...prev, name: e.target.value} : null)}
+                  value={editingUser?.nombre || ''}
+                  onChange={(e) => setEditingUser(prev => prev ? {...prev, nombre: e.target.value} : null)}
                   required
                 />
               </div>
@@ -210,26 +263,21 @@ const Users = () => {
                 <Input
                   id="edit-email"
                   type="email"
-                  value={editingUser?.email || ''}
-                  onChange={(e) => setEditingUser(prev => prev ? {...prev, email: e.target.value} : null)}
+                  value={editingUser?.correo || ''}
+                  onChange={(e) => setEditingUser(prev => prev ? {...prev, correo: e.target.value} : null)}
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-password">Contraseña</Label>
-                <Input
-                  id="edit-password"
-                  type="password"
-                  placeholder="Dejar en blanco para mantener la actual"
-                  value={(editingUser as any)?.password || ''}
-                  onChange={(e) => setEditingUser(prev => prev ? {...prev, password: e.target.value} : null)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Rol</Label>
                 <Select 
-                  value={editingUser?.role || ''} 
-                  onValueChange={(value) => setEditingUser(prev => prev ? {...prev, role: value} : null)}
+                  value={editingUser?.rol || ''} 
+                  onValueChange={(value) => {
+                    setEditingUser(prev => prev ? {
+                      ...prev,
+                      rol: value === 'Supervisor' ? 'Supervisor' : 'Reponedor'
+                    } : null)
+                  }}
                   required
                 >
                   <SelectTrigger>
@@ -244,16 +292,16 @@ const Users = () => {
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Estado</Label>
                 <Select 
-                  value={editingUser?.status || ''} 
-                  onValueChange={(value) => setEditingUser(prev => prev ? {...prev, status: value} : null)}
+                  value={editingUser?.estado || ''} 
+                  onValueChange={(value) => setEditingUser(prev => prev ? {...prev, estado: value} : null)}
                   required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Activo">Activo</SelectItem>
-                    <SelectItem value="Inactivo">Inactivo</SelectItem>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -265,6 +313,36 @@ const Users = () => {
                   Guardar Cambios
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Diálogo de confirmación de eliminación */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar Eliminación</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>¿Estás seguro que deseas eliminar al usuario {userToDelete?.nombre}?</p>
+              <p className="text-sm text-muted-foreground mt-2">Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setUserToDelete(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteUser}
+              >
+                Eliminar
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

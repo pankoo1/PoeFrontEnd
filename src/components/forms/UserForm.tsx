@@ -1,65 +1,97 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { ApiService, CreateUsuarioData, CreateReponedorData, Usuario } from '@/services/api';
 
 interface UserFormProps {
-  onUserAdded: (newUser: any) => void;
+  onUserAdded: (user: Usuario) => void;
+  isSupervisor?: boolean;
+  buttonLabel?: string;
 }
 
-const UserForm = ({ onUserAdded }: UserFormProps) => {
+const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usuario" }: UserFormProps) => {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
-    email: '',
-    rol: '',
-    password: '',
-    estado: 'Activo'
+    correo: '',
+    rol: isSupervisor ? 'Reponedor' : '',
+    contraseña: '',
+    estado: 'activo'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // Crear nuevo usuario con ID único
-    const newUser = {
-      id: Date.now(),
-      name: formData.nombre,
-      email: formData.email,
-      role: formData.rol === 'supervisor' ? 'Supervisor' : 'Reponedor',
-      status: formData.estado,
-      password: formData.password
-    };
-    
-    // Guardar en localStorage
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = [...existingUsers, newUser];
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    
-    // Notificar al componente padre
-    onUserAdded(newUser);
-    
-    console.log('Nuevo usuario:', newUser);
-    toast({
-      title: "Usuario creado",
-      description: `${newUser.role} ${newUser.name} ha sido registrado exitosamente`,
-    });
-    
-    // Resetear formulario
-    setFormData({
-      nombre: '',
-      email: '',
-      rol: '',
-      password: '',
-      estado: 'Activo'
-    });
-    setIsOpen(false);
+    try {
+      // Verificar que el usuario esté autenticado
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Verificar permisos según el rol
+      const userRole = localStorage.getItem('userRole');
+      if (!userRole || (userRole !== 'admin' && userRole !== 'supervisor')) {
+        throw new Error('No tienes permisos para crear usuarios.');
+      }
+
+      let newUser: Usuario;
+
+      if (isSupervisor) {
+        // Si es supervisor, usar el endpoint específico para crear reponedores
+        const reponedorData: CreateReponedorData = {
+          nombre: formData.nombre,
+          correo: formData.correo,
+          contraseña: formData.contraseña
+        };
+        newUser = await ApiService.createReponedor(reponedorData);
+      } else {
+        // Si es administrador, usar el endpoint general
+        const userData: CreateUsuarioData = {
+          nombre: formData.nombre,
+          correo: formData.correo,
+          contraseña: formData.contraseña,
+          rol: formData.rol,
+          estado: formData.estado
+        };
+        newUser = await ApiService.createUsuario(userData);
+      }
+      
+      // Notificar al componente padre con el usuario completo
+      onUserAdded(newUser);
+      
+      toast({
+        title: "Usuario creado",
+        description: `${newUser.rol} ${newUser.nombre} ha sido registrado exitosamente`,
+      });
+      
+      // Resetear formulario y cerrar el diálogo
+      setFormData({
+        nombre: '',
+        correo: '',
+        rol: isSupervisor ? 'Reponedor' : '',
+        contraseña: '',
+        estado: 'activo'
+      });
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error al crear usuario:', error);
+      toast({
+        title: "Error al crear usuario",
+        description: error instanceof Error ? error.message : "Ha ocurrido un error al crear el usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,12 +99,14 @@ const UserForm = ({ onUserAdded }: UserFormProps) => {
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Nuevo Usuario
+          {buttonLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar Nuevo Usuario</DialogTitle>
+          <DialogTitle>
+            {isSupervisor ? "Registrar Nuevo Reponedor" : "Registrar Nuevo Usuario"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -85,55 +119,78 @@ const UserForm = ({ onUserAdded }: UserFormProps) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="correo">Email</Label>
             <Input
-              id="email"
+              id="correo"
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              value={formData.correo}
+              onChange={(e) => setFormData({...formData, correo: e.target.value})}
               required
             />
           </div>
+          {!isSupervisor && (
+            <div className="space-y-2">
+              <Label htmlFor="rol">Rol</Label>
+              <Select 
+                value={formData.rol} 
+                onValueChange={(value) => setFormData({...formData, rol: value})} 
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Supervisor">Supervisor</SelectItem>
+                  <SelectItem value="Reponedor">Reponedor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {isSupervisor && (
+            <div className="space-y-2">
+              <Label htmlFor="rol">Rol</Label>
+              <Input
+                id="rol"
+                value="Reponedor"
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="rol">Rol</Label>
-            <Select value={formData.rol} onValueChange={(value) => setFormData({...formData, rol: value})} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="reponedor">Reponedor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="contraseña">Contraseña</Label>
             <Input
-              id="password"
+              id="contraseña"
               type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              value={formData.contraseña}
+              onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="estado">Estado</Label>
-            <Select value={formData.estado} onValueChange={(value) => setFormData({...formData, estado: value})} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Inactivo">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {!isSupervisor && (
+            <div className="space-y-2">
+              <Label htmlFor="estado">Estado</Label>
+              <Select 
+                value={formData.estado} 
+                onValueChange={(value) => setFormData({...formData, estado: value})} 
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="activo">Activo</SelectItem>
+                  <SelectItem value="inactivo">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit">
-              Registrar Usuario
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Registrando...' : 'Registrar Usuario'}
             </Button>
           </div>
         </form>

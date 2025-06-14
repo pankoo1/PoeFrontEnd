@@ -1,0 +1,367 @@
+import { API_ENDPOINTS, API_URL } from '../config/api';
+
+// Tipos
+export interface LoginCredentials {
+    correo: string;
+    contraseña: string;
+}
+
+export interface LoginResponse {
+    access_token: string;
+    token_type: string;
+    user_info: {
+        id: string;
+        nombre: string;
+        correo: string;
+        rol: string;
+        estado: string;
+    };
+}
+
+export interface Usuario {
+    id_usuario: number;
+    nombre: string;
+    correo: string;
+    rol: string;
+    estado: string;
+}
+
+export interface CreateUsuarioData {
+    nombre: string;
+    correo: string;
+    contraseña: string;
+    rol: string;
+    estado: string;
+    supervisor_id?: number; // ID del supervisor que crea el reponedor
+}
+
+export interface UpdateUsuarioData {
+    nombre?: string;
+    correo?: string;
+    rol?: string;
+    estado?: string;
+}
+
+export interface CreateReponedorData {
+    nombre: string;
+    correo: string;
+    contraseña: string;
+}
+
+// Clase principal para manejar las llamadas a la API
+export class ApiService {
+    private static token: string | null = null;
+
+    // Método para establecer el token
+    static setToken(token: string): void {
+        this.token = token;
+        localStorage.setItem('token', token);
+    }
+
+    // Método para obtener el token
+    static getToken(): string | null {
+        if (!this.token) {
+            this.token = localStorage.getItem('token');
+        }
+        return this.token;
+    }
+
+    // Método para limpiar el token (logout)
+    static clearToken(): void {
+        this.token = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+    }
+
+    // Headers por defecto para las peticiones autenticadas
+    private static getHeaders(includeAuth: boolean = true): HeadersInit {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+
+        if (includeAuth) {
+            const token = this.getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+
+        return headers;
+    }
+
+    // Método genérico para hacer peticiones
+    private static async fetchApi<T>(
+        endpoint: string,
+        options: RequestInit = {},
+        requiresAuth: boolean = true
+    ): Promise<T> {
+        try {
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+
+            if (requiresAuth) {
+                const token = this.getToken();
+                if (!token) {
+                    throw new Error('No hay token de autenticación');
+                }
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(endpoint, {
+                ...options,
+                headers,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail?.message || 
+                    data.detail || 
+                    data.message || 
+                    `Error ${response.status}: ${response.statusText}`
+                );
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en fetchApi:', error);
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('Error desconocido en la petición');
+        }
+    }
+
+    // Método de login
+    static async login(credentials: LoginCredentials): Promise<LoginResponse> {
+        try {
+            const response = await this.fetchApi<LoginResponse>(
+                API_ENDPOINTS.login,
+                {
+                    method: 'POST',
+                    body: JSON.stringify(credentials),
+                },
+                false // No requiere autenticación
+            );
+            
+            if (!response.access_token) {
+                throw new Error('No se recibió el token de acceso');
+            }
+
+            // Guardar el token
+            this.setToken(response.access_token);
+
+            // Mapear el rol del backend al formato del frontend
+            const rolMapping: { [key: string]: string } = {
+                'Administrador': 'admin',
+                'Supervisor': 'supervisor',
+                'Reponedor': 'reponedor'
+            };
+
+            // Guardar información adicional del usuario
+            const userRole = rolMapping[response.user_info.rol] || response.user_info.rol.toLowerCase();
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userRole', userRole);
+            localStorage.setItem('userName', response.user_info.nombre);
+            
+            console.log('Login exitoso:', {
+                token: response.access_token,
+                role: userRole,
+                name: response.user_info.nombre
+            });
+            
+            return response;
+        } catch (error) {
+            console.error('Error en login:', error);
+            this.clearToken(); // Limpiar token en caso de error
+            throw error;
+        }
+    }
+
+    // Método de logout
+    static logout() {
+        this.clearToken();
+    }
+
+    // Método para crear un usuario
+    static async createUsuario(userData: CreateUsuarioData): Promise<Usuario> {
+        try {
+            // Si es un supervisor creando un reponedor, usar el endpoint específico
+            if (localStorage.getItem('userRole') === 'supervisor' && userData.rol === 'Reponedor') {
+                return await this.createReponedor({
+                    nombre: userData.nombre,
+                    correo: userData.correo,
+                    contraseña: userData.contraseña
+                });
+            }
+
+            // Para otros casos, usar el endpoint general
+            const response = await this.fetchApi<{ mensaje: string; usuario: Usuario }>(
+                API_ENDPOINTS.usuarios,
+                {
+                    method: 'POST',
+                    body: JSON.stringify(userData),
+                }
+            );
+            return response.usuario;
+        } catch (error) {
+            console.error('Error al crear usuario:', error);
+            throw error;
+        }
+    }
+
+    // Método para obtener usuarios (modificado para supervisores)
+    static async getUsuarios(): Promise<Usuario[]> {
+        try {
+            const userRole = localStorage.getItem('userRole');
+            const endpoint = userRole === 'supervisor' 
+                ? API_ENDPOINTS.supervisor_reponedores 
+                : API_ENDPOINTS.usuarios;
+
+            const response = await this.fetchApi<{ total: number; reponedores?: Usuario[]; usuarios?: Usuario[]; mensaje: string }>(
+                endpoint as string
+            );
+
+            // Si es supervisor, la respuesta viene en 'reponedores'
+            if (userRole === 'supervisor' && response.reponedores) {
+                return response.reponedores.map(reponedor => ({
+                    ...reponedor,
+                    rol: 'Reponedor' // Asegurarnos de que el rol esté presente
+                }));
+            }
+            
+            // Si es admin, la respuesta viene en 'usuarios'
+            return response.usuarios || [];
+        } catch (error) {
+            console.error('Error al obtener usuarios:', error);
+            throw error;
+        }
+    }
+
+    // Ejemplo de método para obtener productos
+    static async getProductos() {
+        return await this.fetchApi(API_ENDPOINTS.productos);
+    }
+
+    // Ejemplo de método para crear un producto
+    static async createProducto(productoData: any) {
+        return await this.fetchApi(API_ENDPOINTS.productos, {
+            method: 'POST',
+            body: JSON.stringify(productoData),
+        });
+    }
+
+    // Método para actualizar un usuario
+    static async updateUsuario(userId: number, userData: UpdateUsuarioData): Promise<Usuario> {
+        try {
+            // Asegurarnos de que el rol tenga el formato correcto
+            const formattedUserData = {
+                ...userData,
+                rol: userData.rol === 'Supervisor' ? 'Supervisor' : 'Reponedor'
+            };
+
+            const response = await this.fetchApi<{ mensaje: string; usuario: Usuario }>(
+                `${API_ENDPOINTS.usuarios}/${userId}`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify(formattedUserData),
+                }
+            );
+
+            // Asegurarnos de que la respuesta incluya el rol actualizado
+            return {
+                ...response.usuario,
+                rol: response.usuario.rol || formattedUserData.rol // Usar el rol enviado si no viene en la respuesta
+            };
+        } catch (error) {
+            console.error('Error al actualizar usuario:', error);
+            throw error;
+        }
+    }
+
+    // Método para eliminar un usuario
+    static async deleteUsuario(userId: number): Promise<void> {
+        try {
+            const response = await this.fetchApi<{ mensaje: string }>(
+                `${API_ENDPOINTS.usuarios}/${userId}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            if (!response || response.mensaje.includes('error')) {
+                throw new Error(response?.mensaje || 'Error al eliminar el usuario');
+            }
+        } catch (error) {
+            console.error('Error al eliminar usuario:', error);
+            throw new Error(error instanceof Error ? error.message : 'Error al eliminar el usuario');
+        }
+    }
+
+    // Perfil
+    static async getProfile(): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            API_ENDPOINTS.profile,
+            {
+                method: 'GET'
+            }
+        );
+        return response;
+    }
+
+    static async updateProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            API_ENDPOINTS.profile,
+            {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            }
+        );
+        return response;
+    }
+
+    // Perfil del Supervisor
+    static async getSupervisorProfile(): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            `${API_ENDPOINTS.usuarios}/me`,
+            {
+                method: 'GET'
+            }
+        );
+        return response;
+    }
+
+    static async updateSupervisorProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            `${API_ENDPOINTS.usuarios}/me`,
+            {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            }
+        );
+        return response;
+    }
+
+    // Método específico para que supervisores creen reponedores
+    static async createReponedor(reponedorData: CreateReponedorData): Promise<Usuario> {
+        try {
+            const response = await this.fetchApi<{ mensaje: string; usuario: Usuario }>(
+                API_ENDPOINTS.supervisor_reponedores,
+                {
+                    method: 'POST',
+                    body: JSON.stringify(reponedorData),
+                }
+            );
+            return response.usuario;
+        } catch (error) {
+            console.error('Error al crear reponedor:', error);
+            throw error;
+        }
+    }
+} 
