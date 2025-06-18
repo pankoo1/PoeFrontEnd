@@ -3,14 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Search, Edit, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
-import { Producto, UpdateProductoData } from '@/types/producto';
+import { Producto } from '@/types/producto';
 import ProductForm from '../components/forms/ProductForm';
 
 const ProductsPage = () => {
@@ -20,13 +17,10 @@ const ProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Estado para almacenar los productos
   const [products, setProducts] = useState<Producto[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Cargar productos al iniciar
   const loadProducts = async () => {
     try {
       setIsLoading(true);
@@ -52,10 +46,17 @@ const ProductsPage = () => {
     setProducts(prevProducts => [...prevProducts, newProduct]);
   };
 
+  const handleProductUpdated = (updatedProduct: Producto) => {
+    setProducts(prevProducts => prevProducts.map(product =>
+      product.id_producto === updatedProduct.id_producto ? updatedProduct : product
+    ));
+    setEditDialogOpen(false);
+    setEditingProduct(null);
+  };
+
   const handleDeleteProduct = async (id: number, nombre: string) => {
     try {
       await ApiService.deleteProducto(id);
-      // En lugar de eliminar el producto, actualizamos su estado
       setProducts(prevProducts => prevProducts.map(product => 
         product.id_producto === id 
           ? { ...product, estado: 'inactivo' } 
@@ -78,43 +79,6 @@ const ProductsPage = () => {
   const handleEditClick = (product: Producto) => {
     setEditingProduct(product);
     setEditDialogOpen(true);
-  };
-
-  const handleEditSave = async () => {
-    if (!editingProduct) return;
-
-    try {
-      const updateData: UpdateProductoData = {
-        nombre: editingProduct.nombre,
-        categoria: editingProduct.categoria,
-        codigo_unico: editingProduct.codigo_unico
-      };
-
-      const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData);
-      
-      setProducts((prevProducts: Producto[]) => prevProducts.map((product: Producto) =>
-        product.id_producto === (updatedProduct as Producto).id_producto ? (updatedProduct as Producto) : product
-      ));
-
-      toast({
-        title: "Producto actualizado",
-        description: `La información de ${(updatedProduct as Producto).nombre} ha sido actualizada`,
-      });
-
-      setEditDialogOpen(false);
-      setEditingProduct(null);
-      
-      // Recargar la lista para asegurar sincronización
-      await loadProducts();
-
-    } catch (error) {
-      console.error('Error al actualizar producto:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el producto",
-        variant: "destructive",
-      });
-    }
   };
 
   const filteredProducts = products.filter(product =>
@@ -150,7 +114,7 @@ const ProductsPage = () => {
                 </div>
                 <CardTitle className="text-2xl">Inventario de Supermercado</CardTitle>
               </div>
-              <ProductForm onProductAdded={handleProductAdded} />
+              <ProductForm onProductAdded={handleProductAdded} mode="create" />
             </div>
           </CardHeader>
           <CardContent>
@@ -237,68 +201,14 @@ const ProductsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Dialog para editar producto */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Editar Producto</DialogTitle>
-            </DialogHeader>
-            {editingProduct && (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-name" className="text-right">Nombre</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingProduct.nombre}
-                    onChange={(e) => setEditingProduct({...editingProduct, nombre: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-category" className="text-right">Categoría</Label>
-                  <Input
-                    id="edit-category"
-                    value={editingProduct.categoria}
-                    onChange={(e) => setEditingProduct({...editingProduct, categoria: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-codigo" className="text-right">Código único</Label>
-                  <Input
-                    id="edit-codigo"
-                    value={editingProduct.codigo_unico}
-                    onChange={(e) => setEditingProduct({...editingProduct, codigo_unico: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-status" className="text-right">Estado</Label>
-                  <Select 
-                    value={editingProduct.estado} 
-                    onValueChange={(value) => setEditingProduct({...editingProduct, estado: value})}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="activo">Disponible</SelectItem>
-                      <SelectItem value="inactivo">No disponible</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleEditSave}>
-                    Guardar Cambios
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Formulario de edición */}
+        <ProductForm
+          mode="edit"
+          isOpen={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          editingProduct={editingProduct}
+          onProductUpdated={handleProductUpdated}
+        />
       </main>
     </div>
   );

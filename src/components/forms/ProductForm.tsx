@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,16 +7,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
-import { Producto, CreateProductoData } from '@/types/producto';
+import { Producto, CreateProductoData, UpdateProductoData } from '@/types/producto';
 
 interface ProductFormProps {
-  onProductAdded: (producto: Producto) => void;
+  onProductAdded?: (producto: Producto) => void;
+  onProductUpdated?: (producto: Producto) => void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  editingProduct?: Producto | null;
+  mode?: 'create' | 'edit';
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
+const ProductForm: React.FC<ProductFormProps> = ({ 
+  onProductAdded, 
+  onProductUpdated,
+  isOpen,
+  onOpenChange,
+  editingProduct,
+  mode = 'create'
+}) => {
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateProductoData>({
     nombre: '',
     categoria: '',
@@ -25,33 +37,51 @@ const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
     codigo_unico: ''
   });
 
+  // Actualizar el formulario cuando se recibe un producto para editar
+  useEffect(() => {
+    if (editingProduct && mode === 'edit') {
+      setFormData({
+        nombre: editingProduct.nombre,
+        categoria: editingProduct.categoria,
+        unidad_tipo: editingProduct.unidad_tipo,
+        unidad_cantidad: editingProduct.unidad_cantidad,
+        codigo_unico: editingProduct.codigo_unico
+      });
+    }
+  }, [editingProduct, mode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const newProduct = await ApiService.createProducto(formData) as Producto;
-      onProductAdded(newProduct);
+      if (mode === 'create') {
+        const newProduct = await ApiService.createProducto(formData);
+        onProductAdded?.(newProduct);
+        toast({
+          title: "Producto agregado",
+          description: `${formData.nombre} ha sido registrado en el inventario`,
+        });
+      } else if (mode === 'edit' && editingProduct) {
+        const updateData: UpdateProductoData = {
+          nombre: formData.nombre,
+          categoria: formData.categoria,
+          codigo_unico: formData.codigo_unico
+        };
+        const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData);
+        onProductUpdated?.(updatedProduct);
+        toast({
+          title: "Producto actualizado",
+          description: `${formData.nombre} ha sido actualizado correctamente`,
+        });
+      }
 
-      toast({
-        title: "Producto agregado",
-        description: `${formData.nombre} ha sido registrado en el inventario`,
-      });
-
-      setFormData({
-        nombre: '',
-        categoria: '',
-        unidad_tipo: '',
-        unidad_cantidad: 1,
-        codigo_unico: ''
-      });
-
-      setIsOpen(false);
+      handleClose();
     } catch (error) {
-      console.error('Error al crear producto:', error);
+      console.error('Error al procesar producto:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo crear el producto",
+        description: error instanceof Error ? error.message : "No se pudo procesar el producto",
         variant: "destructive",
       });
     } finally {
@@ -59,17 +89,48 @@ const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
     }
   };
 
+  const handleClose = () => {
+    if (mode === 'create') {
+      setFormData({
+        nombre: '',
+        categoria: '',
+        unidad_tipo: '',
+        unidad_cantidad: 1,
+        codigo_unico: ''
+      });
+    }
+    if (onOpenChange) {
+      onOpenChange(false);
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const dialogOpen = isOpen !== undefined ? isOpen : internalOpen;
+  const setDialogOpen = onOpenChange || setInternalOpen;
+
+  const renderTrigger = () => {
+    if (mode === 'create') {
+      return (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Producto
+          </Button>
+        </DialogTrigger>
+      );
+    }
+    return null;
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Producto
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {renderTrigger()}
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+          <DialogTitle>
+            {mode === 'create' ? 'Agregar Nuevo Producto' : 'Editar Producto'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -98,6 +159,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
               <Select 
                 value={formData.unidad_tipo} 
                 onValueChange={(value) => setFormData({...formData, unidad_tipo: value})}
+                disabled={mode === 'edit'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tipo" />
@@ -122,23 +184,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ onProductAdded }) => {
                 value={formData.unidad_cantidad}
                 onChange={(e) => setFormData({...formData, unidad_cantidad: parseInt(e.target.value)})}
                 required
+                disabled={mode === 'edit'}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="codigo_unico">Código de Producto (opcional)</Label>
+            <Label htmlFor="codigo_unico">Código de Producto {mode === 'create' ? '(opcional)' : ''}</Label>
             <Input
               id="codigo_unico"
               value={formData.codigo_unico}
               onChange={(e) => setFormData({...formData, codigo_unico: e.target.value})}
+              disabled={mode === 'edit'}
             />
           </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creando...' : 'Agregar Producto'}
+              {isLoading 
+                ? (mode === 'create' ? 'Creando...' : 'Actualizando...') 
+                : (mode === 'create' ? 'Agregar Producto' : 'Guardar Cambios')}
             </Button>
           </div>
         </form>
