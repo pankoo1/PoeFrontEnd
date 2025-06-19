@@ -56,7 +56,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
     try {
       if (mode === 'create') {
-        const newProduct = await ApiService.createProducto(formData);
+        const newProduct = await ApiService.createProducto(formData) as Producto;
         onProductAdded?.(newProduct);
         toast({
           title: "Producto agregado",
@@ -68,7 +68,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           categoria: formData.categoria,
           codigo_unico: formData.codigo_unico
         };
-        const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData);
+        const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData) as Producto;
         onProductUpdated?.(updatedProduct);
         toast({
           title: "Producto actualizado",

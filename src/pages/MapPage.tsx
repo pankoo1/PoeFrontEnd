@@ -1,14 +1,28 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Map } from 'lucide-react';
+import { MapViewer } from '@/components/MapViewer';
+import { UbicacionFisica } from '@/types/mapa';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 const MapPage = () => {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+    const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
 
-  return (
+    const handleObjectClick = (ubicacion: UbicacionFisica) => {
+        setSelectedLocation(ubicacion);
+    };
+
+    return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center">
@@ -35,24 +49,49 @@ const MapPage = () => {
               <CardTitle className="text-2xl">Visualización de Mapa</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="h-full">
-            <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <Map className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">Mapa Interactivo</h3>
-                <p className="text-muted-foreground mb-4">
-                  El mapa interactivo será integrado manualmente aquí
-                </p>
-                <Button variant="outline">
-                  Configurar Mapa
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  );
+          <CardContent className="h-[calc(100%-100px)]">
+                        <MapViewer
+                            onObjectClick={handleObjectClick}
+                            className="w-full h-full"
+                        />
+                    </CardContent>
+                </Card>
+            </main>
+
+            <Dialog open={!!selectedLocation} onOpenChange={() => setSelectedLocation(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Detalles de la Ubicación</DialogTitle>
+                        <DialogDescription>
+                            {selectedLocation?.objeto && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Objeto</h3>
+                                    <p>Nombre: {selectedLocation.objeto.nombre}</p>
+                                    <p>Tipo: {selectedLocation.objeto.tipo}</p>
+                                    <p>Caminable: {selectedLocation.objeto.caminable ? 'Sí' : 'No'}</p>
+                                </div>
+                            )}
+                            {selectedLocation?.mueble && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Mueble</h3>
+                                    <p>Estantería: {selectedLocation.mueble.estanteria}</p>
+                                    <p>Nivel: {selectedLocation.mueble.nivel}</p>
+                                </div>
+                            )}
+                            {selectedLocation?.punto?.producto && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Producto</h3>
+                                    <p>Nombre: {selectedLocation.punto.producto.nombre}</p>
+                                    <p>Categoría: {selectedLocation.punto.producto.categoria}</p>
+                                    <p>Unidad: {selectedLocation.punto.producto.unidad_cantidad} {selectedLocation.punto.producto.unidad_tipo}</p>
+                                </div>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
 };
 
 export default MapPage;

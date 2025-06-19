@@ -379,4 +379,22 @@ export class ApiService {
             throw error;
         }
     }
+
+    // Método público para obtener el mapa de reposición
+    static async getMapaReposicion(idMapa?: number) {
+        let url = `${API_URL}/mapa/reposicion`;
+        if (idMapa) {
+            url += `?id_mapa=${idMapa}`;
+        }
+        return await fetch(url, {
+            method: 'GET',
+            headers: this.getHeaders(true),
+        }).then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text);
+            }
+            return res.json();
+        });
+    }
 }
