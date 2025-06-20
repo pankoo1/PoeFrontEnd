@@ -12,13 +12,15 @@ interface ShelfGridProps {
     columnas: number;
     className?: string;
     onDrop?: (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => void;
+    onClearCell?: (posicion: { fila: number, columna: number }) => void;
 }
 
 export const ShelfGrid: React.FC<ShelfGridProps> = ({
     filas,
     columnas,
     className = '',
-    onDrop
+    onDrop,
+    onClearCell
 }) => {
     const [productosAsignados, setProductosAsignados] = useState<CeldaProducto[]>([]);
     const [celdaActiva, setCeldaActiva] = useState<{ fila: number, columna: number } | null>(null);
@@ -80,10 +82,20 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             justify-center
             text-xs
             font-medium
-            ${productoAsignado ? 'bg-green-100 hover:bg-green-200' : 'bg-gray-100 hover:bg-gray-200'}
+            ${productoAsignado ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-100 hover:bg-gray-200'}
             ${esActiva ? 'ring-2 ring-primary ring-offset-1' : ''}
             ${!productoAsignado ? 'cursor-pointer' : ''}
         `;
+    };
+
+    const handleCellClick = (fila: number, columna: number) => {
+        const productoAsignado = getProductoEnPosicion(fila, columna);
+        if (productoAsignado) {
+            // Actualizar el estado local
+            setProductosAsignados(prev => prev.filter(p => p.fila !== fila || p.columna !== columna));
+            // Notificar al componente padre
+            onClearCell?.({ fila: fila + 1, columna: columna + 1 });
+        }
     };
 
     return (
@@ -106,8 +118,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                                 onDragOver={(e) => handleDragOver(e, fila, columna)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={(e) => handleDrop(e, fila, columna)}
+                                onClick={() => handleCellClick(fila, columna)}
                                 title={productoAsignado 
-                                    ? `${productoAsignado.producto.nombre} (${productoAsignado.producto.unidad_cantidad} ${productoAsignado.producto.unidad_tipo})`
+                                    ? `${productoAsignado.producto.nombre} (${productoAsignado.producto.unidad_cantidad} ${productoAsignado.producto.unidad_tipo}) - Click para eliminar`
                                     : `Posición: Fila ${fila + 1}, Columna ${columna + 1}`
                                 }
                             >

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, Search } from 'lucide-react';
+import { ArrowLeft, Map, Search, Save } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { UbicacionFisica } from '@/types/mapa';
 import { Producto } from '@/types/producto';
@@ -28,6 +28,7 @@ const MapPage = () => {
     const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
     const [productos, setProductos] = useState<Producto[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [asignaciones, setAsignaciones] = useState<{[key: string]: Producto}>({});
     const { toast } = useToast();
 
     useEffect(() => {
@@ -56,27 +57,52 @@ const MapPage = () => {
         e.dataTransfer.setData('producto', JSON.stringify(producto));
     };
 
-    const handleDrop = async (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => {
-        e.preventDefault();
-        const productoData = e.dataTransfer.getData('producto');
-        if (!productoData || !selectedLocation?.mueble) return;
-
-        const producto = JSON.parse(productoData) as Producto;
-        
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => {
         try {
-            // Aquí iría la lógica para asignar el producto a la posición específica del mueble
-            // Por ahora solo mostramos un toast de éxito
+            const productoData = e.dataTransfer.getData('producto');
+            if (!productoData) return;
+            
+            const producto = JSON.parse(productoData) as Producto;
+            const posicionKey = `${posicion.fila},${posicion.columna}`;
+            
+            setAsignaciones(prev => ({
+                ...prev,
+                [posicionKey]: producto
+            }));
+            
             toast({
-                title: 'Producto asignado',
-                description: `${producto.nombre} asignado a la posición ${posicion.fila},${posicion.columna}`,
+                title: "Producto asignado",
+                description: `${producto.nombre} asignado a la posición (${posicion.fila}, ${posicion.columna})`,
             });
         } catch (error) {
+            console.error('Error al procesar el producto:', error);
+        }
+    };
+
+    const handleClearCell = (posicion: { fila: number, columna: number }) => {
+        const posicionKey = `${posicion.fila},${posicion.columna}`;
+        const producto = asignaciones[posicionKey];
+        
+        if (producto) {
+            setAsignaciones(prev => {
+                const newAsignaciones = { ...prev };
+                delete newAsignaciones[posicionKey];
+                return newAsignaciones;
+            });
+            
             toast({
-                title: 'Error',
-                description: 'No se pudo asignar el producto',
-                variant: 'destructive',
+                title: "Producto eliminado",
+                description: `${producto.nombre} eliminado de la posición (${posicion.fila}, ${posicion.columna})`,
             });
         }
+    };
+
+    const handleConfirmarAsignaciones = async () => {
+        // Aquí iría la lógica para guardar las asignaciones en el backend
+        toast({
+            title: "Asignaciones guardadas",
+            description: `Se han guardado ${Object.keys(asignaciones).length} asignaciones de productos`,
+        });
     };
 
     const filteredProductos = productos.filter(producto =>
@@ -163,7 +189,20 @@ const MapPage = () => {
                                                     filas={selectedLocation.mueble.filas || 3} 
                                                     columnas={selectedLocation.mueble.columnas || 4}
                                                     onDrop={handleDrop}
+                                                    onClearCell={handleClearCell}
                                                 />
+                                                {Object.keys(asignaciones).length > 0 && (
+                                                    <div className="mt-4 flex justify-end">
+                                                        <Button
+                                                            onClick={handleConfirmarAsignaciones}
+                                                            variant="outline"
+                                                            className="border-gray-200 hover:bg-gray-50"
+                                                        >
+                                                            <Save className="w-4 h-4 mr-2" />
+                                                            Confirmar Asignaciones
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </>
                                     ) : selectedLocation?.objeto ? (
