@@ -393,69 +393,82 @@ export class ApiService {
     }
 
     // Método público para obtener el mapa de reposición
-    static async getMapaReposicion(idMapa?: number) {
+    static async getMapaReposicion(idMapa?: number): Promise<any> {
         try {
-            // Construir la URL del mapa
-            let mapaUrl = API_ENDPOINTS.mapa_reposicion;
-            if (idMapa) {
-                mapaUrl += `?id_mapa=${idMapa}`;
+            const response = await fetch(`${API_ENDPOINTS.mapa}/reposicion${idMapa ? `/${idMapa}` : ''}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.getToken()}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener el mapa');
             }
 
-            // Obtener el mapa y las ubicaciones
-            const mapaResponse = await this.fetchApi<MapaResponse>(mapaUrl);
-            console.log('Respuesta del mapa:', mapaResponse);
+            const data = await response.json();
+            console.log('Respuesta del mapa:', data);
 
-            // Si no hay ubicaciones, inicializar un array vacío
-            if (!mapaResponse.ubicaciones) {
-                mapaResponse.ubicaciones = [];
-            }
-
-            // Obtener los muebles
-            const mueblesResponse = await this.fetchApi(API_ENDPOINTS.muebles_reposicion);
-            console.log('Muebles obtenidos (detalle):', JSON.stringify(mueblesResponse, null, 2));
-
-            // Si hay muebles, crear ubicaciones para ellos si no existen
-            if (Array.isArray(mueblesResponse) && mueblesResponse.length > 0) {
-                mueblesResponse.forEach(mueble => {
-                    mueble.objeto_mapa.ubicaciones.forEach(ubicacionMueble => {
-                        // Buscar si ya existe una ubicación en estas coordenadas
-                        let ubicacionExistente = mapaResponse.ubicaciones.find(
-                            u => u.x === ubicacionMueble.x && u.y === ubicacionMueble.y
-                        );
-
-                        if (!ubicacionExistente) {
-                            // Si no existe, crear una nueva ubicación
-                            ubicacionExistente = {
-                                x: ubicacionMueble.x,
-                                y: ubicacionMueble.y,
-                                objeto: null,
-                                mueble: null,
-                                punto: null
-                            };
-                            mapaResponse.ubicaciones.push(ubicacionExistente);
-                        }
-
-                        // Actualizar la ubicación con la información del mueble
-                        const index = mapaResponse.ubicaciones.indexOf(ubicacionExistente);
-                        mapaResponse.ubicaciones[index] = {
-                            ...ubicacionExistente,
-                            mueble: {
-                                id_mueble: mueble.id_mueble,
-                                filas: mueble.filas,
-                                columnas: mueble.columnas,
-                                nivel: 1,
-                                estanteria: mueble.id_mueble.toString()
+            // Para cada mueble, obtener sus puntos
+            if (data.ubicaciones) {
+                const ubicacionesConPuntos = await Promise.all(
+                    data.ubicaciones.map(async (ubicacion: any) => {
+                        if (ubicacion.mueble?.id_mueble) {
+                            try {
+                                const puntosData = await this.getMuebleConPuntos(ubicacion.mueble.id_mueble);
+                                return {
+                                    ...ubicacion,
+                                    mueble: {
+                                        ...ubicacion.mueble,
+                                        puntos_reposicion: puntosData.puntos_reposicion || []
+                                    }
+                                };
+                            } catch (error) {
+                                console.error('Error al obtener puntos para mueble:', ubicacion.mueble.id_mueble);
+                                return ubicacion;
                             }
-                        };
-                    });
-                });
+                        }
+                        return ubicacion;
+                    })
+                );
+                data.ubicaciones = ubicacionesConPuntos;
             }
 
-            console.log('Ubicaciones actualizadas:', mapaResponse.ubicaciones);
-            return mapaResponse;
+            return data;
         } catch (error) {
-            console.error('Error al obtener mapa y muebles:', error);
+            console.error('Error en getMapaReposicion:', error);
             throw error;
         }
+    }
+
+    static async getMuebleConPuntos(idMueble: number): Promise<any> {
+        const response = await fetch(`${API_ENDPOINTS.muebles}/${idMueble}/puntos`, {
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al obtener los puntos del mueble');
+        }
+
+        return response.json();
+    }
+
+    static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
+        const response = await fetch(`${API_ENDPOINTS.productos}/${idProducto}/asignar-punto`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ id_punto: idPunto })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al asignar producto al punto');
+        }
+
+        return response.json();
     }
 }

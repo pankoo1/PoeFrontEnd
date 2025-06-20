@@ -8,8 +8,8 @@ export const MapaService = {
     },
 
     // Asignar producto a punto de reposición
-    async asignarProductoAPunto(idPunto: number, idProducto: number) {
-        return await ApiService.updateProducto(idProducto, { id_punto: idPunto });
+    async asignarProductoAPunto(idProducto: number, idPunto: number) {
+        return await ApiService.asignarProductoAPunto(idProducto, idPunto);
     },
 
     // Desasignar producto de punto de reposición

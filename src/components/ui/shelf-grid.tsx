@@ -45,17 +45,36 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             
             const producto = JSON.parse(productoData) as Producto;
             
+            console.log('ShelfGrid - Iniciando drop:', {
+                coordenadasOriginales: { 
+                    filaBase0: fila, 
+                    columnaBase0: columna,
+                    filaBase1: fila + 1,
+                    columnaBase1: columna + 1
+                },
+                producto: producto.nombre,
+                dimensionesGrid: { filas, columnas }
+            });
+
+            // Validar que las coordenadas están dentro de los límites
+            if (fila < 0 || fila >= filas || columna < 0 || columna >= columnas) {
+                console.error('ShelfGrid - Coordenadas fuera de límites:', { fila, columna, limites: { filas, columnas } });
+                return;
+            }
+            
             // Actualizar el estado local
             setProductosAsignados(prev => {
-                // Remover producto existente en la misma posición si existe
                 const filtered = prev.filter(p => p.fila !== fila || p.columna !== columna);
-                return [...filtered, { producto, fila, columna }];
+                const nuevaAsignacion = { producto, fila, columna };
+                console.log('ShelfGrid - Nueva asignación (base 0):', nuevaAsignacion);
+                return [...filtered, nuevaAsignacion];
             });
             
-            // Llamar al callback del padre
-            onDrop?.(e, { fila: fila + 1, columna: columna + 1 });
+            // Llamar al callback del padre con las coordenadas base 0
+            console.log('ShelfGrid - Enviando coordenadas al padre (base 0):', { fila, columna });
+            onDrop?.(e, { fila, columna });
         } catch (error) {
-            console.error('Error al procesar el producto:', error);
+            console.error('ShelfGrid - Error en drop:', error);
         }
     };
 

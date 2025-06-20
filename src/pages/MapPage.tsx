@@ -30,6 +30,7 @@ const MapPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [asignaciones, setAsignaciones] = useState<{[key: string]: Producto}>({});
     const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         loadProductos();
@@ -57,25 +58,66 @@ const MapPage = () => {
         e.dataTransfer.setData('producto', JSON.stringify(producto));
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => {
         try {
             const productoData = e.dataTransfer.getData('producto');
             if (!productoData) return;
             
             const producto = JSON.parse(productoData) as Producto;
-            const posicionKey = `${posicion.fila},${posicion.columna}`;
             
+            console.log('Información completa del drop:', {
+                selectedLocation: JSON.parse(JSON.stringify(selectedLocation)),
+                posicion,
+                producto
+            });
+            
+            if (!selectedLocation?.mueble) {
+                console.log('No hay mueble seleccionado');
+                toast({
+                    title: "Error",
+                    description: "No hay mueble seleccionado para asignar el producto",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Calcular el ID del punto basado en la posición
+            const idPunto = calcularIdPunto(selectedLocation.mueble, posicion.fila, posicion.columna);
+                
+            if (!idPunto) {
+                console.error('No se pudo determinar el punto:', {
+                    mueble: selectedLocation.mueble,
+                    posicion,
+                    puntos_disponibles: selectedLocation.mueble.puntos_reposicion
+                });
+                toast({
+                    title: "Error",
+                    description: "No se pudo determinar el punto de reposición. Verifica que la posición sea válida.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Guardar la asignación temporalmente
             setAsignaciones(prev => ({
                 ...prev,
-                [posicionKey]: producto
+                [`${posicion.fila}-${posicion.columna}`]: {
+                    producto,
+                    idPunto
+                }
             }));
-            
+
             toast({
-                title: "Producto asignado",
-                description: `${producto.nombre} asignado a la posición (${posicion.fila}, ${posicion.columna})`,
+                title: "Producto colocado",
+                description: "Recuerda confirmar los cambios para guardarlos",
             });
         } catch (error) {
             console.error('Error al procesar el producto:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo procesar el producto",
+                variant: "destructive",
+            });
         }
     };
 
@@ -98,11 +140,126 @@ const MapPage = () => {
     };
 
     const handleConfirmarAsignaciones = async () => {
-        // Aquí iría la lógica para guardar las asignaciones en el backend
-        toast({
-            title: "Asignaciones guardadas",
-            description: `Se han guardado ${Object.keys(asignaciones).length} asignaciones de productos`,
+        try {
+            setIsLoading(true);
+            
+            // Procesar todas las asignaciones
+            for (const key in asignaciones) {
+                const { producto, idPunto } = asignaciones[key];
+                
+                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
+            }
+
+            toast({
+                title: "Éxito",
+                description: "Todas las asignaciones fueron guardadas correctamente",
+            });
+
+            // Limpiar las asignaciones temporales
+            setAsignaciones({});
+            
+            // Recargar los datos del mapa si es necesario
+            if (onMapUpdated) {
+                onMapUpdated();
+            }
+        } catch (error) {
+            console.error('Error al guardar asignaciones:', error);
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "No se pudieron guardar las asignaciones",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const calcularIdPunto = (mueble: any, fila: number, columna: number): number | null => {
+        console.log('Calculando punto para:', {
+            mueble: JSON.parse(JSON.stringify(mueble)),
+            fila,
+            columna
         });
+        
+        if (!mueble) {
+            console.log('Mueble no disponible');
+            return null;
+        }
+
+        // Verificar la estructura del mueble
+        console.log('Estructura del mueble:', {
+            tieneFilas: 'filas' in mueble,
+            tieneColumnas: 'columnas' in mueble,
+            tienePuntos: 'puntos_reposicion' in mueble,
+            filas: mueble.filas,
+            columnas: mueble.columnas,
+            puntos: mueble.puntos_reposicion
+        });
+
+        // Validar que la posición está dentro de los límites (usando índices base 0)
+        if (fila < 0 || fila >= mueble.filas || columna < 0 || columna >= mueble.columnas) {
+            console.log('Posición fuera de límites:', { fila, columna, limites: { filas: mueble.filas, columnas: mueble.columnas } });
+            return null;
+        }
+
+        if (!Array.isArray(mueble.puntos_reposicion)) {
+            console.log('puntos_reposicion no es un array o no existe:', mueble.puntos_reposicion);
+            return null;
+        }
+
+        // Mostrar todos los puntos disponibles antes de buscar
+        console.log('Puntos disponibles antes de buscar:', 
+            mueble.puntos_reposicion.map((p: any) => ({
+                id_punto: p.id_punto,
+                fila: p.fila,
+                columna: p.columna,
+                nivel: p.nivel,
+                estanteria: p.estanteria
+            }))
+        );
+
+        // Convertir coordenadas de base 0 a base 1
+        const filaBase1 = fila + 1;
+        const columnaBase1 = columna + 1;
+
+        console.log('Buscando punto con coordenadas (base 1):', {
+            fila: filaBase1,
+            columna: columnaBase1
+        });
+
+        // Buscar el punto usando las coordenadas en base 1
+        const punto = mueble.puntos_reposicion.find((p: any) => {
+            // Intentar coincidir tanto con fila/columna como con nivel/estanteria
+            const coincideFila = p.fila === filaBase1 || p.nivel === filaBase1;
+            const coincideColumna = p.columna === columnaBase1 || p.estanteria === columnaBase1;
+            const coincide = coincideFila && coincideColumna;
+            
+            console.log('Comparando punto:', {
+                punto: {
+                    id_punto: p.id_punto,
+                    fila: p.fila,
+                    columna: p.columna,
+                    nivel: p.nivel,
+                    estanteria: p.estanteria
+                },
+                buscado: { 
+                    fila: filaBase1, 
+                    columna: columnaBase1 
+                },
+                coincideFila,
+                coincideColumna,
+                coincide
+            });
+            
+            return coincide;
+        });
+
+        console.log('Resultado de búsqueda:', {
+            puntoEncontrado: punto,
+            coordenadasBuscadas: { fila: filaBase1, columna: columnaBase1 }
+        });
+
+        return punto ? punto.id_punto : null;
     };
 
     const filteredProductos = productos.filter(producto =>
@@ -197,9 +354,19 @@ const MapPage = () => {
                                                             onClick={handleConfirmarAsignaciones}
                                                             variant="outline"
                                                             className="border-gray-200 hover:bg-gray-50"
+                                                            disabled={isLoading}
                                                         >
-                                                            <Save className="w-4 h-4 mr-2" />
-                                                            Confirmar Asignaciones
+                                                            {isLoading ? (
+                                                                <>
+                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
+                                                                    Guardando...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Save className="w-4 h-4 mr-2" />
+                                                                    Confirmar Asignaciones
+                                                                </>
+                                                            )}
                                                         </Button>
                                                     </div>
                                                 )}
