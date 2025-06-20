@@ -28,7 +28,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 setUbicaciones(response.ubicaciones);
                 // Log para verificar muebles
                 const muebles = response.ubicaciones.filter(u => u.mueble !== null);
+                console.log('Ubicaciones completas:', response.ubicaciones);
                 console.log('Muebles encontrados:', muebles);
+                console.log('Ejemplo de ubicación con mueble:', muebles[0]);
             }
         } catch (error) {
             console.error('Error al cargar el mapa:', error);
@@ -51,7 +53,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             return 'bg-green-500'; // Punto con producto
         }
         if (ubicacion.mueble) {
-            return 'bg-blue-500'; // Mueble
+            return 'bg-blue-200'; // Cambiamos a un azul más claro para los muebles
         }
         if (ubicacion.objeto?.caminable) {
             return 'bg-gray-200'; // Objeto caminable
@@ -144,14 +146,12 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                 }}
                                 onClick={() => ubicacion && onObjectClick?.(ubicacion)}
                                 title={ubicacion?.mueble ? 
-                                    `Mueble - Estantería: ${ubicacion.mueble.estanteria}, Nivel: ${ubicacion.mueble.nivel}` :
+                                    `Mueble - Estantería: ${ubicacion.mueble.estanteria}, Nivel: ${ubicacion.mueble.nivel}, Filas: ${ubicacion.mueble.filas}, Columnas: ${ubicacion.mueble.columnas}` :
                                     ubicacion?.objeto?.nombre || ''
                                 }
                             >
                                 {ubicacion?.mueble && (
-                                    <div className="text-white">
-                                        E{ubicacion.mueble.estanteria}
-                                    </div>
+                                    <div className="w-full h-full"></div>
                                 )}
                                 {ubicacion?.punto?.producto && (
                                     <div className="text-white">

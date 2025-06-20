@@ -7,4 +7,7 @@ export const API_ENDPOINTS = {
     supervisor_reponedores: `${API_URL}/supervisor/reponedores`,
     productos: `${API_URL}/productos`,
     profile: `${API_URL}/usuarios/me`,
+    muebles_reposicion: `${API_URL}/muebles/reposicion`,
+    mapa: `${API_URL}/mapa`,
+    mapa_reposicion: `${API_URL}/mapa/reposicion`
 } as const;

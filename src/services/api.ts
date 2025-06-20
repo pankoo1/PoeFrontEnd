@@ -48,6 +48,18 @@ export interface CreateReponedorData {
     contraseña: string;
 }
 
+export interface MapaResponse {
+    ubicaciones: Ubicacion[];
+}
+
+export interface Ubicacion {
+    x: number;
+    y: number;
+    objeto: any;
+    mueble: any;
+    punto: any;
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -382,19 +394,68 @@ export class ApiService {
 
     // Método público para obtener el mapa de reposición
     static async getMapaReposicion(idMapa?: number) {
-        let url = `${API_URL}/mapa/reposicion`;
-        if (idMapa) {
-            url += `?id_mapa=${idMapa}`;
-        }
-        return await fetch(url, {
-            method: 'GET',
-            headers: this.getHeaders(true),
-        }).then(async res => {
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text);
+        try {
+            // Construir la URL del mapa
+            let mapaUrl = API_ENDPOINTS.mapa_reposicion;
+            if (idMapa) {
+                mapaUrl += `?id_mapa=${idMapa}`;
             }
-            return res.json();
-        });
+
+            // Obtener el mapa y las ubicaciones
+            const mapaResponse = await this.fetchApi<MapaResponse>(mapaUrl);
+            console.log('Respuesta del mapa:', mapaResponse);
+
+            // Si no hay ubicaciones, inicializar un array vacío
+            if (!mapaResponse.ubicaciones) {
+                mapaResponse.ubicaciones = [];
+            }
+
+            // Obtener los muebles
+            const mueblesResponse = await this.fetchApi(API_ENDPOINTS.muebles_reposicion);
+            console.log('Muebles obtenidos (detalle):', JSON.stringify(mueblesResponse, null, 2));
+
+            // Si hay muebles, crear ubicaciones para ellos si no existen
+            if (Array.isArray(mueblesResponse) && mueblesResponse.length > 0) {
+                mueblesResponse.forEach(mueble => {
+                    mueble.objeto_mapa.ubicaciones.forEach(ubicacionMueble => {
+                        // Buscar si ya existe una ubicación en estas coordenadas
+                        let ubicacionExistente = mapaResponse.ubicaciones.find(
+                            u => u.x === ubicacionMueble.x && u.y === ubicacionMueble.y
+                        );
+
+                        if (!ubicacionExistente) {
+                            // Si no existe, crear una nueva ubicación
+                            ubicacionExistente = {
+                                x: ubicacionMueble.x,
+                                y: ubicacionMueble.y,
+                                objeto: null,
+                                mueble: null,
+                                punto: null
+                            };
+                            mapaResponse.ubicaciones.push(ubicacionExistente);
+                        }
+
+                        // Actualizar la ubicación con la información del mueble
+                        const index = mapaResponse.ubicaciones.indexOf(ubicacionExistente);
+                        mapaResponse.ubicaciones[index] = {
+                            ...ubicacionExistente,
+                            mueble: {
+                                id_mueble: mueble.id_mueble,
+                                filas: mueble.filas,
+                                columnas: mueble.columnas,
+                                nivel: 1,
+                                estanteria: mueble.id_mueble.toString()
+                            }
+                        };
+                    });
+                });
+            }
+
+            console.log('Ubicaciones actualizadas:', mapaResponse.ubicaciones);
+            return mapaResponse;
+        } catch (error) {
+            console.error('Error al obtener mapa y muebles:', error);
+            throw error;
+        }
     }
 }
