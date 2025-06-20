@@ -9,6 +9,8 @@ export interface MuebleReposicion {
     nivel: number;
     estanteria: string;
     producto: ProductoAsociado | null;
+    filas: number;
+    columnas: number;
 }
 
 export interface ProductoAsociado {
