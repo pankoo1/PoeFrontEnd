@@ -87,12 +87,12 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
     };
 
     return (
-        <div className={`border rounded-lg p-3 ${className}`}>
+        <div className={`border rounded-lg p-4 ${className}`}>
             <div
-                className="grid gap-1.5 bg-white"
+                className="grid gap-2 bg-white"
                 style={{
-                    gridTemplateColumns: `repeat(${columnas}, minmax(50px, 1fr))`,
-                    gridTemplateRows: `repeat(${filas}, minmax(50px, 1fr))`,
+                    gridTemplateColumns: `repeat(${columnas}, minmax(80px, 1fr))`,
+                    gridTemplateRows: `repeat(${filas}, minmax(80px, 1fr))`,
                 }}
             >
                 {Array.from({ length: filas }, (_, fila) =>
@@ -112,16 +112,16 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                                 }
                             >
                                 {productoAsignado ? (
-                                    <div className="p-0.5 text-center w-full">
-                                        <div className="font-medium text-[10px] truncate px-1">
+                                    <div className="p-1 text-center w-full">
+                                        <div className="font-medium text-sm truncate px-1">
                                             {productoAsignado.producto.nombre}
                                         </div>
-                                        <div className="text-[8px] text-muted-foreground">
+                                        <div className="text-xs text-muted-foreground">
                                             {productoAsignado.producto.unidad_cantidad} {productoAsignado.producto.unidad_tipo}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-[10px] text-muted-foreground">
+                                    <div className="text-sm text-muted-foreground">
                                         {`${fila + 1},${columna + 1}`}
                                     </div>
                                 )}
@@ -130,7 +130,7 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                     })
                 ).flat()}
             </div>
-            <div className="mt-3 text-xs text-gray-500 text-center">
+            <div className="mt-4 text-sm text-gray-500 text-center">
                 Dimensiones: {filas} filas × {columnas} columnas
             </div>
         </div>

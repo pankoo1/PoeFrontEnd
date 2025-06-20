@@ -121,17 +121,17 @@ const MapPage = () => {
             </main>
 
             <Dialog open={selectedLocation !== null} onOpenChange={(open) => !open && setSelectedLocation(null)}>
-                <DialogContent className="max-w-6xl min-h-[80vh]">
+                <DialogContent className="max-w-7xl min-h-[90vh]">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl mb-4">
+                        <DialogTitle className="text-3xl mb-6">
                             {selectedLocation?.mueble ? 
                                 `Estantería ${selectedLocation.mueble.estanteria}` : 
                                 'Detalles de la Ubicación'
                             }
                         </DialogTitle>
                         <DialogDescription asChild>
-                            <div className="grid grid-cols-[2fr,1fr] gap-6 h-full">
-                                <div className="space-y-6">
+                            <div className="grid grid-cols-[2fr,1fr] gap-8 h-full">
+                                <div className="space-y-8">
                                     {selectedLocation?.mueble ? (
                                         <>
                                             <div className="space-y-2">
@@ -204,42 +204,40 @@ const MapPage = () => {
                                 </div>
 
                                 {/* Lista de Productos */}
-                                <div className="border-l pl-4">
-                                    <div className="bg-card p-3 rounded-lg border">
-                                        <h3 className="font-semibold text-lg mb-3">Productos</h3>
-                                        <div className="mb-3">
-                                            <Input
-                                                type="text"
-                                                placeholder="Buscar productos..."
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                className="w-full"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1.5">
-                                            {filteredProductos.map((producto) => (
-                                                <div
-                                                    key={producto.id_producto}
-                                                    className="p-1.5 border rounded-lg cursor-move hover:bg-accent transition-colors"
-                                                    draggable
-                                                    onDragStart={(e) => handleDragStart(e, producto)}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="font-medium text-sm truncate mr-2">
-                                                            {producto.nombre}
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                                            {producto.unidad_cantidad} {producto.unidad_tipo}
-                                                        </div>
+                                <div className="border-l pl-6">
+                                    <h3 className="font-semibold text-2xl mb-4">Productos</h3>
+                                    <div className="mb-4">
+                                        <Input
+                                            type="text"
+                                            placeholder="Buscar productos..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full text-base py-5"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-2">
+                                        {filteredProductos.map((producto) => (
+                                            <div
+                                                key={producto.id_producto}
+                                                className="p-3 bg-card border rounded-lg cursor-move hover:bg-accent transition-colors"
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, producto)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="font-medium text-base truncate mr-2">
+                                                        {producto.nombre}
                                                     </div>
-                                                    <div className="text-xs mt-0.5">
-                                                        <span className="inline-block bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]">
-                                                            {producto.categoria}
-                                                        </span>
+                                                    <div className="text-sm text-muted-foreground whitespace-nowrap">
+                                                        {producto.unidad_cantidad} {producto.unidad_tipo}
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div className="text-sm mt-1">
+                                                    <span className="inline-block bg-secondary text-secondary-foreground rounded px-2 py-1">
+                                                        {producto.categoria}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
