@@ -7,16 +7,20 @@ interface MapViewerProps {
     idMapa?: number;
     onObjectClick?: (ubicacion: UbicacionFisica) => void;
     className?: string;
+    ubicaciones?: UbicacionFisica[];
+    mapa?: Mapa;
 }
 
 export const MapViewer: React.FC<MapViewerProps> = ({
     idMapa,
     onObjectClick,
-    className = ''
+    className = '',
+    ubicaciones: ubicacionesProp,
+    mapa: mapaProp
 }) => {
-    const [mapa, setMapa] = useState<Mapa | null>(null);
-    const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [mapa, setMapa] = useState<Mapa | null>(mapaProp || null);
+    const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
+    const [isLoading, setIsLoading] = useState(!ubicacionesProp);
     const { toast } = useToast();
 
     const cargarMapa = async () => {
@@ -45,8 +49,12 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     };
 
     useEffect(() => {
-        cargarMapa();
-    }, [idMapa]);
+        if (!ubicacionesProp) {
+            cargarMapa();
+        } else {
+            setIsLoading(false);
+        }
+    }, [idMapa, ubicacionesProp]);
 
     const getObjectColor = (ubicacion: UbicacionFisica) => {
         if (ubicacion.punto?.producto) {

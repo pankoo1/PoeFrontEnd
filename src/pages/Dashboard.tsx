@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +92,22 @@ const Dashboard = () => {
             <CardContent>
               <p className="text-muted-foreground">
                 Generar reportes de rendimiento y rutas de reposición
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin-tareas')}>
+            <CardHeader>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-pink-500 text-white">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <CardTitle>Gestión de Tareas</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Asignar, editar y monitorear tareas de reposición
               </p>
             </CardContent>
           </Card>

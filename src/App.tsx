@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
@@ -31,6 +30,7 @@ import ReponedorTareas from './pages/ReponedorTareas';
 import ReponedorMapPage from './pages/ReponedorMapPage';
 import ReponedorAlertas from './pages/ReponedorAlertas';
 import ReponedorSemanal from './pages/ReponedorSemanal';
+import AdminTareasPage from './pages/AdminTareasPage';
 
 import './App.css';
 
@@ -72,6 +72,11 @@ function App() {
             <Route path="/reportes" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <Reportes />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin-tareas" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminTareasPage />
               </ProtectedRoute>
             } />
             
