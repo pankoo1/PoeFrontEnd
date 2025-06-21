@@ -133,11 +133,11 @@ const MapPage = () => {
                 });
             } catch (error) {
                 console.error('Error al asignar producto:', error);
-                toast({
+            toast({
                     title: "Error",
                     description: "No se pudo asignar el producto al punto",
                     variant: "destructive",
-                });
+            });
             } finally {
                 setIsLoading(false);
             }
@@ -248,7 +248,7 @@ const MapPage = () => {
             }
         } catch (error) {
             console.error('Error al guardar asignaciones:', error);
-            toast({
+        toast({
                 title: "Error",
                 description: error instanceof Error ? error.message : "No se pudieron guardar las asignaciones",
                 variant: "destructive",
@@ -458,8 +458,8 @@ const MapPage = () => {
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <Save className="w-4 h-4 mr-2" />
-                                                                    Confirmar Asignaciones
+                                                            <Save className="w-4 h-4 mr-2" />
+                                                            Confirmar Asignaciones
                                                                 </>
                                                             )}
                                                         </Button>
