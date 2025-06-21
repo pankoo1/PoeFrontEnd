@@ -36,6 +36,31 @@ const MapPage = () => {
         loadProductos();
     }, []);
 
+    // Efecto para mantener actualizada la ubicación seleccionada
+    useEffect(() => {
+        if (selectedLocation) {
+            actualizarUbicacionSeleccionada();
+        }
+    }, [selectedLocation?.x, selectedLocation?.y]);
+
+    const actualizarUbicacionSeleccionada = async () => {
+        if (!selectedLocation) return;
+        
+        try {
+            const data = await ApiService.getMapaReposicion();
+            const ubicacionActualizada = data.ubicaciones.find(
+                (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+            );
+            
+            if (ubicacionActualizada) {
+                console.log('Actualizando ubicación seleccionada:', ubicacionActualizada);
+                setSelectedLocation(ubicacionActualizada);
+            }
+        } catch (error) {
+            console.error('Error al actualizar ubicación:', error);
+        }
+    };
+
     const loadProductos = async () => {
         try {
             const data = await ApiService.getProductos() as ProductosResponse;
@@ -50,8 +75,9 @@ const MapPage = () => {
         }
     };
 
-    const handleObjectClick = (ubicacion: UbicacionFisica) => {
+    const handleObjectClick = async (ubicacion: UbicacionFisica) => {
         setSelectedLocation(ubicacion);
+        await actualizarUbicacionSeleccionada();
     };
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, producto: Producto) => {
@@ -64,12 +90,6 @@ const MapPage = () => {
             if (!productoData) return;
             
             const producto = JSON.parse(productoData) as Producto;
-            
-            console.log('Información completa del drop:', {
-                selectedLocation: JSON.parse(JSON.stringify(selectedLocation)),
-                posicion,
-                producto
-            });
             
             if (!selectedLocation?.mueble) {
                 console.log('No hay mueble seleccionado');
@@ -99,29 +119,28 @@ const MapPage = () => {
             }
 
             setIsLoading(true);
-
-            // Realizar la asignación en el backend inmediatamente
-            await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
-
-            // Recargar los datos del mapa para actualizar la vista
+            
             try {
-                const data = await ApiService.getMapaReposicion();
-                if (selectedLocation) {
-                    const ubicacionActualizada = data.ubicaciones.find(
-                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
-                    );
-                    if (ubicacionActualizada) {
-                        setSelectedLocation(ubicacionActualizada);
-                    }
-                }
-            } catch (error) {
-                console.error('Error al recargar el mapa:', error);
-            }
+                // Asignar el producto al punto
+                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
+                
+                // Actualizar la visualización
+                await actualizarUbicacionSeleccionada();
 
-            toast({
-                title: "Éxito",
-                description: `${producto.nombre} asignado correctamente a la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
-            });
+                toast({
+                    title: "Éxito",
+                    description: `${producto.nombre} asignado correctamente a la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
+                });
+            } catch (error) {
+                console.error('Error al asignar producto:', error);
+                toast({
+                    title: "Error",
+                    description: "No se pudo asignar el producto al punto",
+                    variant: "destructive",
+                });
+            } finally {
+                setIsLoading(false);
+            }
         } catch (error) {
             console.error('Error al procesar el producto:', error);
             toast({
@@ -129,8 +148,6 @@ const MapPage = () => {
                 description: "No se pudo procesar el producto",
                 variant: "destructive",
             });
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -145,7 +162,6 @@ const MapPage = () => {
                 puntosDisponibles: selectedLocation?.mueble?.puntos_reposicion
             });
 
-            // Buscar el punto y el producto asociado
             const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
                 p => p.nivel === filaBase1 && p.estanteria === columnaBase1
             );
@@ -172,28 +188,8 @@ const MapPage = () => {
             // Llamar al endpoint de desasignación
             await ApiService.desasignarProductoDePunto(punto.id_punto);
 
-            // Actualizar el estado local
-            const posicionKey = `${posicion.fila},${posicion.columna}`;
-            setAsignaciones(prev => {
-                const newAsignaciones = { ...prev };
-                delete newAsignaciones[posicionKey];
-                return newAsignaciones;
-            });
-
-            // Recargar los datos del mapa
-            try {
-                const data = await ApiService.getMapaReposicion();
-                if (selectedLocation) {
-                    const ubicacionActualizada = data.ubicaciones.find(
-                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
-                    );
-                    if (ubicacionActualizada) {
-                        setSelectedLocation(ubicacionActualizada);
-                    }
-                }
-            } catch (error) {
-                console.error('Error al recargar el mapa:', error);
-            }
+            // Actualizar la visualización
+            await actualizarUbicacionSeleccionada();
 
             toast({
                 title: "Éxito",
@@ -447,6 +443,28 @@ const MapPage = () => {
                                                         } : null
                                                     })) || []}
                                                 />
+                                                {Object.keys(asignaciones).length > 0 && (
+                                                    <div className="mt-4 flex justify-end">
+                                                        <Button
+                                                            onClick={handleConfirmarAsignaciones}
+                                                            variant="outline"
+                                                            className="border-gray-200 hover:bg-gray-50"
+                                                            disabled={isLoading}
+                                                        >
+                                                            {isLoading ? (
+                                                                <>
+                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
+                                                                    Guardando...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Save className="w-4 h-4 mr-2" />
+                                                                    Confirmar Asignaciones
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </>
                                     ) : selectedLocation?.objeto ? (

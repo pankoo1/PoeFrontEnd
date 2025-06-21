@@ -35,6 +35,7 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
 
     // Efecto para cargar productos pre-asignados
     useEffect(() => {
+        console.log('Actualizando productos pre-asignados:', puntosPreAsignados);
         const productosPreAsignados = puntosPreAsignados
             .filter(punto => punto.producto !== null)
             .map(punto => ({
