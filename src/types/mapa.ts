@@ -14,6 +14,7 @@ export interface MuebleReposicion {
 }
 
 export interface ProductoAsociado {
+    id_producto: number;
     nombre: string;
     categoria: string;
     unidad_tipo: string;

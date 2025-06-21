@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Producto } from '@/types/producto';
 
 interface CeldaProducto {
@@ -7,12 +7,19 @@ interface CeldaProducto {
     columna: number;
 }
 
+interface PuntoPreAsignado {
+    fila: number;
+    columna: number;
+    producto: Producto | null;
+}
+
 interface ShelfGridProps {
     filas: number;
     columnas: number;
     className?: string;
     onDrop?: (e: React.DragEvent<HTMLDivElement>, posicion: { fila: number, columna: number }) => void;
     onClearCell?: (posicion: { fila: number, columna: number }) => void;
+    puntosPreAsignados?: PuntoPreAsignado[];
 }
 
 export const ShelfGrid: React.FC<ShelfGridProps> = ({
@@ -20,10 +27,23 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
     columnas,
     className = '',
     onDrop,
-    onClearCell
+    onClearCell,
+    puntosPreAsignados = []
 }) => {
     const [productosAsignados, setProductosAsignados] = useState<CeldaProducto[]>([]);
     const [celdaActiva, setCeldaActiva] = useState<{ fila: number, columna: number } | null>(null);
+
+    // Efecto para cargar productos pre-asignados
+    useEffect(() => {
+        const productosPreAsignados = puntosPreAsignados
+            .filter(punto => punto.producto !== null)
+            .map(punto => ({
+                producto: punto.producto!,
+                fila: punto.fila,
+                columna: punto.columna
+            }));
+        setProductosAsignados(productosPreAsignados);
+    }, [puntosPreAsignados]);
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
         e.preventDefault();
@@ -48,9 +68,7 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             console.log('ShelfGrid - Iniciando drop:', {
                 coordenadasOriginales: { 
                     filaBase0: fila, 
-                    columnaBase0: columna,
-                    filaBase1: fila + 1,
-                    columnaBase1: columna + 1
+                    columnaBase0: columna
                 },
                 producto: producto.nombre,
                 dimensionesGrid: { filas, columnas }
@@ -110,10 +128,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
     const handleCellClick = (fila: number, columna: number) => {
         const productoAsignado = getProductoEnPosicion(fila, columna);
         if (productoAsignado) {
-            // Actualizar el estado local
             setProductosAsignados(prev => prev.filter(p => p.fila !== fila || p.columna !== columna));
             // Notificar al componente padre
-            onClearCell?.({ fila: fila + 1, columna: columna + 1 });
+            onClearCell?.({ fila, columna });
         }
     };
 

@@ -124,23 +124,34 @@ export class ApiService {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(endpoint, {
+            // Asegurarse de que el endpoint comienza con la URL base si no es una URL completa
+            const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+
+            const response = await fetch(url, {
                 ...options,
                 headers,
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(
-                    data.detail?.message || 
-                    data.detail || 
-                    data.message || 
-                    `Error ${response.status}: ${response.statusText}`
-                );
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
             }
 
-            return data;
+            // Si la respuesta está vacía, retornar null
+            const text = await response.text();
+            if (!text) {
+                return null as T;
+            }
+
+            // Intentar parsear la respuesta como JSON
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                if (response.ok) {
+                    // Si la respuesta fue exitosa pero no es JSON, retornar null
+                    return null as T;
+                }
+                throw new Error('Respuesta inválida del servidor');
+            }
         } catch (error) {
             console.error('Error en fetchApi:', error);
             if (error instanceof Error) {
@@ -455,20 +466,19 @@ export class ApiService {
     }
 
     static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
-        const response = await fetch(`${API_ENDPOINTS.productos}/${idProducto}/asignar-punto`, {
+        return await this.fetchApi(`${API_ENDPOINTS.productos}/${idProducto}/asignar-punto`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.getToken()}`
-            },
             body: JSON.stringify({ id_punto: idPunto })
         });
+    }
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error al asignar producto al punto');
+    static async desasignarProductoDePunto(idPunto: number): Promise<void> {
+        if (!idPunto) {
+            throw new Error('Se requiere un ID de punto válido para desasignar');
         }
-
-        return response.json();
+        console.log('Desasignando producto del punto con ID:', idPunto);
+        await this.fetchApi(`/puntos/${idPunto}/desasignar-producto`, {
+            method: 'DELETE',
+        });
     }
 }

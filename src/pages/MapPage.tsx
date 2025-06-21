@@ -98,18 +98,29 @@ const MapPage = () => {
                 return;
             }
 
-            // Guardar la asignación temporalmente
-            setAsignaciones(prev => ({
-                ...prev,
-                [`${posicion.fila}-${posicion.columna}`]: {
-                    producto,
-                    idPunto
+            setIsLoading(true);
+
+            // Realizar la asignación en el backend inmediatamente
+            await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
+
+            // Recargar los datos del mapa para actualizar la vista
+            try {
+                const data = await ApiService.getMapaReposicion();
+                if (selectedLocation) {
+                    const ubicacionActualizada = data.ubicaciones.find(
+                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+                    );
+                    if (ubicacionActualizada) {
+                        setSelectedLocation(ubicacionActualizada);
+                    }
                 }
-            }));
+            } catch (error) {
+                console.error('Error al recargar el mapa:', error);
+            }
 
             toast({
-                title: "Producto colocado",
-                description: "Recuerda confirmar los cambios para guardarlos",
+                title: "Éxito",
+                description: `${producto.nombre} asignado correctamente a la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
             });
         } catch (error) {
             console.error('Error al procesar el producto:', error);
@@ -118,24 +129,85 @@ const MapPage = () => {
                 description: "No se pudo procesar el producto",
                 variant: "destructive",
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleClearCell = (posicion: { fila: number, columna: number }) => {
-        const posicionKey = `${posicion.fila},${posicion.columna}`;
-        const producto = asignaciones[posicionKey];
-        
-        if (producto) {
+    const handleClearCell = async (posicion: { fila: number, columna: number }) => {
+        try {
+            // Convertir coordenadas a base 1 para buscar el punto
+            const filaBase1 = posicion.fila + 1;
+            const columnaBase1 = posicion.columna + 1;
+
+            console.log('Buscando punto para desasignar:', {
+                coordenadas: { fila: filaBase1, columna: columnaBase1 },
+                puntosDisponibles: selectedLocation?.mueble?.puntos_reposicion
+            });
+
+            // Buscar el punto y el producto asociado
+            const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
+                p => p.nivel === filaBase1 && p.estanteria === columnaBase1
+            );
+
+            console.log('Punto encontrado:', punto);
+
+            if (!punto) {
+                console.log('No se encontró el punto en esta posición');
+                return;
+            }
+
+            if (!punto.producto) {
+                console.log('No hay producto asignado a este punto');
+                return;
+            }
+
+            console.log('Intentando desasignar producto del punto:', {
+                idPunto: punto.id_punto,
+                nombreProducto: punto.producto.nombre
+            });
+
+            setIsLoading(true);
+
+            // Llamar al endpoint de desasignación
+            await ApiService.desasignarProductoDePunto(punto.id_punto);
+
+            // Actualizar el estado local
+            const posicionKey = `${posicion.fila},${posicion.columna}`;
             setAsignaciones(prev => {
                 const newAsignaciones = { ...prev };
                 delete newAsignaciones[posicionKey];
                 return newAsignaciones;
             });
-            
+
+            // Recargar los datos del mapa
+            try {
+                const data = await ApiService.getMapaReposicion();
+                if (selectedLocation) {
+                    const ubicacionActualizada = data.ubicaciones.find(
+                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+                    );
+                    if (ubicacionActualizada) {
+                        setSelectedLocation(ubicacionActualizada);
+                    }
+                }
+            } catch (error) {
+                console.error('Error al recargar el mapa:', error);
+            }
+
             toast({
-                title: "Producto eliminado",
-                description: `${producto.nombre} eliminado de la posición (${posicion.fila}, ${posicion.columna})`,
+                title: "Éxito",
+                description: `${punto.producto.nombre} desasignado correctamente de la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
             });
+        } catch (error) {
+            console.error('Error al desasignar producto:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo desasignar el producto. Por favor, intente nuevamente.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -158,9 +230,25 @@ const MapPage = () => {
             // Limpiar las asignaciones temporales
             setAsignaciones({});
             
-            // Recargar los datos del mapa si es necesario
-            if (onMapUpdated) {
-                onMapUpdated();
+            // Recargar los datos del mapa
+            try {
+                const data = await ApiService.getMapaReposicion();
+                if (selectedLocation) {
+                    // Buscar y actualizar la ubicación seleccionada con los nuevos datos
+                    const ubicacionActualizada = data.ubicaciones.find(
+                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+                    );
+                    if (ubicacionActualizada) {
+                        setSelectedLocation(ubicacionActualizada);
+                    }
+                }
+            } catch (error) {
+                console.error('Error al recargar el mapa:', error);
+                toast({
+                    title: "Advertencia",
+                    description: "Los cambios se guardaron pero no se pudo actualizar la vista. Por favor, refresque la página.",
+                    variant: "warning",
+                });
             }
         } catch (error) {
             console.error('Error al guardar asignaciones:', error);
@@ -347,29 +435,18 @@ const MapPage = () => {
                                                     columnas={selectedLocation.mueble.columnas || 4}
                                                     onDrop={handleDrop}
                                                     onClearCell={handleClearCell}
+                                                    puntosPreAsignados={selectedLocation.mueble.puntos_reposicion?.map(punto => ({
+                                                        fila: punto.nivel - 1, // Convertir de base 1 a base 0
+                                                        columna: punto.estanteria - 1, // Convertir de base 1 a base 0
+                                                        producto: punto.producto ? {
+                                                            id_producto: punto.id_producto,
+                                                            nombre: punto.producto.nombre,
+                                                            categoria: punto.producto.categoria,
+                                                            unidad_tipo: punto.producto.unidad_tipo,
+                                                            unidad_cantidad: punto.producto.unidad_cantidad
+                                                        } : null
+                                                    })) || []}
                                                 />
-                                                {Object.keys(asignaciones).length > 0 && (
-                                                    <div className="mt-4 flex justify-end">
-                                                        <Button
-                                                            onClick={handleConfirmarAsignaciones}
-                                                            variant="outline"
-                                                            className="border-gray-200 hover:bg-gray-50"
-                                                            disabled={isLoading}
-                                                        >
-                                                            {isLoading ? (
-                                                                <>
-                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
-                                                                    Guardando...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Save className="w-4 h-4 mr-2" />
-                                                                    Confirmar Asignaciones
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    </div>
-                                                )}
                                             </div>
                                         </>
                                     ) : selectedLocation?.objeto ? (
