@@ -40,7 +40,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ selectedProducts, onA
         onChange={e => setSearch(e.target.value)}
         className="mb-2"
       />
-      <div className="max-h-40 overflow-y-auto border rounded bg-white">
+      <div className="max-h-80 overflow-y-auto border rounded bg-white">
         {filtered.length === 0 && <div className="p-2 text-muted-foreground">Sin resultados</div>}
         {filtered.map(producto => (
           <div key={producto.id_producto} className="flex items-center justify-between px-2 py-1 hover:bg-gray-100">
