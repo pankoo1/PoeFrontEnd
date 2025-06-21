@@ -6,6 +6,7 @@ export interface Producto {
     unidad_cantidad: number;
     codigo_unico: string;
     estado: string;
+    id_usuario?: number; // supervisor asignado
 }
 
 export interface CreateProductoData {
@@ -14,6 +15,7 @@ export interface CreateProductoData {
     unidad_tipo: string;
     unidad_cantidad: number;
     codigo_unico: string;
+    id_usuario: number; // supervisor asignado
 }
 
 export interface UpdateProductoData {

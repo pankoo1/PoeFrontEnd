@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { ApiService } from '@/services/api';
+import { ApiService, Usuario } from '@/services/api';
 import { Producto, CreateProductoData, UpdateProductoData } from '@/types/producto';
 
 interface ProductFormProps {
@@ -34,8 +34,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
     categoria: '',
     unidad_tipo: '',
     unidad_cantidad: 1,
-    codigo_unico: ''
+    codigo_unico: '',
+    id_usuario: 0 // Valor inicial inválido, forzará selección
   });
+  const [supervisores, setSupervisores] = useState<Usuario[]>([]);
 
   // Actualizar el formulario cuando se recibe un producto para editar
   useEffect(() => {
@@ -45,10 +47,25 @@ const ProductForm: React.FC<ProductFormProps> = ({
         categoria: editingProduct.categoria,
         unidad_tipo: editingProduct.unidad_tipo,
         unidad_cantidad: editingProduct.unidad_cantidad,
-        codigo_unico: editingProduct.codigo_unico
+        codigo_unico: editingProduct.codigo_unico,
+        id_usuario: editingProduct.id_usuario || 0
       });
     }
   }, [editingProduct, mode]);
+
+  useEffect(() => {
+    // Cargar supervisores al montar el formulario
+    const fetchSupervisores = async () => {
+      try {
+        const usuarios = await ApiService.getUsuarios();
+        const supervisoresFiltrados = usuarios.filter(u => u.rol.toLowerCase() === 'supervisor');
+        setSupervisores(supervisoresFiltrados);
+      } catch (error) {
+        console.error('Error al cargar supervisores:', error);
+      }
+    };
+    fetchSupervisores();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +113,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         categoria: '',
         unidad_tipo: '',
         unidad_cantidad: 1,
-        codigo_unico: ''
+        codigo_unico: '',
+        id_usuario: 0
       });
     }
     if (onOpenChange) {
@@ -196,6 +214,26 @@ const ProductForm: React.FC<ProductFormProps> = ({
               onChange={(e) => setFormData({...formData, codigo_unico: e.target.value})}
               disabled={mode === 'edit'}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="supervisor">Supervisor asignado</Label>
+            <Select
+              value={formData.id_usuario ? String(formData.id_usuario) : ''}
+              onValueChange={value => setFormData({ ...formData, id_usuario: Number(value) })}
+              required
+              disabled={mode === 'edit'}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar supervisor" />
+              </SelectTrigger>
+              <SelectContent>
+                {supervisores.map(sup => (
+                  <SelectItem key={sup.id_usuario} value={String(sup.id_usuario)}>
+                    {sup.nombre} ({sup.correo})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
