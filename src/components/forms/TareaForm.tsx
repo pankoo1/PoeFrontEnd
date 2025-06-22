@@ -8,16 +8,21 @@ import { Plus, Trash2, Package } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import ProductSelector from './ProductSelector';
 import { Producto } from '@/types/producto';
+import { ApiService } from '@/services/api'; // Asegúrate de importar tu ApiService
 
 const TareaForm = () => {
+  // Verificar rol de usuario
+  const userRole = localStorage.getItem('userRole');
+  if (userRole !== 'supervisor') {
+    // Si no es supervisor, no mostrar el formulario
+    return null;
+  }
+
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     reponedor: '',
-    area: '',
-    prioridad: '',
-    fechaLimite: '',
-    descripcion: ''
+    estado: '' // Solo los campos necesarios
   });
   const [selectedProducts, setSelectedProducts] = useState<Array<{producto: Producto, cantidad: number}>>([]);
   const [productoToAdd, setProductoToAdd] = useState<Producto | null>(null);
@@ -48,7 +53,7 @@ const TareaForm = () => {
     setSelectedProducts(prev => prev.filter(p => p.producto.id_producto !== id_producto));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validar duplicados (fallback)
     const ids = selectedProducts.map(p => p.producto.id_producto);
@@ -61,15 +66,43 @@ const TareaForm = () => {
       toast({ title: 'Debe agregar al menos un producto.', variant: 'destructive' });
       return;
     }
-    // Aquí iría la integración con el backend para crear la tarea y luego agregar los productos
-    // ...
-    toast({
-      title: 'Tarea asignada',
-      description: `Tarea de reposición asignada a ${formData.reponedor}`,
-    });
-    setFormData({ reponedor: '', area: '', prioridad: '', fechaLimite: '', descripcion: '' });
-    setSelectedProducts([]);
-    setIsOpen(false);
+    // Validar cantidades de productos
+    for (const { producto, cantidad } of selectedProducts) {
+      const cantidadNum = Number(cantidad);
+      if (
+        cantidad === undefined ||
+        cantidad === null ||
+        isNaN(cantidadNum)
+      ) {
+        toast({ title: `Falta ingresar la cantidad para el producto "${producto.nombre}".`, variant: 'destructive' });
+        return;
+      }
+      if (cantidadNum <= 0) {
+        toast({ title: `La cantidad para el producto "${producto.nombre}" debe ser mayor a 0.`, variant: 'destructive' });
+        return;
+      }
+    }
+    // Construir payload según lo que espera el backend
+    const payload: any = {
+      productos: selectedProducts.map(({ producto, cantidad }) => ({
+        id_producto: producto.id_producto,
+        cantidad: Number(cantidad)
+      })),
+      id_reponedor: formData.reponedor ? Number(formData.reponedor) : null,
+      id_supervisor: null, // El backend lo ignora si eres supervisor
+      estado: formData.estado // Nuevo campo
+    };
+    // Aquí deberías llamar a tu ApiService para crear la tarea
+    try {
+      // Reemplaza 'crearTarea' por el método real de tu ApiService
+      await ApiService.crearTarea(payload);
+      toast({ title: 'Tarea creada exitosamente', variant: 'default' });
+      setFormData({ reponedor: '', estado: '' });
+      setSelectedProducts([]);
+      setIsOpen(false);
+    } catch (err: any) {
+      toast({ title: err.message || 'Error al crear la tarea', variant: 'destructive' });
+    }
   };
 
   return (
@@ -102,56 +135,19 @@ const TareaForm = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="area">Área del Supermercado</Label>
-              <Select value={formData.area} onValueChange={value => setFormData({ ...formData, area: value })}>
+              <Label htmlFor="estado">Estado de la Tarea</Label>
+              <Select value={formData.estado} onValueChange={value => setFormData({ ...formData, estado: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar área" />
+                  <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lacteos">Lácteos</SelectItem>
-                  <SelectItem value="frutas-verduras">Frutas y Verduras</SelectItem>
-                  <SelectItem value="carnes">Carnes y Embutidos</SelectItem>
-                  <SelectItem value="panaderia">Panadería</SelectItem>
-                  <SelectItem value="bebidas">Bebidas</SelectItem>
-                  <SelectItem value="enlatados">Enlatados y Conservas</SelectItem>
-                  <SelectItem value="limpieza">Productos de Limpieza</SelectItem>
-                  <SelectItem value="higiene">Higiene Personal</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="en progreso">En Progreso</SelectItem>
+                  <SelectItem value="completada">Completada</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                  <SelectItem value="sin asignar">Sin Asignar</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="prioridad">Prioridad</Label>
-                <Select value={formData.prioridad} onValueChange={value => setFormData({ ...formData, prioridad: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Prioridad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="media">Media</SelectItem>
-                    <SelectItem value="baja">Baja</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fechaLimite">Fecha Límite</Label>
-                <Input
-                  id="fechaLimite"
-                  type="datetime-local"
-                  value={formData.fechaLimite}
-                  onChange={e => setFormData({ ...formData, fechaLimite: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="descripcion">Descripción Adicional</Label>
-              <Input
-                id="descripcion"
-                value={formData.descripcion}
-                onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
-                placeholder="Instrucciones especiales..."
-              />
             </div>
             <div className="flex justify-end space-x-2 mt-4">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>

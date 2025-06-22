@@ -481,4 +481,12 @@ export class ApiService {
             method: 'DELETE',
         });
     }
+
+    // Crear tarea
+    static async crearTarea(tareaData: any): Promise<any> {
+        return await this.fetchApi('/tareas', {
+            method: 'POST',
+            body: JSON.stringify(tareaData),
+        });
+    }
 }
