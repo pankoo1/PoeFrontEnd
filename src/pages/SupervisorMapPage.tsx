@@ -18,6 +18,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Reponedor } from '@/services/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ShelfGrid } from '@/components/ui/shelf-grid';
 
 interface PuntoSeleccionado extends UbicacionFisica {
   cantidad: number;
@@ -35,6 +43,8 @@ const SupervisorMapPage = () => {
   const [reponedorSeleccionado, setReponedorSeleccionado] = useState<string>('');
   const [creandoTarea, setCreandoTarea] = useState(false);
   const [mostrarBotonTareas, setMostrarBotonTareas] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -66,17 +76,43 @@ const SupervisorMapPage = () => {
   }, []);
 
   const handleObjectClick = (ubicacion: UbicacionFisica) => {
-    if (!ubicacion.punto?.id_punto) return;
+    // Si el objeto no es un mueble o no tiene puntos de reposición, ignorar
+    if (!ubicacion.mueble || !ubicacion.mueble.puntos_reposicion) return;
+
+    // Verificar si hay productos asignados al supervisor en este mueble
+    const tienePuntosAsignados = ubicacion.mueble.puntos_reposicion.some(punto => punto.producto !== null);
+    if (!tienePuntosAsignados) {
+      toast({
+        title: "Sin productos asignados",
+        description: "Este mueble no tiene productos asignados a tu supervisión",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedLocation(ubicacion);
+    setDialogOpen(true);
+  };
+
+  const handlePuntoClick = (punto: any) => {
+    if (!punto.producto) return;
 
     // Verificar si el punto ya está seleccionado
-    const puntoExistente = puntosSeleccionados.find(p => p.punto?.id_punto === ubicacion.punto?.id_punto);
+    const puntoExistente = puntosSeleccionados.find(p => p.punto?.id_punto === punto.id_punto);
     
     if (puntoExistente) {
       // Si ya está seleccionado, lo removemos
-      setPuntosSeleccionados(prev => prev.filter(p => p.punto?.id_punto !== ubicacion.punto?.id_punto));
+      setPuntosSeleccionados(prev => prev.filter(p => p.punto?.id_punto !== punto.id_punto));
     } else {
       // Si no está seleccionado, lo agregamos con cantidad inicial 1
-      setPuntosSeleccionados(prev => [...prev, { ...ubicacion, cantidad: 1 }]);
+      setPuntosSeleccionados(prev => [...prev, { 
+        punto: punto,
+        cantidad: 1,
+        x: selectedLocation?.x || 0,
+        y: selectedLocation?.y || 0,
+        mueble: selectedLocation?.mueble,
+        objeto: selectedLocation?.objeto
+      }]);
     }
   };
 
@@ -313,6 +349,147 @@ const SupervisorMapPage = () => {
           </Card>
         </div>
       </main>
+
+      {/* Diálogo de selección de puntos */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-7xl min-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-3xl mb-6">
+              {selectedLocation?.mueble ? 
+                `Estantería ${selectedLocation.mueble.estanteria}` : 
+                'Detalles de la Ubicación'
+              }
+            </DialogTitle>
+            <div className="grid grid-cols-[2fr,1fr] gap-8 h-full">
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Información del Mueble</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Estantería:</span>
+                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.estanteria}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Nivel:</span>
+                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.nivel}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Dimensiones:</span>
+                    <span className="ml-2 font-medium">
+                      {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Ubicación:</span>
+                    <span className="ml-2 font-medium">({selectedLocation?.x}, {selectedLocation?.y})</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Vista de la Estantería</h3>
+                  <div className="border rounded-lg p-4">
+                    <div 
+                      className="grid gap-2 bg-white"
+                      style={{
+                        gridTemplateColumns: `repeat(${selectedLocation?.mueble?.columnas || 4}, minmax(80px, 1fr))`,
+                        gridTemplateRows: `repeat(${selectedLocation?.mueble?.filas || 3}, minmax(80px, 1fr))`
+                      }}
+                    >
+                      {selectedLocation?.mueble?.puntos_reposicion?.map((punto) => (
+                        <div
+                          key={punto.id_punto}
+                          className={`
+                            relative
+                            w-full
+                            h-full
+                            min-h-[50px]
+                            rounded
+                            transition-all
+                            duration-200
+                            border
+                            border-gray-300
+                            flex
+                            items-center
+                            justify-center
+                            text-xs
+                            font-medium
+                            ${punto.producto ? 'bg-green-50 hover:bg-green-100 cursor-pointer' : 'bg-gray-50'}
+                            ${puntosSeleccionados.some(p => p.punto?.id_punto === punto.id_punto) ? 'ring-2 ring-primary' : ''}
+                          `}
+                          onClick={() => punto.producto && handlePuntoClick(punto)}
+                        >
+                          {punto.producto && (
+                            <div className="p-1 text-center w-full">
+                              <div className="font-medium text-sm truncate px-1">
+                                {punto.producto.nombre}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {punto.producto.unidad_cantidad} {punto.producto.unidad_tipo}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-sm text-gray-500 text-center">
+                      Dimensiones: {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-l pl-6">
+                <h3 className="font-semibold text-2xl mb-4">Puntos Seleccionados</h3>
+                <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-2">
+                  {puntosSeleccionados.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      Selecciona puntos de la estantería para asignar a la tarea
+                    </p>
+                  ) : (
+                    puntosSeleccionados.map((punto) => (
+                      <div 
+                        key={punto.punto?.id_punto}
+                        className="p-3 bg-card border rounded-lg"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-base truncate mr-2">
+                            {punto.punto?.producto?.nombre}
+                          </div>
+                          <div className="text-sm text-muted-foreground whitespace-nowrap">
+                            {punto.cantidad} {punto.punto?.producto?.unidad_tipo}
+                          </div>
+                        </div>
+                        <div className="text-sm mt-1">
+                          <span className="inline-block bg-secondary text-secondary-foreground rounded px-2 py-1">
+                            {punto.punto?.producto?.categoria}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center space-x-2">
+                          <Input
+                            type="number"
+                            value={punto.cantidad}
+                            onChange={(e) => actualizarCantidad(punto.punto!.id_punto, parseInt(e.target.value))}
+                            className="w-20"
+                            min="1"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => eliminarPunto(punto.punto!.id_punto)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

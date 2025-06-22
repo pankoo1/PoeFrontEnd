@@ -11,6 +11,7 @@ export interface MuebleReposicion {
     producto: ProductoAsociado | null;
     filas: number;
     columnas: number;
+    puntos_reposicion?: PuntoReposicion[];
 }
 
 export interface ProductoAsociado {
