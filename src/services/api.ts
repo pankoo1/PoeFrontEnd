@@ -83,7 +83,8 @@ export interface Tarea {
 
 export interface CrearTareaData {
     id_reponedor: number;
-    puntos_reposicion: {
+    estado_id: number;
+    puntos: {
         id_punto: number;
         cantidad: number;
     }[];
@@ -502,11 +503,14 @@ export class ApiService {
         return response.json();
     }
 
-    static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
-        return await this.fetchApi(`${API_ENDPOINTS.productos}/${idProducto}/asignar-punto`, {
-            method: 'PUT',
-            body: JSON.stringify({ id_punto: idPunto })
-        });
+    static async asignarProductoAPunto(idProducto: number, idPunto: number, idUsuario: number): Promise<any> {
+        return await this.fetchApi(
+            `/puntos/${idPunto}/asignar-producto`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ id_producto: idProducto, id_usuario: idUsuario })
+            }
+        );
     }
 
     static async desasignarProductoDePunto(idPunto: number): Promise<void> {

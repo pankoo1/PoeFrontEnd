@@ -140,7 +140,8 @@ const SupervisorMapPage = () => {
       setCreandoTarea(true);
       await ApiService.crearTarea({
         id_reponedor: parseInt(reponedorSeleccionado),
-        puntos_reposicion: puntosSeleccionados.map(punto => ({
+        estado_id: 1, // Estado inicial: pendiente
+        puntos: puntosSeleccionados.map(punto => ({
           id_punto: punto.punto!.id_punto,
           cantidad: punto.cantidad
         }))

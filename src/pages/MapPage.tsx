@@ -122,7 +122,7 @@ const MapPage = () => {
             
             try {
                 // Asignar el producto al punto
-                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
+                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, producto.id_usuario);
                 
                 // Actualizar la visualización
                 await actualizarUbicacionSeleccionada();
