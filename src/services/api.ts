@@ -490,3 +490,30 @@ export class ApiService {
         });
     }
 }
+
+// Nuevas funciones para obtener el mapa según el rol
+export async function getMapaSupervisor(token: string, idMapa?: number) {
+  const params = idMapa ? `?id_mapa=${idMapa}` : '';
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/mapa/supervisor/vista${params}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!response.ok) throw new Error('No se pudo obtener el mapa del supervisor');
+  return await response.json();
+}
+
+export async function getMapaReponedor(token: string, idMapa?: number) {
+  const params = idMapa ? `?id_mapa=${idMapa}` : '';
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/mapa/reponedor/vista${params}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!response.ok) throw new Error('No se pudo obtener el mapa del reponedor');
+  return await response.json();
+}

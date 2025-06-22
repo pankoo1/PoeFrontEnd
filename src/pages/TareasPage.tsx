@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ClipboardList, Search, Edit, X } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Search, Edit } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import TareaForm from '../components/forms/TareaForm';
 
 const TareasPage = () => {
   const navigate = useNavigate();
@@ -92,7 +90,6 @@ const TareasPage = () => {
                 </div>
                 <CardTitle className="text-2xl">Tareas de Reposición</CardTitle>
               </div>
-              <TareaForm />
             </div>
           </CardHeader>
           <CardContent>
@@ -199,76 +196,6 @@ const TareasPage = () => {
                       <SelectItem value="Laura Pérez">Laura Pérez</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-producto" className="text-right">Producto</Label>
-                  <Input
-                    id="edit-producto"
-                    value={editingTarea.producto}
-                    onChange={(e) => setEditingTarea({...editingTarea, producto: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-area" className="text-right">Área</Label>
-                  <Select value={editingTarea.area} onValueChange={(value) => setEditingTarea({...editingTarea, area: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Lácteos">Lácteos</SelectItem>
-                      <SelectItem value="Frutas y Verduras">Frutas y Verduras</SelectItem>
-                      <SelectItem value="Panadería">Panadería</SelectItem>
-                      <SelectItem value="Carnicería">Carnicería</SelectItem>
-                      <SelectItem value="Bebidas">Bebidas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-cantidad" className="text-right">Cantidad</Label>
-                  <Input
-                    id="edit-cantidad"
-                    type="number"
-                    value={editingTarea.cantidad}
-                    onChange={(e) => setEditingTarea({...editingTarea, cantidad: parseInt(e.target.value)})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-prioridad" className="text-right">Prioridad</Label>
-                  <Select value={editingTarea.prioridad} onValueChange={(value) => setEditingTarea({...editingTarea, prioridad: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Alta">Alta</SelectItem>
-                      <SelectItem value="Media">Media</SelectItem>
-                      <SelectItem value="Baja">Baja</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-estado" className="text-right">Estado</Label>
-                  <Select value={editingTarea.estado} onValueChange={(value) => setEditingTarea({...editingTarea, estado: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pendiente">Pendiente</SelectItem>
-                      <SelectItem value="En Progreso">En Progreso</SelectItem>
-                      <SelectItem value="Completada">Completada</SelectItem>
-                      <SelectItem value="Cancelada">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-fecha" className="text-right">Fecha Límite</Label>
-                  <Input
-                    id="edit-fecha"
-                    value={editingTarea.fechaLimite}
-                    onChange={(e) => setEditingTarea({...editingTarea, fechaLimite: e.target.value})}
-                    className="col-span-3"
-                  />
                 </div>
                 <div className="flex justify-end space-x-2 mt-4">
                   <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
