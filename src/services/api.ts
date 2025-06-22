@@ -60,6 +60,43 @@ export interface Ubicacion {
     punto: any;
 }
 
+// Interfaces para tareas
+export interface Tarea {
+    id_tarea: number;
+    estado: string;
+    color_estado: string;
+    reponedor: string;
+    productos: {
+        nombre: string;
+        cantidad: number;
+        ubicacion: {
+            estanteria: string;
+            nivel: number;
+        };
+    }[];
+    ubicaciones: {
+        estanteria: string;
+        nivel: number;
+    }[];
+    fecha_creacion: string;
+}
+
+export interface CrearTareaData {
+    id_reponedor: number;
+    puntos_reposicion: {
+        id_punto: number;
+        cantidad: number;
+    }[];
+}
+
+// Interfaces para reponedores
+export interface Reponedor {
+    id_usuario: number;
+    nombre: string;
+    correo: string;
+    estado: string;
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -452,7 +489,7 @@ export class ApiService {
     }
 
     static async getMuebleConPuntos(idMueble: number): Promise<any> {
-        const response = await fetch(`${API_ENDPOINTS.muebles}/${idMueble}/puntos`, {
+        const response = await fetch(`${API_ENDPOINTS.productos}/${idMueble}/puntos`, {
             headers: {
                 'Authorization': `Bearer ${this.getToken()}`
             }
@@ -482,32 +519,53 @@ export class ApiService {
         });
     }
 
-    // Crear tarea
-    static async crearTarea(tareaData: any): Promise<any> {
-        return await this.fetchApi('/tareas', {
+    // Métodos para tareas
+    static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
+        const params = estado ? `?estado=${estado}` : '';
+        return await this.fetchApi<Tarea[]>(`${API_ENDPOINTS.tareas}/supervisor${params}`);
+    }
+
+    static async crearTarea(data: CrearTareaData): Promise<any> {
+        return await this.fetchApi(`${API_ENDPOINTS.tareas}`, {
             method: 'POST',
-            body: JSON.stringify(tareaData),
+            body: JSON.stringify(data)
         });
+    }
+
+    // Métodos para reponedores
+    static async getReponedoresAsignados(): Promise<Reponedor[]> {
+        const response = await this.fetchApi<{ total: number; reponedores: Reponedor[]; mensaje: string }>(
+            `${API_ENDPOINTS.supervisor}/reponedores`
+        );
+        return response.reponedores;
+    }
+
+    static async getReponedoresDisponibles(): Promise<Reponedor[]> {
+        const response = await this.fetchApi<{ total: number; reponedores: Reponedor[]; mensaje: string }>(
+            `${API_ENDPOINTS.supervisor}/reponedores/disponibles`
+        );
+        return response.reponedores;
+    }
+
+    static async asignarReponedor(reponedorId: number): Promise<any> {
+        return await this.fetchApi(
+            `${API_ENDPOINTS.supervisor}/reponedores/${reponedorId}/asignar`,
+            { method: 'POST' }
+        );
+    }
+
+    static async desasignarReponedor(reponedorId: number): Promise<any> {
+        return await this.fetchApi(
+            `${API_ENDPOINTS.supervisor}/reponedores/${reponedorId}/desasignar`,
+            { method: 'DELETE' }
+        );
     }
 }
 
 // Nuevas funciones para obtener el mapa según el rol
-export async function getMapaSupervisor(token: string, idMapa?: number) {
-  const params = idMapa ? `?id_mapa=${idMapa}` : '';
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/mapa/supervisor/vista${params}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!response.ok) throw new Error('No se pudo obtener el mapa del supervisor');
-  return await response.json();
-}
-
 export async function getMapaReponedor(token: string, idMapa?: number) {
   const params = idMapa ? `?id_mapa=${idMapa}` : '';
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/mapa/reponedor/vista${params}`, {
+  const response = await fetch(`${API_URL}/mapa/reponedor/vista${params}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,

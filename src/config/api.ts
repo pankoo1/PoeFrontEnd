@@ -9,5 +9,6 @@ export const API_ENDPOINTS = {
     profile: `${API_URL}/usuarios/me`,
     muebles_reposicion: `${API_URL}/muebles/reposicion`,
     mapa: `${API_URL}/mapa`,
-    mapa_reposicion: `${API_URL}/mapa/reposicion`
+    mapa_reposicion: `${API_URL}/mapa/reposicion`,
+    tareas: `${API_URL}/tareas`
 } as const;

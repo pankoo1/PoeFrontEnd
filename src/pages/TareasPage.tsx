@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, Search, Edit } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { ApiService, Tarea } from '@/services/api';
 
 const TareasPage = () => {
   const navigate = useNavigate();
@@ -17,17 +18,32 @@ const TareasPage = () => {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [editingTarea, setEditingTarea] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [tareas, setTareas] = useState<Tarea[]>([]);
   
-  const [tareas, setTareas] = useState([
-    { id: 1, reponedor: 'Carlos Martínez', producto: 'Leche Entera 1L', area: 'Lácteos', cantidad: 24, prioridad: 'Alta', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 14:00' },
-    { id: 2, reponedor: 'Ana López', producto: 'Manzanas Rojas', area: 'Frutas y Verduras', cantidad: 50, prioridad: 'Media', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 16:00' },
-    { id: 3, reponedor: 'Miguel Santos', producto: 'Pan Integral', area: 'Panadería', cantidad: 30, prioridad: 'Baja', estado: 'Completada', fechaAsignacion: '2024-01-14', fechaLimite: '2024-01-15 10:00' },
-    { id: 4, reponedor: 'Laura Pérez', producto: 'Pollo Entero', area: 'Carnicería', cantidad: 15, prioridad: 'Alta', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 12:00' },
-  ]);
+  useEffect(() => {
+    cargarTareas();
+  }, [filtroEstado]);
+
+  const cargarTareas = async () => {
+    try {
+      setLoading(true);
+      const tareasResponse = await ApiService.getTareasSupervisor(filtroEstado);
+      setTareas(tareasResponse);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las tareas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const cancelarTarea = (id: number) => {
     setTareas(tareas.map(tarea => {
-      if (tarea.id === id) {
+      if (tarea.id_tarea === id) {
         return { ...tarea, estado: 'Cancelada' };
       }
       return tarea;
@@ -45,26 +61,37 @@ const TareasPage = () => {
 
   const guardarEdicion = () => {
     setTareas(tareas.map(tarea => 
-      tarea.id === editingTarea.id ? editingTarea : tarea
+      tarea.id_tarea === editingTarea.id_tarea ? editingTarea : tarea
     ));
     setEditDialogOpen(false);
     setEditingTarea(null);
     toast({
       title: "Tarea actualizada",
-      description: `La tarea de ${editingTarea.producto} ha sido actualizada`,
+      description: `La tarea de ${editingTarea.productos[0].nombre} ha sido actualizada`,
     });
   };
 
   const filteredTareas = tareas.filter(tarea => {
     const matchesSearch = tarea.reponedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.area.toLowerCase().includes(searchTerm.toLowerCase());
+                         tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.estado.toLowerCase().includes(filtroEstado.toLowerCase());
     const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase() === filtroEstado;
     return matchesSearch && matchesEstado;
   });
 
+  const formatearFecha = (fechaStr: string) => {
+    const fecha = new Date(fechaStr);
+    return fecha.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center">
           <Button 
@@ -76,102 +103,90 @@ const TareasPage = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <h1 className="text-2xl font-bold">Gestión de Tareas</h1>
+          <h1 className="text-2xl font-bold">Tareas Asignadas</h1>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Card>
+      <main className="container mx-auto px-4 py-8 flex-1">
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-orange-500 text-white">
+                <div className="p-3 rounded-lg bg-primary text-primary-foreground">
                   <ClipboardList className="w-6 h-6" />
                 </div>
-                <CardTitle className="text-2xl">Tareas de Reposición</CardTitle>
+                <CardTitle>Lista de Tareas</CardTitle>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Select
+                  value={filtroEstado}
+                  onValueChange={setFiltroEstado}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filtrar por estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="en_proceso">En Proceso</SelectItem>
+                    <SelectItem value="completada">Completada</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-6 flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Buscar tareas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            {loading ? (
+              <div className="text-center py-8">
+                <p>Cargando tareas...</p>
               </div>
-              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrar por estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en progreso">En Progreso</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Reponedor</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Cantidad</TableHead>
-                  <TableHead>Prioridad</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha Límite</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTareas.map((tarea) => (
-                  <TableRow key={tarea.id}>
-                    <TableCell className="font-medium">{tarea.reponedor}</TableCell>
-                    <TableCell>{tarea.producto}</TableCell>
-                    <TableCell>{tarea.area}</TableCell>
-                    <TableCell>{tarea.cantidad}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        tarea.prioridad === 'Alta' ? 'bg-red-100 text-red-800' :
-                        tarea.prioridad === 'Media' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {tarea.prioridad}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        tarea.estado === 'Completada' ? 'bg-green-100 text-green-800' :
-                        tarea.estado === 'En Progreso' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {tarea.estado}
-                      </span>
-                    </TableCell>
-                    <TableCell>{tarea.fechaLimite}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => editarTarea(tarea)}
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Editar
-                        </Button>
+            ) : tareas.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No hay tareas {filtroEstado && `en estado ${filtroEstado}`}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {tareas.map((tarea) => (
+                  <div
+                    key={tarea.id_tarea}
+                    className="border rounded-lg p-4 hover:bg-accent transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: tarea.color_estado }}
+                        />
+                        <span className="font-medium capitalize">{tarea.estado}</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                      <span className="text-sm text-muted-foreground">
+                        {formatearFecha(tarea.fecha_creacion)}
+                      </span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium">Reponedor: </span>
+                      <span>{tarea.reponedor}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Productos:</span>
+                      <ul className="mt-2 space-y-2">
+                        {tarea.productos.map((producto, index) => (
+                          <li key={index} className="flex items-center justify-between text-sm">
+                            <span>{producto.nombre}</span>
+                            <div className="text-right">
+                              <span className="font-medium">{producto.cantidad} unidades</span>
+                              <span className="text-muted-foreground block">
+                                Est. {producto.ubicacion.estanteria}, Nivel {producto.ubicacion.nivel}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 

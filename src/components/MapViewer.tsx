@@ -21,6 +21,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const [mapa, setMapa] = useState<Mapa | null>(mapaProp || null);
     const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
     const [isLoading, setIsLoading] = useState(!ubicacionesProp);
+    const [hoveredObjectName, setHoveredObjectName] = useState<string | null>(null);
     const { toast } = useToast();
 
     const cargarMapa = async () => {
@@ -61,12 +62,27 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             return 'bg-green-500'; // Punto con producto
         }
         if (ubicacion.mueble) {
-            return 'bg-blue-200'; // Cambiamos a un azul más claro para los muebles
+            return 'bg-blue-200'; // Muebles
         }
         if (ubicacion.objeto?.caminable) {
             return 'bg-gray-200'; // Objeto caminable
         }
         return 'bg-red-500'; // Objeto no caminable u otro
+    };
+
+    const isHighlighted = (ubicacion: UbicacionFisica) => {
+        if (!hoveredObjectName || !ubicacion.objeto) return false;
+        return ubicacion.objeto.nombre === hoveredObjectName;
+    };
+
+    const handleMouseEnter = (ubicacion: UbicacionFisica) => {
+        if (ubicacion.objeto?.nombre) {
+            setHoveredObjectName(ubicacion.objeto.nombre);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setHoveredObjectName(null);
     };
 
     // Función para mostrar información de depuración
@@ -127,6 +143,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 {Array.from({ length: mapa.alto }, (_, y) =>
                     Array.from({ length: mapa.ancho }, (_, x) => {
                         const ubicacion = ubicaciones.find(u => u.x === x && u.y === y);
+                        const isHighlightedNode = ubicacion && isHighlighted(ubicacion);
                         return (
                             <div
                                 key={`${x}-${y}`}
@@ -137,8 +154,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                     h-full 
                                     min-h-[40px] 
                                     rounded
-                                    transition-colors
-                                    hover:opacity-80
+                                    transition-all
+                                    duration-200
                                     cursor-pointer
                                     border
                                     border-gray-300
@@ -147,12 +164,15 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                     justify-center
                                     text-xs
                                     font-bold
+                                    ${isHighlightedNode ? 'ring-2 ring-orange-500 ring-offset-2 scale-110 z-10' : 'hover:opacity-80'}
                                 `}
                                 style={{
                                     gridColumn: x + 1,
                                     gridRow: y + 1,
                                 }}
                                 onClick={() => ubicacion && onObjectClick?.(ubicacion)}
+                                onMouseEnter={() => ubicacion && handleMouseEnter(ubicacion)}
+                                onMouseLeave={handleMouseLeave}
                                 title={ubicacion?.mueble ? 
                                     `Mueble - Estantería: ${ubicacion.mueble.estanteria}, Nivel: ${ubicacion.mueble.nivel}, Filas: ${ubicacion.mueble.filas}, Columnas: ${ubicacion.mueble.columnas}` :
                                     ubicacion?.objeto?.nombre || ''
@@ -164,6 +184,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                 {ubicacion?.punto?.producto && (
                                     <div className="text-white">
                                         {ubicacion.punto.producto.nombre.substring(0, 3)}
+                                    </div>
+                                )}
+                                {isHighlightedNode && ubicacion?.objeto?.nombre && (
+                                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+                                        {ubicacion.objeto.nombre}
                                     </div>
                                 )}
                             </div>
