@@ -63,23 +63,20 @@ export interface Ubicacion {
 // Interfaces para tareas
 export interface Tarea {
     id_tarea: number;
+    fecha_creacion: string;
     estado: string;
     color_estado: string;
-    reponedor: string;
+    reponedor: string | null;
     productos: {
         id_producto: number;
         nombre: string;
         cantidad: number;
         ubicacion: {
+            id_punto: number;
             estanteria: string;
             nivel: number;
         };
     }[];
-    ubicaciones: {
-        estanteria: string;
-        nivel: number;
-    }[];
-    fecha_creacion: string;
 }
 
 export interface CrearTareaData {
@@ -550,10 +547,10 @@ export class ApiService {
         });
     }
 
-    static async actualizarCantidadProductoTarea(idTarea: number, idProducto: number, cantidad: number): Promise<void> {
-        return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/detalle/${idProducto}`, {
+    static async actualizarCantidadProductoTareaPorPunto(idTarea: number, idPunto: number, cantidad: number): Promise<void> {
+        await this.fetchApi(`/tareas/${idTarea}/detalle/${idPunto}`, {
             method: 'PUT',
-            body: JSON.stringify({ cantidad })
+            body: JSON.stringify({ cantidad }),
         });
     }
 

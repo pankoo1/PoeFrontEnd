@@ -4,13 +4,41 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, Search, Edit, UserX, Package } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ApiService, Tarea, Reponedor } from '@/services/api';
+import { API_URL } from '@/config/api';
+
+interface Ubicacion {
+  id_punto: number;
+  estanteria: string;
+  nivel: number;
+}
+
+interface Producto {
+  id_producto: number;
+  nombre: string;
+  cantidad: number;
+  ubicacion: Ubicacion;
+}
+
+interface TareaDetalle {
+  id_tarea: number;
+  fecha_creacion: string;
+  estado: string;
+  color_estado: string;
+  reponedor: string;
+  productos: Producto[];
+}
+
+interface EditingProducts {
+  id_tarea: number;
+  productos: Producto[];
+}
 
 const TareasPage = () => {
   const navigate = useNavigate();
@@ -20,11 +48,14 @@ const TareasPage = () => {
   const [editingTarea, setEditingTarea] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editProductsDialogOpen, setEditProductsDialogOpen] = useState(false);
-  const [editingProducts, setEditingProducts] = useState(null);
+  const [editingProducts, setEditingProducts] = useState<EditingProducts | null>(null);
+  const [tempProductQuantities, setTempProductQuantities] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [reponedores, setReponedores] = useState<Reponedor[]>([]);
   const [loadingReponedores, setLoadingReponedores] = useState(false);
+  const [selectedTarea, setSelectedTarea] = useState<TareaDetalle | null>(null);
+  const [showDetalleDialog, setShowDetalleDialog] = useState(false);
   
   useEffect(() => {
     cargarTareas();
@@ -73,16 +104,16 @@ const TareasPage = () => {
   const cancelarTarea = async (id: number) => {
     try {
       await ApiService.actualizarEstadoTarea(id, 'cancelada');
-      setTareas(tareas.map(tarea => {
-        if (tarea.id_tarea === id) {
+    setTareas(tareas.map(tarea => {
+      if (tarea.id_tarea === id) {
           return { ...tarea, estado: 'cancelada' };
-        }
-        return tarea;
-      }));
-      toast({
-        title: "Tarea cancelada",
-        description: "La tarea ha sido cancelada exitosamente",
-      });
+      }
+      return tarea;
+    }));
+    toast({
+      title: "Tarea cancelada",
+      description: "La tarea ha sido cancelada exitosamente",
+    });
     } catch (error) {
       toast({
         title: "Error",
@@ -97,15 +128,24 @@ const TareasPage = () => {
     setEditDialogOpen(true);
   };
 
-  const editarProductos = async (tarea) => {
+  const editarProductos = async (tarea: any) => {
     try {
       const tareaActualizada = await ApiService.getTareaById(tarea.id_tarea);
+      
       setEditingProducts({
         id_tarea: tareaActualizada.id_tarea,
-        productos: [...tareaActualizada.productos]
+        productos: tareaActualizada.productos
       });
+
+      // Inicializar las cantidades temporales con las cantidades actuales
+      const initialQuantities: Record<number, number> = {};
+      tareaActualizada.productos.forEach((producto: Producto) => {
+        initialQuantities[producto.ubicacion.id_punto] = producto.cantidad;
+      });
+      setTempProductQuantities(initialQuantities);
       setEditProductsDialogOpen(true);
     } catch (error) {
+      console.error('Error al cargar tarea:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar la información de la tarea",
@@ -114,36 +154,61 @@ const TareasPage = () => {
     }
   };
 
-  const actualizarCantidadProducto = async (idProducto: number, nuevaCantidad: number) => {
+  const actualizarCantidadTemporal = (idPunto: number, nuevaCantidad: number) => {
+    if (nuevaCantidad < 1) return; // No permitir cantidades menores a 1
+    
+    // Actualizar el estado temporal de cantidades
+    setTempProductQuantities(prev => ({
+      ...prev,
+      [idPunto]: nuevaCantidad
+    }));
+  };
+
+  const guardarCambiosCantidad = async () => {
     try {
-      if (nuevaCantidad < 0) {
-        throw new Error('La cantidad no puede ser negativa');
-      }
-      
-      await ApiService.actualizarCantidadProductoTarea(editingProducts.id_tarea, idProducto, nuevaCantidad);
-      
-      // Obtener la tarea actualizada del servidor
-      const tareaActualizada = await ApiService.getTareaById(editingProducts.id_tarea);
-      
-      // Actualizar el estado local de editingProducts
-      setEditingProducts({
-        ...editingProducts,
-        productos: tareaActualizada.productos
+      if (!editingProducts) return;
+
+      // Crear un array de promesas para todas las actualizaciones
+      const actualizaciones = editingProducts.productos.map(async (producto) => {
+        const idPunto = producto.ubicacion.id_punto;
+        const nuevaCantidad = tempProductQuantities[idPunto];
+        
+        // Solo actualizar si la cantidad ha cambiado
+        if (nuevaCantidad !== undefined && nuevaCantidad !== producto.cantidad) {
+          console.log('Actualizando producto:', {
+            id_tarea: editingProducts.id_tarea,
+            id_punto: idPunto,
+            cantidad_actual: producto.cantidad,
+            nueva_cantidad: nuevaCantidad
+          });
+          
+          await ApiService.actualizarCantidadProductoTareaPorPunto(
+            editingProducts.id_tarea,
+            idPunto,
+            nuevaCantidad
+          );
+        }
       });
 
-      // Actualizar el estado de tareas
-      setTareas(tareas.map(tarea => 
-        tarea.id_tarea === editingProducts.id_tarea ? tareaActualizada : tarea
-      ));
+      // Esperar a que todas las actualizaciones se completen
+      await Promise.all(actualizaciones);
 
+      setEditingProducts(null);
+      setTempProductQuantities({});
+      setEditProductsDialogOpen(false);
+      
       toast({
-        title: "Cantidad actualizada",
-        description: "La cantidad del producto ha sido actualizada exitosamente",
+        title: "Éxito",
+        description: "Los cambios han sido guardados correctamente",
       });
+      
+      // Recargar las tareas para mostrar los cambios actualizados
+      await cargarTareas();
     } catch (error) {
+      console.error('Error al guardar cambios:', error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo actualizar la cantidad del producto",
+        description: "No se pudieron guardar los cambios",
         variant: "destructive",
       });
     }
@@ -162,7 +227,7 @@ const TareasPage = () => {
       }
 
       // Actualizamos el estado local
-      setTareas(tareas.map(tarea => 
+    setTareas(tareas.map(tarea => 
         tarea.id_tarea === editingTarea.id_tarea ? {
           ...tarea,
           reponedor: editingTarea.reponedor === 'sin_asignar' ? null : editingTarea.reponedor,
@@ -170,10 +235,10 @@ const TareasPage = () => {
         } : tarea
       ));
       
-      setEditDialogOpen(false);
-      setEditingTarea(null);
-      toast({
-        title: "Tarea actualizada",
+    setEditDialogOpen(false);
+    setEditingTarea(null);
+    toast({
+      title: "Tarea actualizada",
         description: "La tarea ha sido actualizada exitosamente",
       });
     } catch (error) {
@@ -193,10 +258,25 @@ const TareasPage = () => {
     }
   };
 
+  const handleTareaClick = async (tarea: any) => {
+    try {
+      const response = await ApiService.getTareaById(tarea.id_tarea);
+      setSelectedTarea(response);
+      setShowDetalleDialog(true);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los detalles de la tarea",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredTareas = tareas.filter(tarea => {
     const matchesSearch = 
       (tarea.reponedor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tarea.estado.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase() === filtroEstado.toLowerCase();
     return matchesSearch && matchesEstado;
@@ -281,7 +361,8 @@ const TareasPage = () => {
                 {filteredTareas.map((tarea) => (
                   <div
                     key={tarea.id_tarea}
-                    className="border rounded-lg p-4 hover:bg-accent transition-colors"
+                    className="border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer"
+                    onClick={() => handleTareaClick(tarea)}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -303,8 +384,8 @@ const TareasPage = () => {
                     <div className="mb-2">
                       {tarea.reponedor ? (
                         <>
-                          <span className="font-medium">Reponedor: </span>
-                          <span>{tarea.reponedor}</span>
+                      <span className="font-medium">Reponedor: </span>
+                      <span>{tarea.reponedor}</span>
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-yellow-600">
@@ -318,11 +399,11 @@ const TareasPage = () => {
                       <div className="mt-1 space-y-1">
                         {tarea.productos.map((producto, index) => (
                           <div 
-                            key={`tarea-${tarea.id_tarea}-producto-${producto.id_producto || index}`} 
+                            key={`tarea-${tarea.id_tarea}-${producto.ubicacion.id_punto ? `punto-${producto.ubicacion.id_punto}` : `producto-${producto.id_producto}-${index}`}`} 
                             className="text-sm"
                           >
                             • {producto.nombre} - {producto.cantidad} unidades
-                          </div>
+                            </div>
                         ))}
                       </div>
                     </div>
@@ -330,7 +411,10 @@ const TareasPage = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => editarTarea(tarea)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          editarTarea(tarea);
+                        }}
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         {tarea.reponedor ? 'Editar' : 'Asignar Reponedor'}
@@ -338,7 +422,10 @@ const TareasPage = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => editarProductos(tarea)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          editarProductos(tarea);
+                        }}
                       >
                         <Package className="w-3 h-3 mr-1" />
                         Editar Productos
@@ -347,7 +434,10 @@ const TareasPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => cancelarTarea(tarea.id_tarea)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cancelarTarea(tarea.id_tarea);
+                          }}
                         >
                           Cancelar
                         </Button>
@@ -410,16 +500,18 @@ const TareasPage = () => {
         </Dialog>
 
         <Dialog open={editProductsDialogOpen} onOpenChange={setEditProductsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Productos de la Tarea</DialogTitle>
             </DialogHeader>
             {editingProducts && (
-              <div className="grid gap-4 py-4" key={`edit-products-${editingProducts.id_tarea}`}>
-                <div className="space-y-4">
-                  {editingProducts.productos.map((producto, index) => (
+              <div className="space-y-4">
+                {editingProducts.productos.map((producto) => {
+                  const cantidadActual = tempProductQuantities[producto.ubicacion.id_punto] ?? producto.cantidad;
+                  
+                  return (
                     <div 
-                      key={`${editingProducts.id_tarea}-${producto.id_producto || `producto-${index}`}`} 
+                      key={`punto-${producto.ubicacion.id_punto}`} 
                       className="grid grid-cols-6 items-center gap-4 p-4 border rounded-lg"
                     >
                       <div className="col-span-3">
@@ -433,38 +525,109 @@ const TareasPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => actualizarCantidadProducto(producto.id_producto, producto.cantidad - 1)}
-                          disabled={producto.cantidad <= 1}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            actualizarCantidadTemporal(producto.ubicacion.id_punto, cantidadActual - 1);
+                          }}
+                          disabled={cantidadActual <= 1}
                         >
                           -
                         </Button>
                         <Input
                           type="number"
-                          value={producto.cantidad}
+                          value={cantidadActual}
                           onChange={(e) => {
                             const nuevaCantidad = parseInt(e.target.value) || 0;
-                            if (nuevaCantidad >= 0) {
-                              actualizarCantidadProducto(producto.id_producto, nuevaCantidad);
+                            if (nuevaCantidad >= 1) {
+                              actualizarCantidadTemporal(producto.ubicacion.id_punto, nuevaCantidad);
                             }
                           }}
                           className="w-20 text-center"
-                          min="0"
+                          min="1"
                         />
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => actualizarCantidadProducto(producto.id_producto, producto.cantidad + 1)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            actualizarCantidadTemporal(producto.ubicacion.id_punto, cantidadActual + 1);
+                          }}
                         >
                           +
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingProducts(null);
+                  setTempProductQuantities({});
+                  setEditProductsDialogOpen(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={guardarCambiosCantidad}>
+                Confirmar Cambios
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showDetalleDialog} onOpenChange={setShowDetalleDialog}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Detalles de la Tarea</DialogTitle>
+            </DialogHeader>
+            {selectedTarea && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">ID Tarea</p>
+                    <p className="text-lg">{selectedTarea.id_tarea}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Estado</p>
+                    <Badge 
+                      style={{ backgroundColor: selectedTarea.color_estado }}
+                      className="text-white"
+                    >
+                      {selectedTarea.estado}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Fecha de Creación</p>
+                    <p className="text-lg">{new Date(selectedTarea.fecha_creacion).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Reponedor</p>
+                    <p className="text-lg">{selectedTarea.reponedor || 'Sin asignar'}</p>
+                  </div>
                 </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={() => setEditProductsDialogOpen(false)}>
-                    Cerrar
-                  </Button>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Productos</h3>
+                  <div className="space-y-2">
+                    {selectedTarea.productos.map((producto, index) => (
+                      <div 
+                        key={`detalle-${selectedTarea.id_tarea}-producto-${index}`}
+                        className="p-3 border rounded-lg"
+                      >
+                        <p className="font-medium">{producto.nombre}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Cantidad: {producto.cantidad} unidades
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Ubicación: Estantería {producto.ubicacion.estanteria}, Nivel {producto.ubicacion.nivel}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
