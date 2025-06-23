@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import ProductSelector from './ProductSelector';
 import { Producto } from '@/types/producto';
@@ -22,7 +22,7 @@ const TareaForm = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     reponedor: '',
-    estado: '' // Solo los campos necesarios
+    estado: 'sin_asignar' // Estado por defecto cuando no hay reponedor
   });
   const [selectedProducts, setSelectedProducts] = useState<Array<{producto: Producto, cantidad: number}>>([]);
   const [productoToAdd, setProductoToAdd] = useState<Producto | null>(null);
@@ -55,49 +55,40 @@ const TareaForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validar duplicados (fallback)
-    const ids = selectedProducts.map(p => p.producto.id_producto);
-    const hasDuplicates = ids.length !== new Set(ids).size;
-    if (hasDuplicates) {
-      toast({ title: 'No se puede guardar la tarea porque hay productos duplicados.', variant: 'destructive' });
-      return;
-    }
+    // Validar que haya al menos un producto
     if (selectedProducts.length === 0) {
       toast({ title: 'Debe agregar al menos un producto.', variant: 'destructive' });
       return;
     }
+
     // Validar cantidades de productos
     for (const { producto, cantidad } of selectedProducts) {
       const cantidadNum = Number(cantidad);
-      if (
-        cantidad === undefined ||
-        cantidad === null ||
-        isNaN(cantidadNum)
-      ) {
-        toast({ title: `Falta ingresar la cantidad para el producto "${producto.nombre}".`, variant: 'destructive' });
-        return;
-      }
-      if (cantidadNum <= 0) {
+      if (isNaN(cantidadNum) || cantidadNum <= 0) {
         toast({ title: `La cantidad para el producto "${producto.nombre}" debe ser mayor a 0.`, variant: 'destructive' });
         return;
       }
     }
-    // Construir payload según lo que espera el backend
-    const payload: any = {
+
+    // Si no hay reponedor seleccionado, asegurarse que el estado sea "sin_asignar"
+    if (!formData.reponedor && formData.estado !== 'sin_asignar') {
+      setFormData(prev => ({ ...prev, estado: 'sin_asignar' }));
+    }
+
+    // Construir payload
+    const payload = {
       productos: selectedProducts.map(({ producto, cantidad }) => ({
         id_producto: producto.id_producto,
         cantidad: Number(cantidad)
       })),
       id_reponedor: formData.reponedor ? Number(formData.reponedor) : null,
-      id_supervisor: null, // El backend lo ignora si eres supervisor
-      estado: formData.estado // Nuevo campo
+      estado: formData.estado
     };
-    // Aquí deberías llamar a tu ApiService para crear la tarea
+
     try {
-      // Reemplaza 'crearTarea' por el método real de tu ApiService
       await ApiService.crearTarea(payload);
       toast({ title: 'Tarea creada exitosamente', variant: 'default' });
-      setFormData({ reponedor: '', estado: '' });
+      setFormData({ reponedor: '', estado: 'sin_asignar' });
       setSelectedProducts([]);
       setIsOpen(false);
     } catch (err: any) {
@@ -121,31 +112,48 @@ const TareaForm = () => {
               <DialogTitle>Asignar Nueva Tarea de Reposición</DialogTitle>
             </DialogHeader>
             <div className="space-y-2">
-              <Label htmlFor="reponedor">Reponedor Asignado</Label>
-              <Select value={formData.reponedor} onValueChange={value => setFormData({ ...formData, reponedor: value })}>
+              <Label htmlFor="reponedor">Reponedor (Opcional)</Label>
+              <Select value={formData.reponedor} onValueChange={value => {
+                setFormData({ 
+                  ...formData, 
+                  reponedor: value,
+                  estado: value ? 'pendiente' : 'sin_asignar'
+                });
+              }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar reponedor" />
+                  <SelectValue placeholder="Seleccionar reponedor (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="carlos">Carlos Martínez</SelectItem>
-                  <SelectItem value="ana">Ana López</SelectItem>
-                  <SelectItem value="miguel">Miguel Santos</SelectItem>
-                  <SelectItem value="laura">Laura Pérez</SelectItem>
+                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="1">Carlos Martínez</SelectItem>
+                  <SelectItem value="2">Ana López</SelectItem>
+                  <SelectItem value="3">Miguel Santos</SelectItem>
+                  <SelectItem value="4">Laura Pérez</SelectItem>
                 </SelectContent>
               </Select>
+              {!formData.reponedor && (
+                <div className="flex items-center gap-2 mt-2 text-yellow-600 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>La tarea se creará sin reponedor asignado</span>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="estado">Estado de la Tarea</Label>
-              <Select value={formData.estado} onValueChange={value => setFormData({ ...formData, estado: value })}>
+              <Select 
+                value={formData.estado} 
+                onValueChange={value => setFormData({ ...formData, estado: value })}
+                disabled={!formData.reponedor}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="sin_asignar">Sin Asignar</SelectItem>
                   <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en progreso">En Progreso</SelectItem>
+                  <SelectItem value="en_progreso">En Progreso</SelectItem>
                   <SelectItem value="completada">Completada</SelectItem>
                   <SelectItem value="cancelada">Cancelada</SelectItem>
-                  <SelectItem value="sin asignar">Sin Asignar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -154,7 +162,7 @@ const TareaForm = () => {
                 Cancelar
               </Button>
               <Button type="submit">
-                Asignar Tarea
+                Crear Tarea
               </Button>
             </div>
           </form>
@@ -183,14 +191,17 @@ const TareaForm = () => {
               </div>
             )}
             <div className="mt-4">
-              <Label>Detalle de productos seleccionados</Label>
-              <div className="border rounded p-2 bg-white max-h-40 overflow-y-auto">
-                {selectedProducts.length === 0 && <div className="text-muted-foreground text-sm">No hay productos agregados.</div>}
+              <h4 className="font-medium mb-2">Productos Seleccionados:</h4>
+              <div className="space-y-2">
                 {selectedProducts.map(({ producto, cantidad }) => (
-                  <div key={producto.id_producto} className="flex items-center justify-between py-1 border-b last:border-b-0">
-                    <span>{producto.nombre} <span className="text-xs text-muted-foreground">({producto.categoria})</span> x <b>{cantidad}</b></span>
-                    <Button size="icon" variant="ghost" onClick={() => handleRemoveProduct(producto.id_producto)}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                  <div key={producto.id_producto} className="flex items-center justify-between bg-background p-2 rounded-md">
+                    <span>{producto.nombre} - {cantidad} unidades</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRemoveProduct(producto.id_producto)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
                 ))}

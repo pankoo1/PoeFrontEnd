@@ -40,7 +40,7 @@ const SupervisorMapPage = () => {
   const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>([]);
   const [puntosSeleccionados, setPuntosSeleccionados] = useState<PuntoSeleccionado[]>([]);
   const [reponedores, setReponedores] = useState<Reponedor[]>([]);
-  const [reponedorSeleccionado, setReponedorSeleccionado] = useState<string>('');
+  const [reponedorSeleccionado, setReponedorSeleccionado] = useState<string>('sin_asignar');
   const [creandoTarea, setCreandoTarea] = useState(false);
   const [mostrarBotonTareas, setMostrarBotonTareas] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
@@ -127,10 +127,10 @@ const SupervisorMapPage = () => {
   };
 
   const crearTarea = async () => {
-    if (!reponedorSeleccionado || puntosSeleccionados.length === 0) {
+    if (puntosSeleccionados.length === 0) {
       toast({
         title: "Error",
-        description: "Debes seleccionar un reponedor y al menos un punto de reposición",
+        description: "Debes seleccionar al menos un punto de reposición",
         variant: "destructive",
       });
       return;
@@ -139,8 +139,10 @@ const SupervisorMapPage = () => {
     try {
       setCreandoTarea(true);
       await ApiService.crearTarea({
-        id_reponedor: parseInt(reponedorSeleccionado),
-        estado_id: 1, // Estado inicial: pendiente
+        id_reponedor: reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
+          ? parseInt(reponedorSeleccionado) 
+          : null,
+        estado_id: reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" ? 1 : 5, // 1: pendiente, 5: sin asignar
         puntos: puntosSeleccionados.map(punto => ({
           id_punto: punto.punto!.id_punto,
           cantidad: punto.cantidad
@@ -149,12 +151,14 @@ const SupervisorMapPage = () => {
 
       toast({
         title: "Éxito",
-        description: "Tarea creada correctamente",
+        description: reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar"
+          ? "Tarea creada y asignada correctamente"
+          : "Tarea creada sin asignar",
       });
 
       // Limpiar selección
       setPuntosSeleccionados([]);
-      setReponedorSeleccionado('');
+      setReponedorSeleccionado('sin_asignar');
 
       // Mostrar botón para ver tareas
       setMostrarBotonTareas(true);
@@ -308,43 +312,57 @@ const SupervisorMapPage = () => {
 
               <div className="space-y-4 pt-4 border-t">
                 <div className="space-y-2">
-                  <Label htmlFor="reponedor">Asignar a Reponedor</Label>
+                  <Label htmlFor="reponedor">Asignar a Reponedor (Opcional)</Label>
                   <Select
                     value={reponedorSeleccionado}
                     onValueChange={setReponedorSeleccionado}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar reponedor" />
+                      <SelectValue placeholder="Seleccionar reponedor (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {reponedores.map((reponedor) => (
-                        <SelectItem key={reponedor.id_usuario} value={reponedor.id_usuario.toString()}>
+                      <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                      {reponedores && reponedores.map((reponedor) => (
+                        <SelectItem 
+                          key={reponedor.id_usuario} 
+                          value={reponedor.id_usuario.toString()}
+                        >
                           {reponedor.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="flex flex-col space-y-2">
-                  <Button 
-                    className="w-full" 
-                    disabled={puntosSeleccionados.length === 0 || !reponedorSeleccionado || creandoTarea}
-                    onClick={crearTarea}
-                  >
-                    {creandoTarea ? 'Creando tarea...' : 'Crear Tarea'}
-                  </Button>
-
-                  {mostrarBotonTareas && (
-                    <Button 
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => navigate('/tareas')}
-                    >
-                      Ver Tareas Asignadas
-                    </Button>
+                  {(!reponedorSeleccionado || reponedorSeleccionado === "sin_asignar") && puntosSeleccionados.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2 text-yellow-600 text-sm">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>La tarea se creará sin reponedor asignado</span>
+                    </div>
                   )}
                 </div>
+
+                <Button 
+                  onClick={crearTarea} 
+                  disabled={puntosSeleccionados.length === 0 || creandoTarea}
+                  className="w-full"
+                >
+                  {creandoTarea ? (
+                    "Creando tarea..."
+                  ) : (
+                    reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
+                      ? "Crear y Asignar Tarea" 
+                      : "Crear Tarea Sin Asignar"
+                  )}
+                </Button>
+
+                {mostrarBotonTareas && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/tareas')}
+                  >
+                    Ver Tareas Creadas
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

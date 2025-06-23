@@ -67,6 +67,7 @@ export interface Tarea {
     color_estado: string;
     reponedor: string;
     productos: {
+        id_producto: number;
         nombre: string;
         cantidad: number;
         ubicacion: {
@@ -525,14 +526,48 @@ export class ApiService {
 
     // Métodos para tareas
     static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
-        const params = estado ? `?estado=${estado}` : '';
-        return await this.fetchApi<Tarea[]>(`${API_ENDPOINTS.tareas}/supervisor${params}`);
+        const url = estado 
+            ? `${API_ENDPOINTS.tareas}/supervisor?estado=${estado}`
+            : `${API_ENDPOINTS.tareas}/supervisor`;
+        return await this.fetchApi<Tarea[]>(url);
+    }
+
+    static async getTareaById(idTarea: number): Promise<Tarea> {
+        return await this.fetchApi<Tarea>(`${API_ENDPOINTS.tareas}/${idTarea}`);
     }
 
     static async crearTarea(data: CrearTareaData): Promise<any> {
         return await this.fetchApi(`${API_ENDPOINTS.tareas}`, {
             method: 'POST',
             body: JSON.stringify(data)
+        });
+    }
+
+    static async actualizarEstadoTarea(idTarea: number, estado: string): Promise<void> {
+        return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/estado`, {
+            method: 'PUT',
+            body: JSON.stringify({ estado })
+        });
+    }
+
+    static async actualizarCantidadProductoTarea(idTarea: number, idProducto: number, cantidad: number): Promise<void> {
+        return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/detalle/${idProducto}`, {
+            method: 'PUT',
+            body: JSON.stringify({ cantidad })
+        });
+    }
+
+    static async asignarReponedor(idTarea: number, idReponedor: string): Promise<void> {
+        return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/asignar-reponedor`, {
+            method: 'PUT',
+            body: JSON.stringify({ id_reponedor: parseInt(idReponedor) })
+        });
+    }
+
+    static async actualizarReponedor(idTarea: number, idReponedor: string): Promise<void> {
+        return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/reponedor`, {
+            method: 'PUT',
+            body: JSON.stringify({ id_reponedor: idReponedor })
         });
     }
 
@@ -551,17 +586,10 @@ export class ApiService {
         return response.reponedores;
     }
 
-    static async asignarReponedor(reponedorId: number): Promise<any> {
+    static async asignarReponedorASupervisor(reponedorId: number): Promise<any> {
         return await this.fetchApi(
             `${API_ENDPOINTS.supervisor}/reponedores/${reponedorId}/asignar`,
             { method: 'POST' }
-        );
-    }
-
-    static async desasignarReponedor(reponedorId: number): Promise<any> {
-        return await this.fetchApi(
-            `${API_ENDPOINTS.supervisor}/reponedores/${reponedorId}/desasignar`,
-            { method: 'DELETE' }
         );
     }
 }
