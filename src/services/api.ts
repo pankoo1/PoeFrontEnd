@@ -99,6 +99,7 @@ export interface Reponedor {
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
+    static getMapa: any;
 
     // Método para establecer el token
     static setToken(token: string): void {

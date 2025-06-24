@@ -1,4 +1,5 @@
 export interface Producto {
+    id_usuario(id_producto: number, idPunto: number, id_usuario: any): unknown;
     id_producto: number;
     nombre: string;
     categoria: string;
