@@ -590,6 +590,14 @@ export class ApiService {
             { method: 'POST' }
         );
     }
+
+    // Método para obtener las tareas asignadas al reponedor actual
+    static async getTareasReponedor(): Promise<Tarea[]> {
+        return await this.fetchApi<Tarea[]>(
+            '/tareas/reponedor',
+            { method: 'GET' }
+        );
+    }
 }
 
 // Nuevas funciones para obtener el mapa según el rol

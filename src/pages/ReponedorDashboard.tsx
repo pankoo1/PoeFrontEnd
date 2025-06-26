@@ -1,10 +1,10 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 import { User, Map, Calendar, CheckCircle, AlertTriangle, LogOut } from 'lucide-react';
+import { ApiService, Tarea } from "@/services/api";
 
 const ReponedorDashboard = () => {
   const navigate = useNavigate();
@@ -48,13 +48,41 @@ const ReponedorDashboard = () => {
     }
   ];
 
-  // Datos simulados de resumen
-  const resumen = {
-    tareasHoy: 6,
-    completadas: 4,
-    pendientes: 2,
-    alertas: 1
-  };
+  // Estado para el resumen
+  const [resumen, setResumen] = useState({
+    tareasHoy: 0,
+    completadas: 0,
+    pendientes: 0,
+    alertas: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTareas = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const tareasApi: Tarea[] = await ApiService.getTareasReponedor();
+        // Resumen
+        const hoy = new Date().toISOString().slice(0, 10);
+        const tareasHoy = tareasApi.filter(t => t.fecha_creacion && t.fecha_creacion.startsWith(hoy));
+        const completadas = tareasApi.filter(t => t.estado && t.estado.toLowerCase() === 'completada').length;
+        const pendientes = tareasApi.filter(t => t.estado && t.estado.toLowerCase() !== 'completada').length;
+        setResumen({
+          tareasHoy: tareasHoy.length,
+          completadas,
+          pendientes,
+          alertas: 0
+        });
+      } catch (err: any) {
+        setError('No se pudieron cargar las tareas');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTareas();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,8 +111,11 @@ const ReponedorDashboard = () => {
             Gestiona tus tareas y rutas de reposición de manera eficiente
           </p>
         </div>
-
-        {/* Resumen rápido */}
+        {loading ? (
+          <div className="mb-8">Cargando resumen...</div>
+        ) : error ? (
+          <div className="mb-8 text-red-600">{error}</div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
@@ -97,7 +128,6 @@ const ReponedorDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -109,7 +139,6 @@ const ReponedorDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -121,7 +150,6 @@ const ReponedorDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -134,7 +162,7 @@ const ReponedorDashboard = () => {
             </CardContent>
           </Card>
         </div>
-
+        )}
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {menuItems.map((item, index) => (

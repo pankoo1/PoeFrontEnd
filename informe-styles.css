@@ -1,0 +1,174 @@
+/* Estilos CSS para el PDF del informe técnico */
+@page {
+  size: A4;
+  margin: 2cm;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  max-width: none;
+}
+
+h1 {
+  color: #2c3e50;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 10px;
+  page-break-before: always;
+}
+
+h2 {
+  color: #34495e;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 5px;
+  margin-top: 30px;
+}
+
+h3 {
+  color: #7f8c8d;
+  margin-top: 25px;
+}
+
+/* Tablas */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* Códigos */
+code {
+  background-color: #f4f4f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 90%;
+}
+
+pre {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 15px;
+  overflow-x: auto;
+  margin: 15px 0;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Listas */
+ul, ol {
+  margin: 15px 0;
+  padding-left: 30px;
+}
+
+li {
+  margin: 5px 0;
+}
+
+/* Badges y elementos especiales */
+strong {
+  color: #2c3e50;
+}
+
+/* Separadores */
+hr {
+  border: none;
+  border-top: 2px solid #ecf0f1;
+  margin: 30px 0;
+}
+
+/* Alertas y cajas */
+blockquote {
+  border-left: 4px solid #3498db;
+  background-color: #f8f9fa;
+  padding: 15px;
+  margin: 20px 0;
+  font-style: italic;
+}
+
+/* Evitar saltos de página en elementos importantes */
+.no-break {
+  page-break-inside: avoid;
+}
+
+/* Footer para cada página */
+@page {
+  @bottom-center {
+    content: "Informe Técnico - Tests Automatizados POE | Página " counter(page);
+    font-size: 10px;
+    color: #7f8c8d;
+  }
+}
+
+/* Header para cada página */
+@page {
+  @top-center {
+    content: "Sistema de Gestión de Supermercado - Testing Report";
+    font-size: 10px;
+    color: #7f8c8d;
+    border-bottom: 1px solid #ecf0f1;
+    padding-bottom: 5px;
+  }
+}
+
+/* Emojis y símbolos */
+.emoji {
+  font-size: 1.2em;
+}
+
+/* Ajustes específicos para tablas grandes */
+.coverage-table {
+  font-size: 12px;
+}
+
+.coverage-table th,
+.coverage-table td {
+  padding: 8px;
+}
+
+/* Colores para estados */
+.success { color: #27ae60; }
+.warning { color: #f39c12; }
+.error { color: #e74c3c; }
+.info { color: #3498db; }
+
+/* Print-specific adjustments */
+@media print {
+  body {
+    font-size: 12px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  h2 {
+    font-size: 20px;
+  }
+  
+  h3 {
+    font-size: 16px;
+  }
+}

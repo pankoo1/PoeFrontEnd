@@ -57,6 +57,15 @@ const TareasPage = () => {
   const [selectedTarea, setSelectedTarea] = useState<TareaDetalle | null>(null);
   const [showDetalleDialog, setShowDetalleDialog] = useState(false);
   
+  const estadoMap: Record<string, string> = {
+    todos: '',
+    sin_asignar: 'sin asignar',
+    pendiente: 'pendiente',
+    en_progreso: 'en progreso',
+    completada: 'completada',
+    cancelada: 'cancelada',
+  };
+
   useEffect(() => {
     cargarTareas();
   }, [filtroEstado]);
@@ -70,9 +79,9 @@ const TareasPage = () => {
   const cargarTareas = async () => {
     try {
       setLoading(true);
-      const tareasResponse = await ApiService.getTareasSupervisor(
-        filtroEstado === 'todos' ? undefined : filtroEstado
-      );
+      // Enviar el valor correcto al backend (o undefined para todos)
+      const estadoBackend = estadoMap[filtroEstado] || undefined;
+      const tareasResponse = await ApiService.getTareasSupervisor(estadoBackend);
       setTareas(tareasResponse);
     } catch (error) {
       toast({
@@ -274,11 +283,13 @@ const TareasPage = () => {
   };
 
   const filteredTareas = tareas.filter(tarea => {
-    const matchesSearch = 
+    const matchesSearch =
       (tarea.reponedor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tarea.estado.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase() === filtroEstado.toLowerCase();
+    // Filtrar por estado usando el mapeo
+    const estadoFiltro = estadoMap[filtroEstado];
+    const matchesEstado = !estadoFiltro || tarea.estado.toLowerCase() === estadoFiltro;
     return matchesSearch && matchesEstado;
   });
 
