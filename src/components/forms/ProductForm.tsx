@@ -36,6 +36,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
     unidad_cantidad: 1,
     codigo_unico: ''
   });
+  const [supervisores, setSupervisores] = useState<{ id_usuario: number; nombre: string }[]>([]);
+  const [supervisorId, setSupervisorId] = useState<number | null>(null);
 
   // Actualizar el formulario cuando se recibe un producto para editar
   useEffect(() => {
@@ -50,13 +52,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [editingProduct, mode]);
 
+  // Cargar supervisores solo en modo create
+  useEffect(() => {
+    if (mode === 'create') {
+      ApiService.getUsuarios().then(usuarios => {
+        const supervisoresFiltrados = usuarios.filter(u => u.rol && u.rol.toLowerCase() === 'supervisor');
+        setSupervisores(supervisoresFiltrados.map(s => ({ id_usuario: s.id_usuario, nombre: s.nombre })));
+      });
+    }
+  }, [mode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       if (mode === 'create') {
-        const newProduct = await ApiService.createProducto(formData) as Producto;
+        const newProduct = await ApiService.createProducto({ ...formData, id_usuario: supervisorId }) as Producto;
         onProductAdded?.(newProduct);
         toast({
           title: "Producto agregado",
@@ -197,6 +209,27 @@ const ProductForm: React.FC<ProductFormProps> = ({
               disabled={mode === 'edit'}
             />
           </div>
+          {mode === 'create' && (
+            <div className="space-y-2">
+              <Label htmlFor="supervisor">Supervisor asignado</Label>
+              <Select
+                value={supervisorId ? String(supervisorId) : ''}
+                onValueChange={val => setSupervisorId(Number(val))}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar supervisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supervisores.map(sup => (
+                    <SelectItem key={sup.id_usuario} value={String(sup.id_usuario)}>
+                      {sup.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
               Cancelar

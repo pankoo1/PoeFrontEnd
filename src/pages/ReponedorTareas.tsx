@@ -3,9 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package } from 'lucide-react';
+import { ArrowLeft, Package, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService, Tarea } from "@/services/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const getEstadoBadge = (estado: string) => {
   switch (estado?.toLowerCase()) {
@@ -165,6 +176,62 @@ const ReponedorTareas = () => {
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                           ✓ Completada
                         </Badge>
+                      )}
+                      {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 border-green-200 hover:bg-green-50"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Marcar como Completada
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar finalización de tarea</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                ¿Estás seguro de que deseas marcar esta tarea como completada? 
+                                Una vez marcada como completada, no podrás cambiar el estado sin intervención del supervisor.
+                                <br /><br />
+                                <strong>Tarea:</strong> {tarea.productos && tarea.productos.length > 0 ? tarea.productos[0].nombre : 'Producto'}
+                                <br />
+                                <strong>Ubicación:</strong> {tarea.productos && tarea.productos.length > 0 ? `${tarea.productos[0].ubicacion.estanteria || ''} Nivel: ${tarea.productos[0].ubicacion.nivel || ''}` : ''}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={async () => {
+                                  try {
+                                    const response = await ApiService.completarTarea(tarea.id_tarea);
+                                    toast({
+                                      title: "Tarea completada",
+                                      description: `${response.mensaje} Completada el: ${new Date(response.fecha_completada).toLocaleString()}`,
+                                    });
+                                    // Actualizar el estado local
+                                    setTareas((prevTareas) =>
+                                      prevTareas.map((t) =>
+                                        t.id_tarea === tarea.id_tarea ? { ...t, estado: 'completada' } : t
+                                      )
+                                    );
+                                  } catch (error: any) {
+                                    toast({
+                                      title: "Error",
+                                      description: error.message || "No se pudo completar la tarea.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Sí, completar tarea
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </CardContent>

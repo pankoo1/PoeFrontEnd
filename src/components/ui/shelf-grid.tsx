@@ -11,6 +11,9 @@ interface PuntoPreAsignado {
     fila: number;
     columna: number;
     producto: Producto | null;
+    nivel?: number;      // Nivel del backend (base 1)
+    estanteria?: number; // Estantería del backend (base 1)
+    id_punto?: number;   // ID del punto
 }
 
 interface ShelfGridProps {
@@ -35,14 +38,22 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
 
     // Efecto para cargar productos pre-asignados
     useEffect(() => {
-        console.log('Actualizando productos pre-asignados:', puntosPreAsignados);
+        console.log('ShelfGrid - Actualizando productos pre-asignados:', puntosPreAsignados);
         const productosPreAsignados = puntosPreAsignados
             .filter(punto => punto.producto !== null)
-            .map(punto => ({
-                producto: punto.producto!,
-                fila: punto.fila,
-                columna: punto.columna
-            }));
+            .map(punto => {
+                // Usar nivel y estanteria del backend (base 1) y convertir a base 0 para el grid
+                const filaGrid = punto.nivel ? punto.nivel - 1 : punto.fila;
+                const columnaGrid = punto.estanteria ? punto.estanteria - 1 : punto.columna;
+                
+                console.log(`ShelfGrid - Punto ${punto.id_punto}: Backend(${punto.nivel},${punto.estanteria}) -> Grid(${filaGrid},${columnaGrid})`);
+                
+                return {
+                    producto: punto.producto!,
+                    fila: filaGrid,
+                    columna: columnaGrid
+                };
+            });
         setProductosAsignados(productosPreAsignados);
     }, [puntosPreAsignados]);
 

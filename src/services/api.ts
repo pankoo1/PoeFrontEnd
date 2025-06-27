@@ -599,6 +599,20 @@ export class ApiService {
         );
     }
 
+    // Método para completar una tarea
+    static async completarTarea(idTarea: number): Promise<{ mensaje: string; estado: string; fecha_completada: string }> {
+        return await this.fetchApi<{ mensaje: string; estado: string; fecha_completada: string }>(
+            `/tareas/${idTarea}/completar`,
+            { 
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ confirmado: true })
+            }
+        );
+    }
+
     // Método para obtener el mapa del reponedor
     static async getMapaReponedorVista(idMapa?: number): Promise<any> {
         try {

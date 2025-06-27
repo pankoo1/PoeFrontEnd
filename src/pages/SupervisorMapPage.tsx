@@ -266,7 +266,7 @@ const SupervisorMapPage = () => {
               <CardTitle>Puntos Seleccionados</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
-              <div className="flex-1 mb-4">
+              <div className="flex-1 mb-4 max-h-[500px] overflow-y-auto pr-2">
                 {puntosSeleccionados.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
                     Selecciona puntos en el mapa para crear una tarea
@@ -415,44 +415,68 @@ const SupervisorMapPage = () => {
                         gridTemplateRows: `repeat(${selectedLocation?.mueble?.filas || 3}, minmax(80px, 1fr))`
                       }}
                     >
-                      {selectedLocation?.mueble?.puntos_reposicion?.map((punto) => (
-                        <div
-                          key={punto.id_punto}
-                          className={`
-                            relative
-                            w-full
-                            h-full
-                            min-h-[50px]
-                            rounded
-                            transition-all
-                            duration-200
-                            border
-                            border-gray-300
-                            flex
-                            items-center
-                            justify-center
-                            text-xs
-                            font-medium
-                            ${punto.producto ? 'bg-green-50 hover:bg-green-100 cursor-pointer' : 'bg-gray-50'}
-                            ${puntosSeleccionados.some(p => p.punto?.id_punto === punto.id_punto) ? 'ring-2 ring-primary' : ''}
-                          `}
-                          onClick={() => punto.producto && handlePuntoClick(punto)}
-                        >
-                          {punto.producto && (
-                            <div className="p-1 text-center w-full">
-                              <div className="font-medium text-sm truncate px-1">
-                                {punto.producto.nombre}
+                      {/* Crear una matriz de celdas basada en filas y columnas */}
+                      {Array.from({ length: (selectedLocation?.mueble?.filas || 3) * (selectedLocation?.mueble?.columnas || 4) }, (_, index) => {
+                        const fila = Math.floor(index / (selectedLocation?.mueble?.columnas || 4)) + 1; // base 1
+                        const columna = (index % (selectedLocation?.mueble?.columnas || 4)) + 1; // base 1
+                        
+                        // Buscar el punto que corresponde a esta posición específica
+                        const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
+                          p => p.nivel === fila && p.estanteria === columna
+                        );
+                        
+                        return (
+                          <div
+                            key={`${fila}-${columna}`}
+                            className={`
+                              relative
+                              w-full
+                              h-full
+                              min-h-[50px]
+                              rounded
+                              transition-all
+                              duration-200
+                              border
+                              border-gray-300
+                              flex
+                              items-center
+                              justify-center
+                              text-xs
+                              font-medium
+                              ${punto?.producto ? 'bg-green-50 hover:bg-green-100 cursor-pointer' : 'bg-gray-50'}
+                              ${punto && puntosSeleccionados.some(p => p.punto?.id_punto === punto.id_punto) ? 'ring-2 ring-primary' : ''}
+                            `}
+                            onClick={() => punto?.producto && handlePuntoClick(punto)}
+                            title={`Posición: Fila ${fila}, Columna ${columna}${punto?.producto ? ` - ${punto.producto.nombre}` : ' - Vacío'}`}
+                          >
+                            {punto?.producto && (
+                              <div className="p-1 text-center w-full">
+                                <div className="font-medium text-sm truncate px-1">
+                                  {punto.producto.nombre}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {punto.producto.unidad_cantidad} {punto.producto.unidad_tipo}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {punto.producto.unidad_cantidad} {punto.producto.unidad_tipo}
+                            )}
+                            {!punto?.producto && (
+                              <div className="text-xs text-gray-400">
+                                {fila},{columna}
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="mt-4 text-sm text-gray-500 text-center">
                       Dimensiones: {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
+                      <br />
+                      <span className="text-xs">Los números en las celdas vacías indican: Fila,Columna</span>
+                      <br />
+                      <span className="text-xs text-blue-600">
+                        Total de puntos: {selectedLocation?.mueble?.puntos_reposicion?.length || 0} | 
+                        Productos asignados: {selectedLocation?.mueble?.puntos_reposicion?.filter(p => p.producto).length || 0}
+                      </span>
                     </div>
                   </div>
                 </div>

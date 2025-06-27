@@ -7,7 +7,7 @@ export interface ObjetoMapa {
 export interface MuebleReposicion {
     id_mueble: number;
     nivel: number;
-    estanteria: string;
+    estanteria: number;  // Corregido: debería ser number, no string
     producto: ProductoAsociado | null;
     filas: number;
     columnas: number;
@@ -26,7 +26,7 @@ export interface PuntoReposicion {
     id_punto: number;
     id_mueble: number;
     nivel: number;
-    estanteria: string;
+    estanteria: number;  // Corregido: debería ser number, no string
     producto: ProductoAsociado | null;
 }
 
