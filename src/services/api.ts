@@ -598,6 +598,29 @@ export class ApiService {
             { method: 'GET' }
         );
     }
+
+    // Método para obtener el mapa del reponedor
+    static async getMapaReponedorVista(idMapa?: number): Promise<any> {
+        try {
+            const response = await fetch(`${API_ENDPOINTS.mapa}/reponedor/vista${idMapa ? `?id_mapa=${idMapa}` : ''}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.getToken()}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener el mapa del reponedor');
+            }
+
+            const data = await response.json();
+            console.log('Respuesta del mapa del reponedor:', data);
+
+            return data;
+        } catch (error) {
+            console.error('Error en getMapaReponedorVista:', error);
+            throw error;
+        }
+    }
 }
 
 // Nuevas funciones para obtener el mapa según el rol

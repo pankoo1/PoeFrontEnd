@@ -92,49 +92,7 @@ export const MapaService = {
 
     // Obtener la vista del mapa del reponedor
     async getMapaReponedorVista(idMapa?: number): Promise<MapaResponse> {
-        const token = localStorage.getItem('token');
-        console.log('Token encontrado:', !!token);
-        if (!token) {
-            throw new Error('No hay token de autenticación');
-        }
-
-        const params = idMapa ? `?id_mapa=${idMapa}` : '';
-        const url = `${API_URL}/mapa/reponedor/vista${params}`;
-        console.log('URL del mapa del reponedor:', url);
-        
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            });
-
-            console.log('Status de respuesta:', response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error del servidor:', errorText);
-                throw new Error(`Error del servidor: ${errorText}`);
-            }
-
-            const data = await response.json();
-            console.log('Datos recibidos del servidor:', data);
-
-            if (data.mensaje && !data.mapa) {
-                return { mensaje: data.mensaje, mapa: null, ubicaciones: [] };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo la vista del mapa del reponedor:', error);
-            if (error instanceof Error) {
-                throw new Error(`No se pudo obtener la vista del mapa del reponedor: ${error.message}`);
-            }
-            throw new Error('No se pudo obtener la vista del mapa del reponedor');
-        }
+        return await ApiService.getMapaReponedorVista(idMapa);
     },
 
     // Asignar producto a punto de reposición
