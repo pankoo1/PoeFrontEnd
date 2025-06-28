@@ -1,5 +1,4 @@
 export interface Producto {
-    id_usuario(id_producto: number, idPunto: number, id_usuario: any): unknown;
     id_producto: number;
     nombre: string;
     categoria: string;
@@ -7,6 +6,7 @@ export interface Producto {
     unidad_cantidad: number;
     codigo_unico: string;
     estado: string;
+    id_usuario: number;
 }
 
 export interface CreateProductoData {

@@ -201,38 +201,41 @@ const SupervisorMapPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white shadow-2xl">
+        <div className="container mx-auto px-4 py-6 flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate('/supervisor-dashboard')}
-            className="mr-4 button-modern hover:bg-blue-50"
+            className="mr-4 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <Map className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+              <Map className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Mapa de Supervisión</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Mapa de Supervisión
+            </h1>
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-6 py-8">
+
+      <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-8">
           {/* Mapa */}
-          <Card className="card-modern shadow-modern">
-            <CardHeader className="pb-6">
+          <Card className="glass border-0 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-slate-800 to-blue-800 text-white rounded-t-lg">
               <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg">
-                  <Map className="w-7 h-7" />
+                <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <Map className="w-6 h-6" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Visualización de Rutas</CardTitle>
-                  <p className="text-gray-600 mt-1">Gestiona puntos de reposición y asigna tareas</p>
+                  <CardTitle className="text-2xl font-semibold">Visualización de Rutas</CardTitle>
+                  <p className="text-blue-100 mt-1">Gestiona puntos de reposición y asigna tareas</p>
                 </div>
               </div>
             </CardHeader>
@@ -268,24 +271,27 @@ const SupervisorMapPage = () => {
           </Card>
 
           {/* Panel lateral */}
-          <Card className="card-modern shadow-modern">
-            <CardHeader className="pb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">{puntosSeleccionados.length}</span>
+          <Card className="glass border-0 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-slate-800 to-blue-800 text-white rounded-t-lg">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <span className="text-white text-lg font-bold">{puntosSeleccionados.length}</span>
                 </div>
-                <CardTitle className="text-xl font-bold text-gray-900">Puntos Seleccionados</CardTitle>
+                <div>
+                  <CardTitle className="text-xl font-semibold">Puntos Seleccionados</CardTitle>
+                  <p className="text-blue-100 mt-1 text-sm">Gestiona las tareas a crear</p>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 space-y-6">
               <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
                 {puntosSeleccionados.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Map className="w-8 h-8 text-gray-400" />
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Map className="w-8 h-8 text-slate-400" />
                     </div>
-                    <p className="text-gray-500 text-lg font-medium mb-2">Sin puntos seleccionados</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-slate-600 text-lg font-medium mb-2">Sin puntos seleccionados</p>
+                    <p className="text-slate-500 text-sm">
                       Haz clic en los puntos del mapa para crear una tarea
                     </p>
                   </div>
@@ -294,24 +300,24 @@ const SupervisorMapPage = () => {
                     {puntosSeleccionados.map((punto) => (
                       <div 
                         key={punto.punto?.id_punto} 
-                        className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                        className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         <div className="flex items-start space-x-4">
-                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                             {punto.punto?.estanteria}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm">
+                            <p className="font-semibold text-slate-900 text-sm">
                               Estantería {punto.punto?.estanteria}, Nivel {punto.punto?.nivel}
                             </p>
                             {punto.punto?.producto && (
-                              <p className="text-xs text-gray-500 mt-1 truncate">
+                              <p className="text-xs text-slate-500 mt-1 truncate">
                                 {punto.punto.producto.nombre}
                               </p>
                             )}
                             <div className="flex items-center space-x-3 mt-3">
                               <div className="flex items-center space-x-2">
-                                <Label htmlFor={`cantidad-${punto.punto?.id_punto}`} className="text-xs text-gray-600">
+                                <Label htmlFor={`cantidad-${punto.punto?.id_punto}`} className="text-xs text-slate-600">
                                   Cantidad:
                                 </Label>
                                 <Input
@@ -319,7 +325,7 @@ const SupervisorMapPage = () => {
                                   type="number"
                                   value={punto.cantidad}
                                   onChange={(e) => actualizarCantidad(punto.punto!.id_punto, parseInt(e.target.value))}
-                                  className="w-16 h-8 text-sm"
+                                  className="w-16 h-8 text-sm border-slate-300 focus:border-blue-500"
                                   min="1"
                                 />
                               </div>
@@ -340,16 +346,16 @@ const SupervisorMapPage = () => {
                 )}
               </div>
 
-              <div className="space-y-6 pt-6 border-t border-gray-100">
+              <div className="space-y-6 pt-6 border-t border-slate-200">
                 <div className="space-y-3">
-                  <Label htmlFor="reponedor" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="reponedor" className="text-sm font-semibold text-slate-700">
                     Asignar a Reponedor
                   </Label>
                   <Select
                     value={reponedorSeleccionado}
                     onValueChange={setReponedorSeleccionado}
                   >
-                    <SelectTrigger className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectTrigger className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue placeholder="Seleccionar reponedor (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -365,9 +371,9 @@ const SupervisorMapPage = () => {
                     </SelectContent>
                   </Select>
                   {(!reponedorSeleccionado || reponedorSeleccionado === "sin_asignar") && puntosSeleccionados.length > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-yellow-600" />
-                      <span className="text-yellow-700 text-sm font-medium">La tarea se creará sin reponedor asignado</span>
+                    <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-orange-600" />
+                      <span className="text-orange-700 text-sm font-medium">La tarea se creará sin reponedor asignado</span>
                     </div>
                   )}
                 </div>
@@ -376,7 +382,7 @@ const SupervisorMapPage = () => {
                   <Button 
                     onClick={crearTarea} 
                     disabled={puntosSeleccionados.length === 0 || creandoTarea}
-                    className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium button-modern shadow-lg"
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg transition-all duration-200"
                   >
                     {creandoTarea ? (
                       <div className="flex items-center justify-center space-x-2">
@@ -393,7 +399,7 @@ const SupervisorMapPage = () => {
                   {mostrarBotonTareas && (
                     <Button
                       variant="outline"
-                      className="w-full h-12 border-gray-200 hover:border-gray-300 hover:bg-gray-50 button-modern"
+                      className="w-full h-12 border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all duration-200"
                       onClick={() => navigate('/tareas')}
                     >
                       Ver Tareas Creadas
@@ -408,37 +414,36 @@ const SupervisorMapPage = () => {
 
       {/* Diálogo de selección de puntos */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-7xl min-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-3xl mb-6">
+        <DialogContent className="max-w-7xl min-h-[90vh] glass border-0 shadow-2xl">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="text-3xl mb-6 bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
               {selectedLocation?.mueble ? 
                 `Estantería ${selectedLocation.mueble.estanteria}` : 
                 'Detalles de la Ubicación'
               }
             </DialogTitle>
-            <div className="grid grid-cols-[2fr,1fr] gap-8 h-full">
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Información del Mueble</h3>
+            <div className="grid grid-cols-[2fr,1fr] gap-8 h-full">                <div className="space-y-8">
+                <div className="space-y-4 bg-slate-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg text-slate-800">Información del Mueble</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Estantería:</span>
-                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.estanteria}</span>
+                      <span className="text-slate-600">Estantería:</span>
+                      <span className="ml-2 font-medium text-slate-800">{selectedLocation?.mueble?.estanteria}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Nivel:</span>
-                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.nivel}</span>
+                      <span className="text-slate-600">Nivel:</span>
+                      <span className="ml-2 font-medium text-slate-800">{selectedLocation?.mueble?.nivel}</span>
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Dimensiones:</span>
-                    <span className="ml-2 font-medium">
+                    <span className="text-slate-600">Dimensiones:</span>
+                    <span className="ml-2 font-medium text-slate-800">
                       {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Ubicación:</span>
-                    <span className="ml-2 font-medium">({selectedLocation?.x}, {selectedLocation?.y})</span>
+                    <span className="text-slate-600">Ubicación:</span>
+                    <span className="ml-2 font-medium text-slate-800">({selectedLocation?.x}, {selectedLocation?.y})</span>
                   </div>
                 </div>
 

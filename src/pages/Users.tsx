@@ -145,58 +145,60 @@ const Users = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white shadow-2xl">
+        <div className="container mx-auto px-4 py-6 flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate('/dashboard')}
-            className="mr-4 button-modern hover:bg-gray-50"
+            className="mr-4 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-              <UsersIcon className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+              <UsersIcon className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Gestión de Usuarios
+            </h1>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8">
-        <Card className="card-modern shadow-modern">
-          <CardHeader className="pb-6">
+      <main className="container mx-auto px-4 py-8">
+        <Card className="glass border-0 shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-slate-800 to-blue-800 text-white rounded-t-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
-                  <UsersIcon className="w-7 h-7" />
+                <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <UsersIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Lista de Usuarios</CardTitle>
-                  <p className="text-gray-600 mt-1">{filteredUsers.length} usuarios registrados</p>
+                  <CardTitle className="text-2xl font-semibold">Lista de Usuarios</CardTitle>
+                  <p className="text-blue-100 mt-1">{filteredUsers.length} usuarios registrados</p>
                 </div>
               </div>
               <UserForm onUserAdded={handleUserAdded} />
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 p-6">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Buscar usuarios por nombre o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 h-12 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-lg"
+                className="pl-12 h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
               />
             </div>
 
             {isLoading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Cargando usuarios...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-slate-600">Cargando usuarios...</p>
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">

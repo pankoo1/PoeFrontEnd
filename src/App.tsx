@@ -19,8 +19,7 @@ import NotFound from './pages/NotFound';
 import SupervisorDashboard from './pages/SupervisorDashboard';
 import SupervisorProfile from './pages/SupervisorProfile';
 import ReponedoresPage from './pages/ReponedoresPage';
-import TareasPage from './pages/TareasPage';
-import RutasPage from './pages/RutasPage';
+import SupervisorTareas from './pages/SupervisorTareas';
 import SupervisorMapPage from './pages/SupervisorMapPage';
 
 // Reponedor Pages
@@ -98,12 +97,7 @@ function App() {
             } />
             <Route path="/tareas" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
-                <TareasPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/rutas" element={
-              <ProtectedRoute allowedRoles={['supervisor']}>
-                <RutasPage />
+                <SupervisorTareas />
               </ProtectedRoute>
             } />
             <Route path="/supervisor-map" element={

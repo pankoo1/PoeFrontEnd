@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, Clock, MapPin, CheckCircle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Clock, MapPin, CheckCircle, Bell, Info, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 const ReponedorAlertas = () => {
@@ -62,8 +62,9 @@ const ReponedorAlertas = () => {
       case 'tiempo_excedido':
         return <Clock className="w-5 h-5" />;
       case 'producto_faltante':
+        return <AlertCircle className="w-5 h-5" />;
       case 'ruta_actualizada':
-        return <AlertTriangle className="w-5 h-5" />;
+        return <Info className="w-5 h-5" />;
       default:
         return <AlertTriangle className="w-5 h-5" />;
     }
@@ -72,26 +73,26 @@ const ReponedorAlertas = () => {
   const getPrioridadColor = (prioridad: string) => {
     switch (prioridad) {
       case 'alta':
-        return 'bg-red-500';
+        return 'bg-gradient-to-br from-red-500 to-red-600';
       case 'media':
-        return 'bg-yellow-500';
+        return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
       case 'baja':
-        return 'bg-green-500';
+        return 'bg-gradient-to-br from-green-500 to-green-600';
       default:
-        return 'bg-gray-500';
+        return 'bg-gradient-to-br from-gray-500 to-gray-600';
     }
   };
 
   const getPrioridadBadge = (prioridad: string) => {
     switch (prioridad) {
       case 'alta':
-        return <Badge variant="destructive">Alta</Badge>;
+        return <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">🔥 Alta</Badge>;
       case 'media':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Media</Badge>;
+        return <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0 shadow-sm">⚠️ Media</Badge>;
       case 'baja':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Baja</Badge>;
+        return <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-sm">✅ Baja</Badge>;
       default:
-        return <Badge variant="outline">Normal</Badge>;
+        return <Badge variant="outline" className="border-gray-300">Normal</Badge>;
     }
   };
 
@@ -102,98 +103,137 @@ const ReponedorAlertas = () => {
         : alerta
     ));
     toast({
-      title: "Alerta marcada como leída",
-      description: "La alerta ha sido marcada como leída",
+      title: "✅ Alerta marcada como leída",
+      description: "La alerta ha sido procesada correctamente",
     });
   };
 
   const alertasNoLeidas = alertas.filter(alerta => !alerta.leida).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => navigate('/reponedor-dashboard')}
-              className="mr-4"
+              className="mr-4 glass-card hover:bg-orange-50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
-            <h1 className="text-2xl font-bold">Alertas</h1>
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center shadow-lg">
+                <Bell className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+                Alertas
+              </h1>
+            </div>
           </div>
           {alertasNoLeidas > 0 && (
-            <Badge variant="destructive">
-              {alertasNoLeidas} sin leer
+            <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm animate-pulse">
+              🔔 {alertasNoLeidas} sin leer
             </Badge>
           )}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Notificaciones y Alertas</h2>
-          <p className="text-muted-foreground">
-            Mantente informado sobre desvíos de ruta y actualizaciones importantes
+      <main className="container mx-auto px-6 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Centro de Notificaciones</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Mantente informado sobre desvíos de ruta, actualizaciones importantes y eventos del sistema
           </p>
         </div>
 
-        <div className="space-y-4">
+        {/* Alertas count summary */}
+        {alertasNoLeidas > 0 && (
+          <Card className="glass-card border border-red-200 bg-red-50/50 mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Bell className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-800 mb-1">Tienes {alertasNoLeidas} alertas sin leer</h3>
+                  <p className="text-red-700 text-sm">
+                    Revisa y marca como leídas las alertas importantes para mantener tu flujo de trabajo optimizado.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="space-y-6">
           {alertas.map((alerta) => (
             <Card 
               key={alerta.id} 
-              className={`transition-all hover:shadow-md ${!alerta.leida ? 'border-l-4 border-l-red-500' : ''}`}
+              className={`glass-card hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white/90 to-white/70 overflow-hidden group ${!alerta.leida ? 'ring-2 ring-red-200' : ''}`}
             >
-              <CardHeader>
-                <div className="flex justify-between items-start">
+              <CardHeader className="relative">
+                <div className={`absolute inset-0 ${getPrioridadColor(alerta.prioridad)} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                <div className="flex justify-between items-start relative z-10">
                   <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-lg ${getPrioridadColor(alerta.prioridad)} text-white`}>
+                    <div className={`p-4 rounded-2xl ${getPrioridadColor(alerta.prioridad)} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                       {getTipoIcon(alerta.tipo)}
                     </div>
                     <div>
-                      <CardTitle className="text-lg flex items-center space-x-2">
-                        <span>{alerta.titulo}</span>
+                      <CardTitle className="text-xl flex items-center space-x-3 mb-2">
+                        <span className="text-gray-900 group-hover:bg-gradient-to-r group-hover:from-red-600 group-hover:to-rose-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                          {alerta.titulo}
+                        </span>
                         {!alerta.leida && (
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-sm"></div>
                         )}
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-gray-600 text-base">
                         {alerta.descripcion}
                       </CardDescription>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-2">
+                  <div className="flex flex-col items-end space-y-3">
                     {getPrioridadBadge(alerta.prioridad)}
-                    <span className="text-sm text-muted-foreground">{alerta.tiempo}</span>
+                    <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      🕒 {alerta.tiempo}
+                    </span>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative z-10">
                 <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ubicación</p>
-                    <p className="font-medium">{alerta.ubicacion}</p>
+                  <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100">
+                    <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                      <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                      Ubicación
+                    </p>
+                    <p className="font-semibold text-gray-900">{alerta.ubicacion}</p>
                   </div>
                   
-                  {!alerta.leida && (
-                    <Button 
-                      onClick={() => marcarComoLeida(alerta.id)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Marcar como leída
-                    </Button>
-                  )}
-                  
-                  {alerta.leida && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      ✓ Leída
-                    </Badge>
-                  )}
+                  <div className="flex space-x-3">
+                    {!alerta.leida && (
+                      <Button 
+                        onClick={() => marcarComoLeida(alerta.id)}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                        size="sm"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Marcar como leída
+                      </Button>
+                    )}
+                    
+                    {alerta.leida && (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 px-4 py-2">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Leída
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -201,12 +241,14 @@ const ReponedorAlertas = () => {
         </div>
 
         {alertas.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No tienes alertas</h3>
-              <p className="text-muted-foreground">
-                Todas tus actividades están funcionando correctamente
+          <Card className="glass-card border-0 bg-gradient-to-br from-white/90 to-white/70">
+            <CardContent className="text-center py-16">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <CheckCircle className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">¡Todo bajo control!</h3>
+              <p className="text-gray-600 text-lg max-w-md mx-auto">
+                No tienes alertas pendientes. Todas tus actividades están funcionando correctamente.
               </p>
             </CardContent>
           </Card>

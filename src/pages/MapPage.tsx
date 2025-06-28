@@ -353,33 +353,43 @@ const MapPage = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background">
-            <header className="border-b bg-card">
-                <div className="container mx-auto px-4 py-4 flex items-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white shadow-2xl">
+                <div className="container mx-auto px-4 py-6 flex items-center">
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => navigate('/dashboard')}
-                        className="mr-4"
+                        onClick={() => navigate('/supervisor-dashboard')}
+                        className="mr-4 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Volver
                     </Button>
-                    <h1 className="text-2xl font-bold">Mapa Interactivo</h1>
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                            <Map className="w-6 h-6" />
+                        </div>
+                        <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                            Mapa de Supervisión
+                        </h1>
+                    </div>
                 </div>
             </header>
 
             <main className="container mx-auto px-4 py-8">
-                <Card className="h-[calc(100vh-200px)]">
-                    <CardHeader>
+                <Card className="glass border-0 shadow-2xl h-[calc(100vh-200px)]">
+                    <CardHeader className="bg-gradient-to-r from-slate-800 to-blue-800 text-white rounded-t-lg">
                         <div className="flex items-center space-x-4">
-                            <div className="p-3 rounded-lg bg-orange-500 text-white">
+                            <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
                                 <Map className="w-6 h-6" />
                             </div>
-                            <CardTitle className="text-2xl">Visualización de Mapa</CardTitle>
+                            <div>
+                                <CardTitle className="text-2xl font-semibold">Mapa Interactivo</CardTitle>
+                                <p className="text-blue-100 mt-1">Gestiona la asignación de productos en estanterías</p>
+                            </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="h-[calc(100%-100px)]">
+                    <CardContent className="h-[calc(100%-100px)] p-6">
                         <MapViewer
                             onObjectClick={handleObjectClick}
                             className="w-full h-full"
@@ -389,9 +399,9 @@ const MapPage = () => {
             </main>
 
             <Dialog open={selectedLocation !== null} onOpenChange={(open) => !open && setSelectedLocation(null)}>
-                <DialogContent className="max-w-7xl min-h-[90vh]">
-                    <DialogHeader>
-                        <DialogTitle className="text-3xl mb-6">
+                <DialogContent className="max-w-7xl min-h-[90vh] glass border-0 shadow-2xl">
+                    <DialogHeader className="border-b border-slate-200 pb-4">
+                        <DialogTitle className="text-3xl mb-6 bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
                             {selectedLocation?.mueble ? 
                                 `Estantería ${selectedLocation.mueble.estanteria}` : 
                                 'Detalles de la Ubicación'
@@ -402,31 +412,31 @@ const MapPage = () => {
                                 <div className="space-y-8">
                                     {selectedLocation?.mueble ? (
                                         <>
-                                            <div className="space-y-2">
-                                                <h3 className="font-semibold text-lg">Información del Mueble</h3>
+                                            <div className="space-y-4 bg-slate-50 p-4 rounded-lg">
+                                                <h3 className="font-semibold text-lg text-slate-800">Información del Mueble</h3>
                                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                                     <div>
-                                                        <span className="text-muted-foreground">Estantería:</span>
-                                                        <span className="ml-2 font-medium">{selectedLocation.mueble.estanteria}</span>
+                                                        <span className="text-slate-600">Estantería:</span>
+                                                        <span className="ml-2 font-medium text-slate-800">{selectedLocation.mueble.estanteria}</span>
                                                     </div>
                                                     <div>
-                                                        <span className="text-muted-foreground">Nivel:</span>
-                                                        <span className="ml-2 font-medium">{selectedLocation.mueble.nivel}</span>
+                                                        <span className="text-slate-600">Nivel:</span>
+                                                        <span className="ml-2 font-medium text-slate-800">{selectedLocation.mueble.nivel}</span>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <span className="text-muted-foreground">Dimensiones:</span>
-                                                    <span className="ml-2 font-medium">
+                                                    <span className="text-slate-600">Dimensiones:</span>
+                                                    <span className="ml-2 font-medium text-slate-800">
                                                         {selectedLocation.mueble.filas || 3} filas × {selectedLocation.mueble.columnas || 4} columnas
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-muted-foreground">Ubicación:</span>
-                                                    <span className="ml-2 font-medium">({selectedLocation.x}, {selectedLocation.y})</span>
+                                                    <span className="text-slate-600">Ubicación:</span>
+                                                    <span className="ml-2 font-medium text-slate-800">({selectedLocation.x}, {selectedLocation.y})</span>
                                                 </div>
                                             </div>
                                             <div>
-                                                <h3 className="font-semibold text-lg mb-4">Vista de la Estantería</h3>
+                                                <h3 className="font-semibold text-lg mb-4 text-slate-800">Vista de la Estantería</h3>
                                                 <ShelfGrid 
                                                     filas={selectedLocation.mueble.filas || 3} 
                                                     columnas={selectedLocation.mueble.columnas || 4}
@@ -441,9 +451,9 @@ const MapPage = () => {
                                                             categoria: punto.producto.categoria,
                                                             unidad_tipo: punto.producto.unidad_tipo,
                                                             unidad_cantidad: punto.producto.unidad_cantidad,
-                                                            id_usuario: punto.producto.id_usuario,
-                                                            codigo_unico: punto.producto.codigo_unico,
-                                                            estado: punto.producto.estado
+                                                            id_usuario: 0,
+                                                            codigo_unico: '',
+                                                            estado: 'activo'
                                                         } : null
                                                     })) || []}
                                                 />
@@ -451,13 +461,12 @@ const MapPage = () => {
                                                     <div className="mt-4 flex justify-end">
                                                         <Button
                                                             onClick={handleConfirmarAsignaciones}
-                                                            variant="outline"
-                                                            className="border-gray-200 hover:bg-gray-50"
+                                                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                                                             disabled={isLoading}
                                                         >
                                                             {isLoading ? (
                                                                 <>
-                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
+                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                                                                     Guardando...
                                                                 </>
                                                             ) : (
@@ -472,35 +481,35 @@ const MapPage = () => {
                                             </div>
                                         </>
                                     ) : selectedLocation?.objeto ? (
-                                        <div className="space-y-2">
-                                            <h3 className="font-semibold text-lg">Objeto</h3>
+                                        <div className="space-y-4 bg-slate-50 p-4 rounded-lg">
+                                            <h3 className="font-semibold text-lg text-slate-800">Objeto</h3>
                                             <div>
-                                                <span className="text-muted-foreground">Nombre:</span>
-                                                <span className="ml-2 font-medium">{selectedLocation.objeto.nombre}</span>
+                                                <span className="text-slate-600">Nombre:</span>
+                                                <span className="ml-2 font-medium text-slate-800">{selectedLocation.objeto.nombre}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground">Tipo:</span>
-                                                <span className="ml-2 font-medium">{selectedLocation.objeto.tipo}</span>
+                                                <span className="text-slate-600">Tipo:</span>
+                                                <span className="ml-2 font-medium text-slate-800">{selectedLocation.objeto.tipo}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground">Caminable:</span>
-                                                <span className="ml-2 font-medium">{selectedLocation.objeto.caminable ? 'Sí' : 'No'}</span>
+                                                <span className="text-slate-600">Caminable:</span>
+                                                <span className="ml-2 font-medium text-slate-800">{selectedLocation.objeto.caminable ? 'Sí' : 'No'}</span>
                                             </div>
                                         </div>
                                     ) : selectedLocation?.punto?.producto && (
-                                        <div className="space-y-2">
-                                            <h3 className="font-semibold text-lg">Producto</h3>
+                                        <div className="space-y-4 bg-slate-50 p-4 rounded-lg">
+                                            <h3 className="font-semibold text-lg text-slate-800">Producto</h3>
                                             <div>
-                                                <span className="text-muted-foreground">Nombre:</span>
-                                                <span className="ml-2 font-medium">{selectedLocation.punto.producto.nombre}</span>
+                                                <span className="text-slate-600">Nombre:</span>
+                                                <span className="ml-2 font-medium text-slate-800">{selectedLocation.punto.producto.nombre}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground">Categoría:</span>
-                                                <span className="ml-2 font-medium">{selectedLocation.punto.producto.categoria}</span>
+                                                <span className="text-slate-600">Categoría:</span>
+                                                <span className="ml-2 font-medium text-slate-800">{selectedLocation.punto.producto.categoria}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground">Unidad:</span>
-                                                <span className="ml-2 font-medium">
+                                                <span className="text-slate-600">Unidad:</span>
+                                                <span className="ml-2 font-medium text-slate-800">
                                                     {selectedLocation.punto.producto.unidad_cantidad} {selectedLocation.punto.producto.unidad_tipo}
                                                 </span>
                                             </div>
@@ -509,35 +518,38 @@ const MapPage = () => {
                                 </div>
 
                                 {/* Lista de Productos */}
-                                <div className="border-l pl-6">
-                                    <h3 className="font-semibold text-2xl mb-4">Productos</h3>
+                                <div className="border-l border-slate-200 pl-6">
+                                    <h3 className="font-semibold text-2xl mb-4 text-slate-800">Productos</h3>
                                     <div className="mb-4">
-                                        <Input
-                                            type="text"
-                                            placeholder="Buscar productos..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full text-base py-5"
-                                        />
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                            <Input
+                                                type="text"
+                                                placeholder="Buscar productos..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full text-base py-5 pl-10 border-slate-300 focus:border-blue-500"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-2">
                                         {filteredProductos.map((producto) => (
                                             <div
                                                 key={producto.id_producto}
-                                                className="p-3 bg-card border rounded-lg cursor-move hover:bg-accent transition-colors"
+                                                className="p-3 bg-white border border-slate-200 rounded-lg cursor-move hover:bg-slate-50 hover:border-blue-300 transition-all duration-200 shadow-sm"
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, producto)}
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <div className="font-medium text-base truncate mr-2">
+                                                    <div className="font-medium text-base truncate mr-2 text-slate-800">
                                                         {producto.nombre}
                                                     </div>
-                                                    <div className="text-sm text-muted-foreground whitespace-nowrap">
+                                                    <div className="text-sm text-slate-600 whitespace-nowrap">
                                                         {producto.unidad_cantidad} {producto.unidad_tipo}
                                                     </div>
                                                 </div>
                                                 <div className="text-sm mt-1">
-                                                    <span className="inline-block bg-secondary text-secondary-foreground rounded px-2 py-1">
+                                                    <span className="inline-block bg-blue-100 text-blue-700 rounded px-2 py-1 border border-blue-200">
                                                         {producto.categoria}
                                                     </span>
                                                 </div>
