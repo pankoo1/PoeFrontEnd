@@ -122,7 +122,7 @@ const MapPage = () => {
             
             try {
                 // Asignar el producto al punto
-                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, producto.id_usuario);
+                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, Number(producto.id_usuario));
                 
                 // Actualizar la visualización
                 await actualizarUbicacionSeleccionada();
@@ -213,9 +213,10 @@ const MapPage = () => {
             
             // Procesar todas las asignaciones
             for (const key in asignaciones) {
-                const { producto, idPunto } = asignaciones[key];
+                const producto = asignaciones[key];
+                const idPunto = Number(key);
                 
-                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto);
+                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, Number(producto.id_usuario));
             }
 
             toast({
@@ -243,7 +244,7 @@ const MapPage = () => {
                 toast({
                     title: "Advertencia",
                     description: "Los cambios se guardaron pero no se pudo actualizar la vista. Por favor, refresque la página.",
-                    variant: "warning",
+                    variant: "default",
                 });
             }
         } catch (error) {
@@ -435,11 +436,14 @@ const MapPage = () => {
                                                         fila: punto.nivel - 1, // Convertir de base 1 a base 0
                                                         columna: punto.estanteria - 1, // Convertir de base 1 a base 0
                                                         producto: punto.producto ? {
-                                                            id_producto: punto.id_producto,
+                                                            id_producto: punto.producto.id_producto,
                                                             nombre: punto.producto.nombre,
                                                             categoria: punto.producto.categoria,
                                                             unidad_tipo: punto.producto.unidad_tipo,
-                                                            unidad_cantidad: punto.producto.unidad_cantidad
+                                                            unidad_cantidad: punto.producto.unidad_cantidad,
+                                                            id_usuario: punto.producto.id_usuario,
+                                                            codigo_unico: punto.producto.codigo_unico,
+                                                            estado: punto.producto.estado
                                                         } : null
                                                     })) || []}
                                                 />

@@ -159,10 +159,10 @@ const ReponedorMapPage = () => {
           <h1 className="text-2xl font-bold">Mapa y Rutas</h1>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 flex-1 flex flex-col">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6 h-full">
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
           {/* Mapa */}
-          <Card className="flex-1 flex flex-col overflow-hidden">
+          <Card className="flex flex-col overflow-hidden">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center space-x-4">
                 <div className="p-3 rounded-lg bg-orange-500 text-white">
@@ -171,8 +171,8 @@ const ReponedorMapPage = () => {
                 <CardTitle className="text-2xl">Mapa Interactivo</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 p-6">
-              <div className="w-full h-full bg-muted rounded-lg relative">
+            <CardContent className="p-6">
+              <div className="w-full h-[750px] bg-muted rounded-lg relative">
                 {loading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50">
                     <span className="text-lg">Cargando mapa...</span>
@@ -189,7 +189,7 @@ const ReponedorMapPage = () => {
                   </div>
                 )}
                 {!loading && !error && !noPointsAssigned && mapaData && (
-                  <div className="w-full h-full">
+                  <div className="w-full h-[750px]">
                     <MapViewer
                       mapa={mapaData}
                       ubicaciones={ubicaciones}

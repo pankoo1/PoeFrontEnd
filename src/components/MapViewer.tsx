@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
 import { MapaService } from '@/services/mapaService';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
     const [isLoading, setIsLoading] = useState(!ubicacionesProp);
     const [hoveredObjectName, setHoveredObjectName] = useState<string | null>(null);
+    const [canvasKey, setCanvasKey] = useState(0); // Para forzar re-render de overlays
     const { toast } = useToast();
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const cellSize = 40;
 
     const cargarMapa = async () => {
         try {
@@ -31,11 +34,6 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             if (response.mapa) {
                 setMapa(response.mapa);
                 setUbicaciones(response.ubicaciones);
-                // Log para verificar muebles
-                const muebles = response.ubicaciones.filter(u => u.mueble !== null);
-                console.log('Ubicaciones completas:', response.ubicaciones);
-                console.log('Muebles encontrados:', muebles);
-                console.log('Ejemplo de ubicación con mueble:', muebles[0]);
             }
         } catch (error) {
             console.error('Error al cargar el mapa:', error);
@@ -57,18 +55,93 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         }
     }, [idMapa, ubicacionesProp]);
 
-    const getObjectColor = (ubicacion: UbicacionFisica) => {
-        if (ubicacion.punto?.producto) {
-            return 'bg-green-500'; // Punto con producto
-        }
-        if (ubicacion.mueble) {
-            return 'bg-blue-200'; // Muebles
-        }
-        if (ubicacion.objeto?.caminable) {
-            return 'bg-gray-200'; // Objeto caminable
-        }
-        return 'bg-red-500'; // Objeto no caminable u otro
-    };
+    // Dibuja el fondo y celdas caminables/vacías en el canvas
+    useEffect(() => {
+        if (!mapa || !canvasRef.current) return;
+        
+        const redrawCanvas = () => {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d') as CanvasRenderingContext2D;
+            if (!canvas || !ctx) return;
+            
+            const parent = canvas.parentElement;
+            if (parent) {
+                const rect = parent.getBoundingClientRect();
+                
+                // Usar tamaño real sin devicePixelRatio para simplificar
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                // Ajustar el estilo CSS para que coincida
+                canvas.style.width = `${rect.width}px`;
+                canvas.style.height = `${rect.height}px`;
+            }
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const cellW = width / mapa.ancho;
+            const cellH = height / mapa.alto;
+            const gap = 4; // px, espacio entre celdas
+            const radius = 10; // px, radio de borde
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            for (let y = 0; y < mapa.alto; y++) {
+                for (let x = 0; x < mapa.ancho; x++) {
+                    const ubicacion = ubicaciones.find(u => u.x === x && u.y === y);
+                    if (!ubicacion?.mueble && !ubicacion?.punto?.producto) {
+                        // Colores blancos para el fondo
+                        ctx.fillStyle = '#ffffff'; // blanco
+                        ctx.strokeStyle = '#d1d5db'; // gray-300 para el borde
+                        // Bordes redondeados y gap - usar las mismas coordenadas que los overlays
+                        const cx = x * cellW + gap / 2;
+                        const cy = y * cellH + gap / 2;
+                        const w = cellW - gap;
+                        const h = cellH - gap;
+                        ctx.beginPath();
+                        if ('roundRect' in ctx) {
+                            (ctx as any).roundRect(cx, cy, w, h, radius);
+                        } else {
+                            const c = ctx as CanvasRenderingContext2D;
+                            c.moveTo(cx + radius, cy);
+                            c.lineTo(cx + w - radius, cy);
+                            c.quadraticCurveTo(cx + w, cy, cx + w, cy + radius);
+                            c.lineTo(cx + w, cy + h - radius);
+                            c.quadraticCurveTo(cx + w, cy + h, cx + w - radius, cy + h);
+                            c.lineTo(cx + radius, cy + h);
+                            c.quadraticCurveTo(cx, cy + h, cx, cy + h - radius);
+                            c.lineTo(cx, cy + radius);
+                            c.quadraticCurveTo(cx, cy, cx + radius, cy);
+                        }
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                }
+            }
+        };
+        
+        // Dibujar inicialmente
+        redrawCanvas();
+        
+        // Pequeño delay para asegurar que el canvas esté listo antes de los overlays
+        const timeoutId = setTimeout(() => {
+            setCanvasKey(prev => prev + 1);
+        }, 50);
+        
+        // Agregar listener para redimensionar
+        const handleResize = () => {
+            redrawCanvas();
+            setCanvasKey(prev => prev + 1); // Forzar re-render de overlays
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Cleanup del listener al desmontar
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(timeoutId);
+        };
+    }, [mapa, ubicaciones]);
 
     const isHighlighted = (ubicacion: UbicacionFisica) => {
         if (!hoveredObjectName || !ubicacion.objeto) return false;
@@ -85,12 +158,80 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         setHoveredObjectName(null);
     };
 
-    // Función para mostrar información de depuración
+    // Memoizar los overlays para mejorar rendimiento en mapas grandes
+    const overlays = useMemo(() => {
+        if (!mapa || !canvasRef.current) return [];
+        
+        return ubicaciones.filter(u => u.mueble || u.punto?.producto).map(u => {
+            const isHighlightedNode = isHighlighted(u);
+            const canvas = canvasRef.current;
+            if (!canvas) return null;
+            
+            // Usar las mismas coordenadas exactas que el canvas - píxeles absolutos
+            const cellW = canvas.width / mapa.ancho;
+            const cellH = canvas.height / mapa.alto;
+            const gap = 4; // mismo gap que el canvas
+            const radius = 10; // mismo radius que el canvas
+            
+            // Coordenadas exactas como en el canvas - píxeles absolutos
+            const left = u.x * cellW + gap / 2;
+            const top = u.y * cellH + gap / 2;
+            const width = cellW - gap;
+            const height = cellH - gap;
+            
+            return (
+                <div
+                    key={`${u.x}-${u.y}-${canvasKey}`}
+                    style={{
+                        position: 'absolute',
+                        left: `${left}px`,
+                        top: `${top}px`,
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        zIndex: 2,
+                        pointerEvents: 'auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'transform 0.2s',
+                        transform: isHighlightedNode ? 'scale(1.1)' : 'scale(1)',
+                        boxShadow: isHighlightedNode ? '0 0 0 2px orange' : undefined,
+                    }}
+                    onClick={() => onObjectClick?.(u)}
+                    onMouseEnter={() => handleMouseEnter(u)}
+                    onMouseLeave={handleMouseLeave}
+                    title={u.mueble ?
+                        `Mueble - Estantería: ${u.mueble.estanteria}, Nivel: ${u.mueble.nivel}, Filas: ${u.mueble.filas}, Columnas: ${u.mueble.columnas}` :
+                        u.objeto?.nombre || ''
+                    }
+                >
+                    {u.mueble && (
+                        <div style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            borderRadius: `${radius}px`, 
+                            background: '#bfdbfe', 
+                            border: '1px solid #d1d5db' 
+                        }} />
+                    )}
+                    {u.punto?.producto && (
+                        <div className="bg-green-500 text-white w-5/6 h-5/6 flex items-center justify-center rounded">
+                            {u.punto.producto.nombre.substring(0, 3)}
+                        </div>
+                    )}
+                    {isHighlightedNode && u.objeto?.nombre && (
+                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+                            {u.objeto.nombre}
+                        </div>
+                    )}
+                </div>
+            );
+        }).filter(Boolean);
+    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick]);
     const renderDebugInfo = () => {
         const muebles = ubicaciones.filter(u => u.mueble !== null);
         const productos = ubicaciones.filter(u => u.punto?.producto !== null);
         const objetos = ubicaciones.filter(u => u.objeto !== null);
-        
         return (
             <div className="absolute top-0 right-0 bg-white/80 p-2 text-xs rounded-bl-lg border border-gray-200 z-10">
                 <div>Dimensiones: {mapa?.ancho}x{mapa?.alto}</div>
@@ -113,7 +254,6 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         return (
             <div className="flex flex-col items-center justify-center w-full h-full">
                 <p className="text-muted-foreground mb-2">No hay mapa disponible</p>
-                {/* Mostrar mensaje de la API si existe */}
                 {ubicaciones.length === 0 && (
                     <pre className="text-xs text-gray-400 bg-gray-100 p-2 rounded max-w-lg overflow-x-auto">
                         {JSON.stringify({ ubicaciones, mapa }, null, 2)}
@@ -123,79 +263,19 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         );
     }
 
+    // Usar 100% del tamaño del contenedor/card
     return (
-        <div 
-            className={`relative overflow-auto border rounded-lg ${className}`}
-            style={{
-                width: '100%',
-                height: '100%',
-                minHeight: '400px'
-            }}
+        <div
+            className={`relative w-full h-full min-h-[400px] overflow-auto border rounded-lg ${className}`}
         >
+            {/* Canvas de fondo */}
+            <canvas
+                ref={canvasRef}
+                style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%' }}
+            />
+            {/* Overlays React para muebles y productos */}
+            {overlays}
             {renderDebugInfo()}
-            <div
-                className="relative grid gap-0.5 p-4 bg-white"
-                style={{
-                    gridTemplateColumns: `repeat(${mapa.ancho}, minmax(40px, 1fr))`,
-                    gridTemplateRows: `repeat(${mapa.alto}, minmax(40px, 1fr))`,
-                }}
-            >
-                {Array.from({ length: mapa.alto }, (_, y) =>
-                    Array.from({ length: mapa.ancho }, (_, x) => {
-                        const ubicacion = ubicaciones.find(u => u.x === x && u.y === y);
-                        const isHighlightedNode = ubicacion && isHighlighted(ubicacion);
-                        return (
-                            <div
-                                key={`${x}-${y}`}
-                                className={`
-                                    relative 
-                                    ${ubicacion ? getObjectColor(ubicacion) : 'bg-white'}
-                                    w-full 
-                                    h-full 
-                                    min-h-[40px] 
-                                    rounded
-                                    transition-all
-                                    duration-200
-                                    cursor-pointer
-                                    border
-                                    border-gray-300
-                                    flex
-                                    items-center
-                                    justify-center
-                                    text-xs
-                                    font-bold
-                                    ${isHighlightedNode ? 'ring-2 ring-orange-500 ring-offset-2 scale-110 z-10' : 'hover:opacity-80'}
-                                `}
-                                style={{
-                                    gridColumn: x + 1,
-                                    gridRow: y + 1,
-                                }}
-                                onClick={() => ubicacion && onObjectClick?.(ubicacion)}
-                                onMouseEnter={() => ubicacion && handleMouseEnter(ubicacion)}
-                                onMouseLeave={handleMouseLeave}
-                                title={ubicacion?.mueble ? 
-                                    `Mueble - Estantería: ${ubicacion.mueble.estanteria}, Nivel: ${ubicacion.mueble.nivel}, Filas: ${ubicacion.mueble.filas}, Columnas: ${ubicacion.mueble.columnas}` :
-                                    ubicacion?.objeto?.nombre || ''
-                                }
-                            >
-                                {ubicacion?.mueble && (
-                                    <div className="w-full h-full"></div>
-                                )}
-                                {ubicacion?.punto?.producto && (
-                                    <div className="text-white">
-                                        {ubicacion.punto.producto.nombre.substring(0, 3)}
-                                    </div>
-                                )}
-                                {isHighlightedNode && ubicacion?.objeto?.nombre && (
-                                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-                                        {ubicacion.objeto.nombre}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
-                ).flat()}
-            </div>
         </div>
     );
 };

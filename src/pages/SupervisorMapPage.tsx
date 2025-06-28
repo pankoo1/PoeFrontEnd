@@ -201,7 +201,7 @@ const SupervisorMapPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center">
           <Button 
@@ -216,7 +216,6 @@ const SupervisorMapPage = () => {
           <h1 className="text-2xl font-bold">Mapa de Supervisión</h1>
         </div>
       </header>
-
       <main className="container mx-auto px-4 py-8 flex-1 flex flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6 h-full">
           {/* Mapa */}
@@ -229,8 +228,8 @@ const SupervisorMapPage = () => {
                 <CardTitle className="text-2xl">Visualización de Rutas y Ubicaciones</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 p-6">
-              <div className="w-full h-full bg-muted rounded-lg relative">
+            <CardContent className="flex-1 p-6">
+              <div className="w-full h-[700px] bg-muted rounded-lg relative">
                 {loading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50">
                     <span className="text-lg">Cargando mapa...</span>
@@ -247,7 +246,7 @@ const SupervisorMapPage = () => {
                   </div>
                 )}
                 {!loading && !error && !noPointsAssigned && mapaData && (
-                  <div className="w-full h-full">
+                  <div className="w-full h-[700px]">
                     <MapViewer
                       mapa={mapaData}
                       ubicaciones={ubicaciones}
@@ -266,7 +265,7 @@ const SupervisorMapPage = () => {
               <CardTitle>Puntos Seleccionados</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
-              <div className="flex-1 mb-4 max-h-[500px] overflow-y-auto pr-2">
+              <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
                 {puntosSeleccionados.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
                     Selecciona puntos en el mapa para crear una tarea
