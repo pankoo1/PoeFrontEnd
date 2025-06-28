@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Map, MapPin, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/mapaService';
 import { ApiService, Tarea } from '@/services/api';
@@ -144,31 +144,39 @@ const ReponedorMapPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate('/reponedor-dashboard')}
-            className="mr-4"
+            className="mr-4 button-modern hover:bg-orange-50"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <h1 className="text-2xl font-bold">Mapa y Rutas</h1>
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center">
+              <Map className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Mapa y Rutas</h1>
+          </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
+      <main className="container mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-8">
           {/* Mapa */}
-          <Card className="flex flex-col overflow-hidden">
-            <CardHeader className="flex-shrink-0">
+          <Card className="card-modern shadow-modern">
+            <CardHeader className="pb-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-orange-500 text-white">
-                  <Map className="w-6 h-6" />
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg">
+                  <Map className="w-7 h-7" />
                 </div>
-                <CardTitle className="text-2xl">Mapa Interactivo</CardTitle>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">Mapa Interactivo</CardTitle>
+                  <p className="text-gray-600 mt-1">Visualiza tus rutas y puntos de reposición</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-6">
@@ -202,44 +210,67 @@ const ReponedorMapPage = () => {
             </CardContent>
           </Card>
           {/* Panel lateral: tareas asignadas */}
-          <Card className="flex flex-col">
-            <CardHeader>
+          <Card className="card-modern shadow-modern">
+            <CardHeader className="pb-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-blue-500 text-white">
-                  <MapPin className="w-6 h-6" />
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+                  <MapPin className="w-7 h-7" />
                 </div>
-                <CardTitle className="text-2xl">Tareas Asignadas</CardTitle>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">Tareas Asignadas</CardTitle>
+                  <p className="text-gray-600 mt-1">{tareas.length} tareas pendientes</p>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="space-y-4">
               <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2">
                 {loadingTareas ? (
-                  <div className="text-center text-muted-foreground">Cargando tareas...</div>
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Cargando tareas...</p>
+                  </div>
                 ) : errorTareas ? (
-                  <div className="text-center text-red-600">{errorTareas}</div>
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <p className="text-red-600 font-medium">{errorTareas}</p>
+                  </div>
                 ) : tareas.length === 0 ? (
-                  <div className="text-center text-muted-foreground">No tienes tareas asignadas.</div>
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <MapPin className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 text-lg font-medium mb-2">Sin tareas asignadas</p>
+                    <p className="text-gray-400 text-sm">No tienes tareas pendientes por el momento</p>
+                  </div>
                 ) : (
                   tareas.map((tarea) => (
                     <div
                       key={tarea.id_tarea}
-                      className="border rounded-lg p-4 bg-white/80 hover:shadow-lg transition-shadow flex flex-col gap-2"
+                      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-base text-primary">
-                            {tarea.productos && tarea.productos.length > 0 ? tarea.productos[0].nombre : 'Producto'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {tarea.productos && tarea.productos.length > 0 ? `Ubicación: ${tarea.productos[0].ubicacion.estanteria || ''} Nivel: ${tarea.productos[0].ubicacion.nivel || ''}` : ''}
-                          </span>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="font-semibold text-gray-900 text-sm truncate">
+                              {tarea.productos && tarea.productos.length > 0 ? tarea.productos[0].nombre : 'Producto'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-2">
+                            {tarea.productos && tarea.productos.length > 0 ? 
+                              `Estantería ${tarea.productos[0].ubicacion.estanteria || ''} - Nivel ${tarea.productos[0].ubicacion.nivel || ''}` : 
+                              'Sin ubicación'
+                            }
+                          </p>
                         </div>
-                        <div className="ml-2">
+                        <div className="ml-2 flex-shrink-0">
                           {getEstadoBadge(tarea.estado)}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Fecha: {tarea.fecha_creacion ? tarea.fecha_creacion.split('T')[0] : '-'}</span>
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <span>📅 {tarea.fecha_creacion ? tarea.fecha_creacion.split('T')[0] : '-'}</span>
                         {tarea.productos && tarea.productos.length > 0 && (
                           <span className="bg-blue-100 text-blue-700 rounded px-2 py-0.5 ml-2">
                             Cantidad: {tarea.productos[0].cantidad}

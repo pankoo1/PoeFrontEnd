@@ -145,99 +145,119 @@ const Users = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate('/dashboard')}
-            className="mr-4"
+            className="mr-4 button-modern hover:bg-gray-50"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+              <UsersIcon className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
+      <main className="container mx-auto px-6 py-8">
+        <Card className="card-modern shadow-modern">
+          <CardHeader className="pb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-green-500 text-white">
-                  <UsersIcon className="w-6 h-6" />
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
+                  <UsersIcon className="w-7 h-7" />
                 </div>
-                <CardTitle className="text-2xl">Lista de Usuarios</CardTitle>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">Lista de Usuarios</CardTitle>
+                  <p className="text-gray-600 mt-1">{filteredUsers.length} usuarios registrados</p>
+                </div>
               </div>
               <UserForm onUserAdded={handleUserAdded} />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Buscar usuarios..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <CardContent className="space-y-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                placeholder="Buscar usuarios por nombre o email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 h-12 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-lg"
+              />
             </div>
 
             {isLoading ? (
-              <div className="text-center py-8">
-                <p>Cargando usuarios...</p>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando usuarios...</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id_usuario}>
-                      <TableCell className="font-medium">{user.nombre}</TableCell>
-                      <TableCell>{user.correo}</TableCell>
-                      <TableCell>{user.rol}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${user.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDeleteClick(user)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Eliminar
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-900">Nombre</TableHead>
+                      <TableHead className="font-semibold text-gray-900">Email</TableHead>
+                      <TableHead className="font-semibold text-gray-900">Rol</TableHead>
+                      <TableHead className="font-semibold text-gray-900">Estado</TableHead>
+                      <TableHead className="font-semibold text-gray-900 text-center">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id_usuario} className="hover:bg-gray-50 transition-colors">
+                        <TableCell className="font-medium text-gray-900">{user.nombre}</TableCell>
+                        <TableCell className="text-gray-600">{user.correo}</TableCell>
+                        <TableCell>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            user.rol === 'admin' ? 'bg-purple-100 text-purple-800' :
+                            user.rol === 'supervisor' ? 'bg-blue-100 text-blue-800' :
+                            'bg-orange-100 text-orange-800'
+                          }`}>
+                            {user.rol.charAt(0).toUpperCase() + user.rol.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            user.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                              className="button-modern border-blue-200 text-blue-600 hover:border-blue-300 hover:bg-blue-50"
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Editar
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteClick(user)}
+                              className="button-modern border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Eliminar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

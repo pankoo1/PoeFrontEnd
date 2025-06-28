@@ -210,18 +210,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             width: '100%', 
                             height: '100%', 
                             borderRadius: `${radius}px`, 
-                            background: '#bfdbfe', 
-                            border: '1px solid #d1d5db' 
+                            background: 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)', 
+                            border: '2px solid #3b82f6',
+                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
                         }} />
                     )}
                     {u.punto?.producto && (
-                        <div className="bg-green-500 text-white w-5/6 h-5/6 flex items-center justify-center rounded">
+                        <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white w-5/6 h-5/6 flex items-center justify-center rounded-lg font-bold text-xs shadow-lg">
                             {u.punto.producto.nombre.substring(0, 3)}
                         </div>
                     )}
                     {isHighlightedNode && u.objeto?.nombre && (
-                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-3 py-1 rounded-lg text-xs whitespace-nowrap shadow-lg z-30">
                             {u.objeto.nombre}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                     )}
                 </div>
@@ -233,11 +235,26 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         const productos = ubicaciones.filter(u => u.punto?.producto !== null);
         const objetos = ubicaciones.filter(u => u.objeto !== null);
         return (
-            <div className="absolute top-0 right-0 bg-white/80 p-2 text-xs rounded-bl-lg border border-gray-200 z-10">
-                <div>Dimensiones: {mapa?.ancho}x{mapa?.alto}</div>
-                <div>Muebles: {muebles.length}</div>
-                <div>Productos: {productos.length}</div>
-                <div>Objetos: {objetos.length}</div>
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-3 text-xs rounded-xl border border-gray-200 shadow-lg z-20">
+                <div className="font-semibold text-gray-900 mb-2">Información del Mapa</div>
+                <div className="space-y-1 text-gray-600">
+                    <div className="flex justify-between space-x-4">
+                        <span>Dimensiones:</span>
+                        <span className="font-medium">{mapa?.ancho}×{mapa?.alto}</span>
+                    </div>
+                    <div className="flex justify-between space-x-4">
+                        <span>Muebles:</span>
+                        <span className="font-medium text-blue-600">{muebles.length}</span>
+                    </div>
+                    <div className="flex justify-between space-x-4">
+                        <span>Productos:</span>
+                        <span className="font-medium text-green-600">{productos.length}</span>
+                    </div>
+                    <div className="flex justify-between space-x-4">
+                        <span>Objetos:</span>
+                        <span className="font-medium text-orange-600">{objetos.length}</span>
+                    </div>
+                </div>
             </div>
         );
     };
@@ -266,12 +283,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     // Usar 100% del tamaño del contenedor/card
     return (
         <div
-            className={`relative w-full h-full min-h-[400px] overflow-auto border rounded-lg ${className}`}
+            className={`relative w-full h-full min-h-[400px] overflow-hidden rounded-xl border border-gray-200 shadow-lg ${className}`}
         >
             {/* Canvas de fondo */}
             <canvas
                 ref={canvasRef}
-                style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%' }}
+                style={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    zIndex: 1, 
+                    width: '100%', 
+                    height: '100%',
+                    borderRadius: '0.75rem' 
+                }}
             />
             {/* Overlays React para muebles y productos */}
             {overlays}

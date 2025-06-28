@@ -201,31 +201,39 @@ const SupervisorMapPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate('/supervisor-dashboard')}
-            className="mr-4"
+            className="mr-4 button-modern hover:bg-blue-50"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <h1 className="text-2xl font-bold">Mapa de Supervisión</h1>
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <Map className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Mapa de Supervisión</h1>
+          </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 flex-1 flex flex-col">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6 h-full">
+      <main className="container mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-8">
           {/* Mapa */}
-          <Card className="flex-1 flex flex-col overflow-hidden">
-            <CardHeader className="flex-shrink-0">
+          <Card className="card-modern shadow-modern">
+            <CardHeader className="pb-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-orange-500 text-white">
-                  <Map className="w-6 h-6" />
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg">
+                  <Map className="w-7 h-7" />
                 </div>
-                <CardTitle className="text-2xl">Visualización de Rutas y Ubicaciones</CardTitle>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">Visualización de Rutas</CardTitle>
+                  <p className="text-gray-600 mt-1">Gestiona puntos de reposición y asigna tareas</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="flex-1 p-6">
@@ -260,48 +268,71 @@ const SupervisorMapPage = () => {
           </Card>
 
           {/* Panel lateral */}
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle>Puntos Seleccionados</CardTitle>
+          <Card className="card-modern shadow-modern">
+            <CardHeader className="pb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">{puntosSeleccionados.length}</span>
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900">Puntos Seleccionados</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="space-y-6">
               <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
                 {puntosSeleccionados.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    Selecciona puntos en el mapa para crear una tarea
-                  </p>
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Map className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 text-lg font-medium mb-2">Sin puntos seleccionados</p>
+                    <p className="text-gray-400 text-sm">
+                      Haz clic en los puntos del mapa para crear una tarea
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {puntosSeleccionados.map((punto) => (
                       <div 
                         key={punto.punto?.id_punto} 
-                        className="flex items-center space-x-4 p-4 border rounded-lg"
+                        className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
                       >
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            Estantería {punto.punto?.estanteria}, Nivel {punto.punto?.nivel}
-                          </p>
-                          {punto.punto?.producto && (
-                            <p className="text-sm text-muted-foreground">
-                              Producto: {punto.punto.producto.nombre}
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                            {punto.punto?.estanteria}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm">
+                              Estantería {punto.punto?.estanteria}, Nivel {punto.punto?.nivel}
                             </p>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            type="number"
-                            value={punto.cantidad}
-                            onChange={(e) => actualizarCantidad(punto.punto!.id_punto, parseInt(e.target.value))}
-                            className="w-20"
-                            min="1"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => eliminarPunto(punto.punto!.id_punto)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            {punto.punto?.producto && (
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                {punto.punto.producto.nombre}
+                              </p>
+                            )}
+                            <div className="flex items-center space-x-3 mt-3">
+                              <div className="flex items-center space-x-2">
+                                <Label htmlFor={`cantidad-${punto.punto?.id_punto}`} className="text-xs text-gray-600">
+                                  Cantidad:
+                                </Label>
+                                <Input
+                                  id={`cantidad-${punto.punto?.id_punto}`}
+                                  type="number"
+                                  value={punto.cantidad}
+                                  onChange={(e) => actualizarCantidad(punto.punto!.id_punto, parseInt(e.target.value))}
+                                  className="w-16 h-8 text-sm"
+                                  min="1"
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => eliminarPunto(punto.punto!.id_punto)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -309,14 +340,16 @@ const SupervisorMapPage = () => {
                 )}
               </div>
 
-              <div className="space-y-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="reponedor">Asignar a Reponedor (Opcional)</Label>
+              <div className="space-y-6 pt-6 border-t border-gray-100">
+                <div className="space-y-3">
+                  <Label htmlFor="reponedor" className="text-sm font-semibold text-gray-700">
+                    Asignar a Reponedor
+                  </Label>
                   <Select
                     value={reponedorSeleccionado}
                     onValueChange={setReponedorSeleccionado}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue placeholder="Seleccionar reponedor (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -332,36 +365,41 @@ const SupervisorMapPage = () => {
                     </SelectContent>
                   </Select>
                   {(!reponedorSeleccionado || reponedorSeleccionado === "sin_asignar") && puntosSeleccionados.length > 0 && (
-                    <div className="flex items-center gap-2 mt-2 text-yellow-600 text-sm">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>La tarea se creará sin reponedor asignado</span>
+                    <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-yellow-700 text-sm font-medium">La tarea se creará sin reponedor asignado</span>
                     </div>
                   )}
                 </div>
 
-                <Button 
-                  onClick={crearTarea} 
-                  disabled={puntosSeleccionados.length === 0 || creandoTarea}
-                  className="w-full"
-                >
-                  {creandoTarea ? (
-                    "Creando tarea..."
-                  ) : (
-                    reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
-                      ? "Crear y Asignar Tarea" 
-                      : "Crear Tarea Sin Asignar"
-                  )}
-                </Button>
-
-                {mostrarBotonTareas && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate('/tareas')}
+                <div className="space-y-3">
+                  <Button 
+                    onClick={crearTarea} 
+                    disabled={puntosSeleccionados.length === 0 || creandoTarea}
+                    className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium button-modern shadow-lg"
                   >
-                    Ver Tareas Creadas
+                    {creandoTarea ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Creando tarea...</span>
+                      </div>
+                    ) : (
+                      reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
+                        ? "Crear y Asignar Tarea" 
+                        : "Crear Tarea Sin Asignar"
+                    )}
                   </Button>
-                )}
+
+                  {mostrarBotonTareas && (
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 border-gray-200 hover:border-gray-300 hover:bg-gray-50 button-modern"
+                      onClick={() => navigate('/tareas')}
+                    >
+                      Ver Tareas Creadas
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
