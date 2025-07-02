@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Package, CheckCircle, MapPin, Play } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService, Tarea } from "@/services/api";
 import {
@@ -41,6 +41,46 @@ const ReponedorTareas = () => {
   const [error, setError] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<string>('');
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
+  const [generandoRuta, setGenerandoRuta] = useState<number | null>(null);
+
+  // Función para comenzar una tarea
+  const comenzarTarea = async (idTarea: number) => {
+    try {
+      setGenerandoRuta(idTarea);
+      
+      // Primero iniciar la tarea (cambiar estado a en_progreso)
+      await ApiService.iniciarTarea(idTarea);
+      
+      // Luego generar la ruta optimizada
+      const rutaOptimizada = await ApiService.obtenerRutaOptimizada(idTarea, 'vecino_mas_cercano');
+      
+      toast({
+        title: "¡Tarea iniciada!",
+        description: "Ruta optimizada generada. Te llevaremos al mapa interactivo.",
+      });
+
+      // Actualizar el estado local de la tarea
+      setTareas((prevTareas) =>
+        prevTareas.map((t) =>
+          t.id_tarea === idTarea ? { ...t, estado: 'en_progreso' } : t
+        )
+      );
+
+      // Navegar al mapa con la ruta optimizada
+      navigate(`/reponedor-mapa?tarea=${idTarea}&mostrar_ruta=true`, {
+        state: { rutaOptimizada }
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo generar la ruta optimizada.",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerandoRuta(null);
+    }
+  };
 
   // Polling para actualización automática
   useEffect(() => {
@@ -177,6 +217,43 @@ const ReponedorTareas = () => {
                           ✓ Completada
                         </Badge>
                       )}
+                      
+                      {/* Botón para comenzar tarea (solo si está pendiente) */}
+                      {tarea.estado && tarea.estado.toLowerCase() === 'pendiente' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => comenzarTarea(tarea.id_tarea)}
+                          disabled={generandoRuta === tarea.id_tarea}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          {generandoRuta === tarea.id_tarea ? (
+                            <>
+                              <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                              Generando ruta...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 mr-2" />
+                              Comenzar Tarea
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {/* Botón para ver ruta (si está en progreso) */}
+                      {tarea.estado && tarea.estado.toLowerCase() === 'en_progreso' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/reponedor-mapa?tarea=${tarea.id_tarea}&mostrar_ruta=true`)}
+                          className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Ver Ruta en Mapa
+                        </Button>
+                      )}
+                      
                       {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

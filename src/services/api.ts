@@ -96,6 +96,51 @@ export interface Reponedor {
     estado: string;
 }
 
+// Interfaces para ruta optimizada
+export interface CoordenadaResponse {
+    x: number;
+    y: number;
+}
+
+export interface MuebleRutaResponse {
+    id_mueble: number;
+    nombre_objeto: string;
+    coordenadas: CoordenadaResponse;
+    nivel: number;
+    estanteria: number;
+}
+
+export interface ProductoRutaResponse {
+    id_producto: number;
+    nombre: string;
+    categoria: string;
+    cantidad: number;
+}
+
+export interface PuntoRutaResponse {
+    id_punto: number;
+    mueble: MuebleRutaResponse;
+    producto: ProductoRutaResponse;
+    orden_visita: number;
+}
+
+export interface AlgoritmoResponse {
+    nombre: string;
+    descripcion: string;
+}
+
+export interface RutaOptimizadaResponse {
+    id_tarea: number;
+    reponedor: string;
+    fecha_creacion: string;
+    puntos_reposicion: PuntoRutaResponse[];
+    coordenadas_ruta: CoordenadaResponse[];
+    algoritmo_utilizado: AlgoritmoResponse;
+    distancia_total: number;
+    tiempo_estimado_minutos: number;
+    estado_tarea: string;
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -634,6 +679,30 @@ export class ApiService {
             console.error('Error en getMapaReponedorVista:', error);
             throw error;
         }
+    }
+
+    // Método para obtener ruta optimizada de una tarea
+    static async obtenerRutaOptimizada(
+        idTarea: number, 
+        algoritmo: 'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico' = 'vecino_mas_cercano'
+    ): Promise<RutaOptimizadaResponse> {
+        return await this.fetchApi<RutaOptimizadaResponse>(
+            `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Método para iniciar una tarea (cambiar estado a en_progreso)
+    static async iniciarTarea(idTarea: number): Promise<{ mensaje: string; estado: string }> {
+        return await this.fetchApi<{ mensaje: string; estado: string }>(
+            `/tareas/${idTarea}/iniciar`,
+            { 
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
     }
 }
 

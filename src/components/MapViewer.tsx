@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
 import { MapaService } from '@/services/mapaService';
 import { useToast } from '@/hooks/use-toast';
+import { RutaOptimizadaResponse } from '@/services/api';
 
 interface MapViewerProps {
     idMapa?: number;
@@ -9,6 +10,7 @@ interface MapViewerProps {
     className?: string;
     ubicaciones?: UbicacionFisica[];
     mapa?: Mapa;
+    rutaOptimizada?: RutaOptimizadaResponse | null;
 }
 
 export const MapViewer: React.FC<MapViewerProps> = ({
@@ -16,7 +18,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     onObjectClick,
     className = '',
     ubicaciones: ubicacionesProp,
-    mapa: mapaProp
+    mapa: mapaProp,
+    rutaOptimizada
 }) => {
     const [mapa, setMapa] = useState<Mapa | null>(mapaProp || null);
     const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
@@ -142,6 +145,112 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             clearTimeout(timeoutId);
         };
     }, [mapa, ubicaciones]);
+
+    // Dibuja las rutas optimizadas en el canvas
+    useEffect(() => {
+        if (!mapa || !canvasRef.current || !rutaOptimizada) return;
+        
+        const drawRoute = () => {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d') as CanvasRenderingContext2D;
+            if (!canvas || !ctx) return;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const cellW = width / mapa.ancho;
+            const cellH = height / mapa.alto;
+            
+            // Dibujar la ruta optimizada
+            if (rutaOptimizada.coordenadas_ruta && rutaOptimizada.coordenadas_ruta.length > 0) {
+                ctx.strokeStyle = '#3b82f6'; // azul
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                // Agregar un poco de transparencia para que se vea mejor
+                ctx.globalAlpha = 0.8;
+                
+                ctx.beginPath();
+                rutaOptimizada.coordenadas_ruta.forEach((coord, index) => {
+                    const x = coord.x * cellW + cellW / 2;
+                    const y = coord.y * cellH + cellH / 2;
+                    
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke();
+                
+                // Dibujar puntos importantes: inicio y fin
+                ctx.globalAlpha = 1.0;
+                
+                // Punto de inicio (verde)
+                if (rutaOptimizada.coordenadas_ruta.length > 0) {
+                    const startCoord = rutaOptimizada.coordenadas_ruta[0];
+                    const startX = startCoord.x * cellW + cellW / 2;
+                    const startY = startCoord.y * cellH + cellH / 2;
+                    
+                    ctx.fillStyle = '#22c55e'; // verde
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Borde blanco
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                // Punto final (rojo)
+                if (rutaOptimizada.coordenadas_ruta.length > 1) {
+                    const endCoord = rutaOptimizada.coordenadas_ruta[rutaOptimizada.coordenadas_ruta.length - 1];
+                    const endX = endCoord.x * cellW + cellW / 2;
+                    const endY = endCoord.y * cellH + cellH / 2;
+                    
+                    ctx.fillStyle = '#ef4444'; // rojo
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Borde blanco
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                // Dibujar puntos de reposición con números
+                rutaOptimizada.puntos_reposicion.forEach((punto, index) => {
+                    const x = punto.mueble.coordenadas.x * cellW + cellW / 2;
+                    const y = punto.mueble.coordenadas.y * cellH + cellH / 2;
+                    
+                    // Círculo amarillo para los puntos de reposición
+                    ctx.fillStyle = '#f59e0b'; // amarillo
+                    ctx.beginPath();
+                    ctx.arc(x, y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Borde blanco
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Número del orden de visita
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(punto.orden_visita.toString(), x, y);
+                });
+            }
+        };
+        
+        // Pequeño delay para asegurar que el canvas base ya esté dibujado
+        const timeoutId = setTimeout(drawRoute, 100);
+        
+        return () => clearTimeout(timeoutId);
+    }, [mapa, rutaOptimizada]);
 
     const isHighlighted = (ubicacion: UbicacionFisica) => {
         if (!hoveredObjectName || !ubicacion.objeto) return false;
