@@ -567,6 +567,21 @@ export class ApiService {
         });
     }
 
+    // Desasignar completamente un punto de reposición (producto y usuario)
+    static async desasignarPuntoCompleto(idPunto: number): Promise<void> {
+        if (!idPunto) {
+            throw new Error('Se requiere un ID de punto válido para desasignar');
+        }
+        console.log('Desasignando completamente el punto con ID:', idPunto);
+        await this.fetchApi('/puntos/desasignar', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id_punto: idPunto }),
+        });
+    }
+
     // Métodos para tareas
     static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
         const url = estado 
@@ -696,6 +711,19 @@ export class ApiService {
     static async iniciarTarea(idTarea: number): Promise<{ mensaje: string; estado: string }> {
         return await this.fetchApi<{ mensaje: string; estado: string }>(
             `/tareas/${idTarea}/iniciar`,
+            { 
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // Método para reiniciar una tarea completada (útil para pruebas)
+    static async reiniciarTarea(idTarea: number): Promise<{ mensaje: string; estado: string }> {
+        return await this.fetchApi<{ mensaje: string; estado: string }>(
+            `/tareas/${idTarea}/reiniciar`,
             { 
                 method: 'PUT',
                 headers: {

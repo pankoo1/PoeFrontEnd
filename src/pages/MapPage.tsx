@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, Search, Save } from 'lucide-react';
+import { ArrowLeft, Map, Search, Save, Trash2, UserX } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { UbicacionFisica } from '@/types/mapa';
 import { Producto } from '@/types/producto';
@@ -15,6 +15,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ApiService } from '@/services/api';
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +39,7 @@ const MapPage = () => {
     const [productos, setProductos] = useState<Producto[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [asignaciones, setAsignaciones] = useState<{[key: string]: Producto}>({});
+    const [desasignaciones, setDesasignaciones] = useState<{[key: string]: boolean}>({});
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -47,17 +58,27 @@ const MapPage = () => {
         if (!selectedLocation) return;
         
         try {
+            console.log('Actualizando ubicación seleccionada...');
             const data = await ApiService.getMapaReposicion();
             const ubicacionActualizada = data.ubicaciones.find(
                 (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
             );
             
             if (ubicacionActualizada) {
-                console.log('Actualizando ubicación seleccionada:', ubicacionActualizada);
+                console.log('Ubicación actualizada:', {
+                    coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
+                    puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
+                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
+                });
                 setSelectedLocation(ubicacionActualizada);
             }
         } catch (error) {
             console.error('Error al actualizar ubicación:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo actualizar la visualización. Intenta recargar la página.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -118,29 +139,21 @@ const MapPage = () => {
                 return;
             }
 
-            setIsLoading(true);
+            // **NUEVA LÓGICA: Asignación temporal en lugar de inmediata**
+            console.log('Asignación temporal - Producto:', producto.nombre, 'Punto:', idPunto);
             
-            try {
-                // Asignar el producto al punto
-                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, Number(producto.id_usuario));
-                
-                // Actualizar la visualización
-                await actualizarUbicacionSeleccionada();
+            // Agregar a asignaciones temporales
+            setAsignaciones(prev => ({
+                ...prev,
+                [idPunto]: producto
+            }));
 
-                toast({
-                    title: "Éxito",
-                    description: `${producto.nombre} asignado correctamente a la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
-                });
-            } catch (error) {
-                console.error('Error al asignar producto:', error);
             toast({
-                    title: "Error",
-                    description: "No se pudo asignar el producto al punto",
-                    variant: "destructive",
+                title: "Asignación Temporal",
+                description: `${producto.nombre} marcado para asignación en posición (${posicion.fila + 1}, ${posicion.columna + 1}). Confirma los cambios para guardar.`,
+                variant: "default",
             });
-            } finally {
-                setIsLoading(false);
-            }
+            
         } catch (error) {
             console.error('Error al procesar el producto:', error);
             toast({
@@ -178,78 +191,96 @@ const MapPage = () => {
                 return;
             }
 
-            console.log('Intentando desasignar producto del punto:', {
+            console.log('Marcando punto para desasignación temporal:', {
                 idPunto: punto.id_punto,
                 nombreProducto: punto.producto.nombre
             });
 
-            setIsLoading(true);
-
-            // Llamar al endpoint de desasignación
-            await ApiService.desasignarProductoDePunto(punto.id_punto);
-
-            // Actualizar la visualización
-            await actualizarUbicacionSeleccionada();
+            // **NUEVA LÓGICA: Desasignación temporal en lugar de inmediata**
+            // Agregar a desasignaciones temporales
+            setDesasignaciones(prev => ({
+                ...prev,
+                [punto.id_punto]: true
+            }));
 
             toast({
-                title: "Éxito",
-                description: `${punto.producto.nombre} desasignado correctamente de la posición (${posicion.fila + 1}, ${posicion.columna + 1})`,
+                title: "Desasignación Temporal",
+                description: `${punto.producto.nombre} marcado para desasignación en posición (${posicion.fila + 1}, ${posicion.columna + 1}). Confirma los cambios para guardar.`,
+                variant: "default",
             });
         } catch (error) {
-            console.error('Error al desasignar producto:', error);
+            console.error('Error al marcar para desasignación:', error);
             toast({
                 title: "Error",
-                description: "No se pudo desasignar el producto. Por favor, intente nuevamente.",
+                description: "No se pudo marcar el punto para desasignación.",
                 variant: "destructive",
             });
-        } finally {
-            setIsLoading(false);
         }
     };
 
     const handleConfirmarAsignaciones = async () => {
+        const numAsignaciones = Object.keys(asignaciones).length;
+        
+        if (numAsignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay asignaciones pendientes para confirmar",
+                variant: "default",
+            });
+            return;
+        }
+
         try {
             setIsLoading(true);
             
-            // Procesar todas las asignaciones
-            for (const key in asignaciones) {
-                const producto = asignaciones[key];
+            console.log(`Confirmando ${numAsignaciones} asignaciones...`);
+            
+            // Procesar todas las asignaciones con mejor manejo de errores
+            const errores = [];
+            const exitosos = [];
+            
+            for (const [key, producto] of Object.entries(asignaciones)) {
                 const idPunto = Number(key);
                 
-                await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, Number(producto.id_usuario));
+                try {
+                    await ApiService.asignarProductoAPunto(producto.id_producto, idPunto, Number(producto.id_usuario || 1));
+                    exitosos.push(`${producto.nombre} → Punto ${idPunto}`);
+                } catch (error) {
+                    console.error(`Error al asignar ${producto.nombre} al punto ${idPunto}:`, error);
+                    errores.push(`${producto.nombre} → Punto ${idPunto}`);
+                }
             }
 
-            toast({
-                title: "Éxito",
-                description: "Todas las asignaciones fueron guardadas correctamente",
-            });
-
-            // Limpiar las asignaciones temporales
-            setAsignaciones({});
-            
-            // Recargar los datos del mapa
-            try {
-                const data = await ApiService.getMapaReposicion();
-                if (selectedLocation) {
-                    // Buscar y actualizar la ubicación seleccionada con los nuevos datos
-                    const ubicacionActualizada = data.ubicaciones.find(
-                        (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
-                    );
-                    if (ubicacionActualizada) {
-                        setSelectedLocation(ubicacionActualizada);
-                    }
-                }
-            } catch (error) {
-                console.error('Error al recargar el mapa:', error);
+            // Mostrar resultados
+            if (exitosos.length > 0) {
                 toast({
-                    title: "Advertencia",
-                    description: "Los cambios se guardaron pero no se pudo actualizar la vista. Por favor, refresque la página.",
-                    variant: "default",
+                    title: "Asignaciones Completadas",
+                    description: `${exitosos.length} productos asignados correctamente${errores.length > 0 ? `, ${errores.length} fallaron` : ''}`,
                 });
             }
+
+            if (errores.length > 0) {
+                toast({
+                    title: "Algunas Asignaciones Fallaron",
+                    description: `${errores.length} asignaciones no pudieron completarse. Revisa los productos y vuelve a intentarlo.`,
+                    variant: "destructive",
+                });
+            }
+
+            // Limpiar las asignaciones temporales exitosas
+            if (exitosos.length > 0) {
+                setAsignaciones({});
+                
+                // Esperar un poco para que el backend procese los cambios
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Solo recargar si hubo cambios exitosos
+                await actualizarUbicacionSeleccionada();
+            }
+            
         } catch (error) {
             console.error('Error al guardar asignaciones:', error);
-        toast({
+            toast({
                 title: "Error",
                 description: error instanceof Error ? error.message : "No se pudieron guardar las asignaciones",
                 variant: "destructive",
@@ -257,6 +288,185 @@ const MapPage = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Función para cancelar todas las asignaciones temporales
+    const handleCancelarAsignaciones = () => {
+        const numAsignaciones = Object.keys(asignaciones).length;
+        
+        if (numAsignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay asignaciones pendientes para cancelar",
+                variant: "default",
+            });
+            return;
+        }
+
+        setAsignaciones({});
+        toast({
+            title: "Asignaciones Canceladas",
+            description: `${numAsignaciones} asignaciones temporales fueron canceladas`,
+        });
+    };
+
+    // Función para confirmar desasignaciones en lote
+    const handleConfirmarDesasignaciones = async () => {
+        const numDesasignaciones = Object.keys(desasignaciones).length;
+        
+        if (numDesasignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay desasignaciones pendientes para confirmar",
+                variant: "default",
+            });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            
+            console.log(`Confirmando ${numDesasignaciones} desasignaciones...`);
+            
+            // Procesar todas las desasignaciones con mejor manejo de errores
+            const errores = [];
+            const exitosos = [];
+            
+            for (const idPunto of Object.keys(desasignaciones)) {
+                try {
+                    // Usar la función de desasignación completa (producto + usuario)
+                    await ApiService.desasignarPuntoCompleto(Number(idPunto));
+                    exitosos.push(`Punto ${idPunto}`);
+                } catch (error) {
+                    console.error(`Error al desasignar punto ${idPunto}:`, error);
+                    errores.push(`Punto ${idPunto}`);
+                }
+            }
+
+            // Mostrar resultados
+            if (exitosos.length > 0) {
+                toast({
+                    title: "Desasignaciones Completadas",
+                    description: `${exitosos.length} puntos desasignados correctamente${errores.length > 0 ? `, ${errores.length} fallaron` : ''}`,
+                });
+            }
+
+            if (errores.length > 0) {
+                toast({
+                    title: "Algunas Desasignaciones Fallaron",
+                    description: `${errores.length} desasignaciones no pudieron completarse. Revisa y vuelve a intentarlo.`,
+                    variant: "destructive",
+                });
+            }
+
+            // Limpiar las desasignaciones temporales exitosas
+            if (exitosos.length > 0) {
+                setDesasignaciones({});
+                
+                // Esperar un poco para que el backend procese los cambios
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Solo recargar si hubo cambios exitosos
+                await actualizarUbicacionSeleccionada();
+            }
+            
+        } catch (error) {
+            console.error('Error al procesar desasignaciones:', error);
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "No se pudieron procesar las desasignaciones",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Función para cancelar todas las desasignaciones temporales
+    const handleCancelarDesasignaciones = () => {
+        const numDesasignaciones = Object.keys(desasignaciones).length;
+        
+        if (numDesasignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay desasignaciones pendientes para cancelar",
+                variant: "default",
+            });
+            return;
+        }
+
+        setDesasignaciones({});
+        toast({
+            title: "Desasignaciones Canceladas",
+            description: `${numDesasignaciones} desasignaciones temporales fueron canceladas`,
+        });
+    };
+
+    // Función de debug para verificar el estado
+    const logEstadoActual = () => {
+        console.log('=== ESTADO ACTUAL ===');
+        console.log('Ubicación seleccionada:', selectedLocation);
+        console.log('Asignaciones temporales:', asignaciones);
+        console.log('Desasignaciones temporales:', desasignaciones);
+        console.log('Puntos con productos:', selectedLocation?.mueble?.puntos_reposicion?.filter(p => p.producto));
+        console.log('====================');
+    };
+
+    // Función combinada para confirmar todas las operaciones pendientes
+    const handleConfirmarTodosLosCambios = async () => {
+        const numAsignaciones = Object.keys(asignaciones).length;
+        const numDesasignaciones = Object.keys(desasignaciones).length;
+        
+        if (numAsignaciones === 0 && numDesasignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay cambios pendientes para confirmar",
+                variant: "default",
+            });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            
+            // Procesar primero las desasignaciones
+            if (numDesasignaciones > 0) {
+                await handleConfirmarDesasignaciones();
+            }
+            
+            // Luego procesar las asignaciones
+            if (numAsignaciones > 0) {
+                await handleConfirmarAsignaciones();
+            }
+            
+        } catch (error) {
+            console.error('Error al procesar todos los cambios:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Función para cancelar todos los cambios temporales
+    const handleCancelarTodosLosCambios = () => {
+        const numAsignaciones = Object.keys(asignaciones).length;
+        const numDesasignaciones = Object.keys(desasignaciones).length;
+        
+        if (numAsignaciones === 0 && numDesasignaciones === 0) {
+            toast({
+                title: "Información",
+                description: "No hay cambios pendientes para cancelar",
+                variant: "default",
+            });
+            return;
+        }
+
+        setAsignaciones({});
+        setDesasignaciones({});
+        
+        toast({
+            title: "Todos los Cambios Cancelados",
+            description: `${numAsignaciones} asignaciones y ${numDesasignaciones} desasignaciones fueron canceladas`,
+        });
     };
 
     const calcularIdPunto = (mueble: any, fila: number, columna: number): number | null => {
@@ -426,7 +636,17 @@ const MapPage = () => {
                                                 </div>
                                             </div>
                                             <div>
-                                                <h3 className="font-semibold text-lg mb-4">Vista de la Estantería</h3>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-semibold text-lg">Vista de la Estantería</h3>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={actualizarUbicacionSeleccionada}
+                                                        disabled={isLoading}
+                                                    >
+                                                        {isLoading ? "Actualizando..." : "Recargar Vista"}
+                                                    </Button>
+                                                </div>
                                                 <ShelfGrid 
                                                     filas={selectedLocation.mueble.filas || 3} 
                                                     columnas={selectedLocation.mueble.columnas || 4}
@@ -436,37 +656,68 @@ const MapPage = () => {
                                                         fila: punto.nivel - 1, // Convertir de base 1 a base 0
                                                         columna: punto.estanteria - 1, // Convertir de base 1 a base 0
                                                         producto: punto.producto ? {
-                                                            id_producto: punto.producto.id_producto,
+                                                            id_producto: punto.producto.id_producto || 0,
                                                             nombre: punto.producto.nombre,
                                                             categoria: punto.producto.categoria,
                                                             unidad_tipo: punto.producto.unidad_tipo,
                                                             unidad_cantidad: punto.producto.unidad_cantidad,
-                                                            id_usuario: punto.producto.id_usuario,
-                                                            codigo_unico: punto.producto.codigo_unico,
-                                                            estado: punto.producto.estado
+                                                            codigo_unico: '',
+                                                            estado: ''
                                                         } : null
                                                     })) || []}
+                                                    asignacionesTemporales={asignaciones}
+                                                    desasignacionesTemporales={desasignaciones}
+                                                    muebleActual={selectedLocation.mueble}
                                                 />
-                                                {Object.keys(asignaciones).length > 0 && (
-                                                    <div className="mt-4 flex justify-end">
-                                                        <Button
-                                                            onClick={handleConfirmarAsignaciones}
-                                                            variant="outline"
-                                                            className="border-gray-200 hover:bg-gray-50"
-                                                            disabled={isLoading}
-                                                        >
-                                                            {isLoading ? (
-                                                                <>
-                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
-                                                                    Guardando...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                            <Save className="w-4 h-4 mr-2" />
-                                                            Confirmar Asignaciones
-                                                                </>
-                                                            )}
-                                                        </Button>
+                                                {(Object.keys(asignaciones).length > 0 || Object.keys(desasignaciones).length > 0) && (
+                                                    <div className="mt-6 border-t pt-4">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex flex-col space-y-1">
+                                                                {Object.keys(asignaciones).length > 0 && (
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <div className="w-3 h-3 bg-yellow-400 rounded border border-yellow-500"></div>
+                                                                        <span className="text-sm text-gray-600">
+                                                                            {Object.keys(asignaciones).length} asignación{Object.keys(asignaciones).length > 1 ? 'es' : ''} pendiente{Object.keys(asignaciones).length > 1 ? 's' : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {Object.keys(desasignaciones).length > 0 && (
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <div className="w-3 h-3 bg-red-400 rounded border border-red-500"></div>
+                                                                        <span className="text-sm text-gray-600">
+                                                                            {Object.keys(desasignaciones).length} desasignación{Object.keys(desasignaciones).length > 1 ? 'es' : ''} pendiente{Object.keys(desasignaciones).length > 1 ? 's' : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-3">
+                                                            <Button
+                                                                onClick={handleCancelarTodosLosCambios}
+                                                                variant="outline"
+                                                                className="border-gray-300 text-gray-600 hover:bg-gray-50 flex-1"
+                                                                disabled={isLoading}
+                                                            >
+                                                                Cancelar Todos
+                                                            </Button>
+                                                            <Button
+                                                                onClick={handleConfirmarTodosLosCambios}
+                                                                className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                                                                disabled={isLoading}
+                                                            >
+                                                                {isLoading ? (
+                                                                    <>
+                                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                                                        Procesando...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Save className="w-4 h-4 mr-2" />
+                                                                        Confirmar ({Object.keys(asignaciones).length + Object.keys(desasignaciones).length})
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -550,6 +801,7 @@ const MapPage = () => {
                     </DialogHeader>
                 </DialogContent>
             </Dialog>
+
         </div>
     );
 };

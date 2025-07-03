@@ -11,6 +11,7 @@ interface MapViewerProps {
     ubicaciones?: UbicacionFisica[];
     mapa?: Mapa;
     rutaOptimizada?: RutaOptimizadaResponse | null;
+    modoReponedor?: boolean; // Nuevo: modo especial para reponedores
 }
 
 export const MapViewer: React.FC<MapViewerProps> = ({
@@ -19,7 +20,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     className = '',
     ubicaciones: ubicacionesProp,
     mapa: mapaProp,
-    rutaOptimizada
+    rutaOptimizada,
+    modoReponedor = false
 }) => {
     const [mapa, setMapa] = useState<Mapa | null>(mapaProp || null);
     const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
@@ -203,42 +205,25 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                     ctx.stroke();
                 }
                 
-                // Punto final (rojo)
-                if (rutaOptimizada.coordenadas_ruta.length > 1) {
-                    const endCoord = rutaOptimizada.coordenadas_ruta[rutaOptimizada.coordenadas_ruta.length - 1];
-                    const endX = endCoord.x * cellW + cellW / 2;
-                    const endY = endCoord.y * cellH + cellH / 2;
-                    
-                    ctx.fillStyle = '#ef4444'; // rojo
-                    ctx.beginPath();
-                    ctx.arc(endX, endY, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Borde blanco
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                
-                // Dibujar puntos de reposición con números
+                // Dibujar puntos de reposición con el mismo estilo de punto rojo
                 rutaOptimizada.puntos_reposicion.forEach((punto, index) => {
                     const x = punto.mueble.coordenadas.x * cellW + cellW / 2;
                     const y = punto.mueble.coordenadas.y * cellH + cellH / 2;
                     
-                    // Círculo amarillo para los puntos de reposición
-                    ctx.fillStyle = '#f59e0b'; // amarillo
+                    // Punto rojo más grande y visible para todos los destinos
+                    ctx.fillStyle = '#dc2626'; // rojo más intenso
                     ctx.beginPath();
-                    ctx.arc(x, y, 12, 0, Math.PI * 2);
+                    ctx.arc(x, y, 15, 0, Math.PI * 2); // Radio aumentado para mayor visibilidad
                     ctx.fill();
                     
-                    // Borde blanco
+                    // Borde blanco más grueso
                     ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 3;
                     ctx.stroke();
                     
-                    // Número del orden de visita
+                    // Número del orden de visita con fuente más grande
                     ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px Arial';
+                    ctx.font = 'bold 14px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(punto.orden_visita.toString(), x, y);
@@ -257,13 +242,31 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         return ubicacion.objeto.nombre === hoveredObjectName;
     };
 
+    // Función para determinar si un mueble es un destino en la ruta optimizada
+    const esMuebleDestino = (ubicacion: UbicacionFisica) => {
+        if (!rutaOptimizada?.puntos_reposicion || !ubicacion.mueble) return false;
+        
+        // Verificar si las coordenadas de esta ubicación coinciden con algún punto de reposición
+        return rutaOptimizada.puntos_reposicion.some(punto => {
+            // Comparar coordenadas del punto de reposición con la ubicación actual
+            return punto.mueble.coordenadas.x === ubicacion.x && 
+                   punto.mueble.coordenadas.y === ubicacion.y;
+        });
+    };
+
     const handleMouseEnter = (ubicacion: UbicacionFisica) => {
+        // Desactivar hover en modo reponedor
+        if (modoReponedor) return;
+        
         if (ubicacion.objeto?.nombre) {
             setHoveredObjectName(ubicacion.objeto.nombre);
         }
     };
 
     const handleMouseLeave = () => {
+        // Desactivar hover en modo reponedor
+        if (modoReponedor) return;
+        
         setHoveredObjectName(null);
     };
 
@@ -298,7 +301,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         width: `${width}px`,
                         height: `${height}px`,
                         zIndex: 2,
-                        pointerEvents: 'auto',
+                        pointerEvents: modoReponedor ? 'none' : 'auto', // Desactivar interacciones en modo reponedor
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -306,21 +309,24 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         transform: isHighlightedNode ? 'scale(1.1)' : 'scale(1)',
                         boxShadow: isHighlightedNode ? '0 0 0 2px orange' : undefined,
                     }}
-                    onClick={() => onObjectClick?.(u)}
+                    onClick={() => !modoReponedor && onObjectClick?.(u)} // Solo permitir click si no es modo reponedor
                     onMouseEnter={() => handleMouseEnter(u)}
                     onMouseLeave={handleMouseLeave}
-                    title={u.mueble ?
+                    title={!modoReponedor ? (u.mueble ?
                         `Mueble - Estantería: ${u.mueble.estanteria}, Nivel: ${u.mueble.nivel}, Filas: ${u.mueble.filas}, Columnas: ${u.mueble.columnas}` :
-                        u.objeto?.nombre || ''
-                    }
+                        u.objeto?.nombre || '') : ''} // Desactivar tooltips en modo reponedor
                 >
                     {u.mueble && (
                         <div style={{ 
                             width: '100%', 
                             height: '100%', 
                             borderRadius: `${radius}px`, 
-                            background: '#bfdbfe', 
-                            border: '1px solid #d1d5db' 
+                            background: modoReponedor && esMuebleDestino(u) 
+                                ? '#f59e0b' // amarillo/naranja para destinos en modo reponedor
+                                : '#bfdbfe', // azul claro por defecto
+                            border: modoReponedor && esMuebleDestino(u)
+                                ? '2px solid #d97706' // borde más grueso para destinos
+                                : '1px solid #d1d5db' 
                         }} />
                     )}
                     {u.punto?.producto && (
@@ -336,7 +342,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 </div>
             );
         }).filter(Boolean);
-    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick]);
+    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick, modoReponedor, rutaOptimizada]);
     const renderDebugInfo = () => {
         const muebles = ubicaciones.filter(u => u.mueble !== null);
         const productos = ubicaciones.filter(u => u.punto?.producto !== null);

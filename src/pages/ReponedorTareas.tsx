@@ -43,6 +43,20 @@ const ReponedorTareas = () => {
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
   const [generandoRuta, setGenerandoRuta] = useState<number | null>(null);
 
+  // Función para cargar tareas
+  const cargarTareas = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const tareasApi = await ApiService.getTareasReponedor();
+      setTareas(tareasApi);
+    } catch (err: any) {
+      setError('No se pudieron cargar las tareas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Función para comenzar una tarea
   const comenzarTarea = async (idTarea: number) => {
     try {
@@ -82,23 +96,40 @@ const ReponedorTareas = () => {
     }
   };
 
+  // Función para reiniciar una tarea completada
+  const reiniciarTarea = async (idTarea: number) => {
+    try {
+      // Confirmar acción con el usuario
+      const confirmar = window.confirm(
+        "¿Estás seguro de que deseas reiniciar esta tarea? Se cambiará el estado de vuelta a 'pendiente'."
+      );
+      
+      if (!confirmar) return;
+
+      await ApiService.reiniciarTarea(idTarea);
+      
+      // Actualizar la lista de tareas
+      cargarTareas();
+
+      toast({
+        title: "¡Tarea reiniciada!",
+        description: "La tarea ha sido reiniciada y está disponible para comenzar nuevamente.",
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo reiniciar la tarea.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Polling para actualización automática
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    const fetchTareas = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const tareasApi = await ApiService.getTareasReponedor();
-        setTareas(tareasApi);
-      } catch (err: any) {
-        setError('No se pudieron cargar las tareas');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTareas();
-    interval = setInterval(fetchTareas, 300000); // Actualiza cada 10 segundos
+    cargarTareas();
+    interval = setInterval(cargarTareas, 300000); // Actualiza cada 5 minutos
     return () => clearInterval(interval);
   }, []);
 
@@ -213,9 +244,21 @@ const ReponedorTareas = () => {
                     </div>
                     <div className="flex space-x-2">
                       {tarea.estado && tarea.estado.toLowerCase() === 'completada' && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          ✓ Completada
-                        </Badge>
+                        <>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            ✓ Completada
+                          </Badge>
+                          {/* Botón para reiniciar tarea completada */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => reiniciarTarea(tarea.id_tarea)}
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Reiniciar
+                          </Button>
+                        </>
                       )}
                       
                       {/* Botón para comenzar tarea (solo si está pendiente) */}

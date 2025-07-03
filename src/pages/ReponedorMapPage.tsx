@@ -240,6 +240,44 @@ const ReponedorMapPage = () => {
     setTareaSeleccionada(null);
   };
 
+  // Función para reiniciar una tarea completada (útil para pruebas)
+  const reiniciarTarea = async (idTarea: number) => {
+    try {
+      // Confirmar acción con el usuario
+      const confirmar = window.confirm(
+        "¿Estás seguro de que deseas reiniciar esta tarea? Se cambiará el estado de vuelta a 'pendiente'."
+      );
+      
+      if (!confirmar) return;
+
+      await ApiService.reiniciarTarea(idTarea);
+      
+      // Actualizar el estado local de la tarea
+      setTareas((prevTareas) =>
+        prevTareas.map((t) =>
+          t.id_tarea === idTarea ? { ...t, estado: 'pendiente' } : t
+        )
+      );
+
+      // Limpiar ruta si está mostrando la ruta de esta tarea
+      if (tareaSeleccionada === idTarea) {
+        limpiarRuta();
+      }
+
+      toast({
+        title: "¡Tarea reiniciada!",
+        description: "La tarea ha sido reiniciada y está disponible para comenzar nuevamente.",
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo reiniciar la tarea.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -294,6 +332,8 @@ const ReponedorMapPage = () => {
                       className="w-full h-full"
                       // Pasar datos de ruta si está disponible
                       rutaOptimizada={mostrarRuta ? rutaOptimizada : null}
+                      // Activar modo reponedor para desactivar hover y resaltar solo destinos
+                      modoReponedor={true}
                     />
                   </div>
                 )}
@@ -544,9 +584,21 @@ const ReponedorMapPage = () => {
 
                         {/* Mostrar si está completada */}
                         {tarea.estado && tarea.estado.toLowerCase() === 'completada' && (
-                          <div className="flex items-center justify-center text-green-600 text-sm py-2">
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Tarea Completada
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-center text-green-600 text-sm py-2">
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Tarea Completada
+                            </div>
+                            {/* Botón para reiniciar tarea completada (útil para pruebas) */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => reiniciarTarea(tarea.id_tarea)}
+                              className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                            >
+                              <Route className="w-4 h-4 mr-2" />
+                              Reiniciar Tarea
+                            </Button>
                           </div>
                         )}
                       </div>
