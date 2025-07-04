@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   showText?: boolean;
   className?: string;
 }
@@ -15,7 +15,8 @@ const Logo: React.FC<LogoProps> = ({
     sm: { width: 24, height: 24, textSize: 'text-sm' },
     md: { width: 32, height: 32, textSize: 'text-base' },
     lg: { width: 48, height: 48, textSize: 'text-lg' },
-    xl: { width: 64, height: 64, textSize: 'text-xl' }
+    xl: { width: 64, height: 64, textSize: 'text-xl' },
+    '2xl': { width: 96, height: 96, textSize: 'text-2xl' }
   };
 
   const { width, height, textSize } = sizeMap[size];

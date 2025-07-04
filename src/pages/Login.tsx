@@ -62,7 +62,7 @@ const Login = () => {
       <div 
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
+          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.80) 50%, rgba(255, 255, 255, 0.70) 100%), url('/POE.jpg')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -83,128 +83,168 @@ const Login = () => {
           </div>
         </div>
 
-        <Card className="w-full max-w-lg card-supermarket relative z-10 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/30 backdrop-blur-md bg-white/90 shadow-2xl">
-          <CardHeader className="space-y-8 text-center pb-8">
-            <div className="flex justify-center">
-              <div className="p-6 bg-gradient-to-br from-primary/20 to-secondary/15 rounded-2xl border-2 border-primary/30 shadow-lg backdrop-blur-sm">
-                <Logo size="xl" showText={true} />
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-center lg:justify-between relative z-10 gap-12">
+          {/* Sección izquierda para el logo */}
+          <div className="hidden lg:flex flex-1 items-center justify-center max-w-lg">
+            <div className="text-center space-y-6">
+              {/* Aquí irá tu imagen de logo */}
+              <div className="flex justify-center">
+                <div className="w-72 h-72 bg-gradient-to-br from-primary/30 via-secondary/15 to-accent/20 rounded-3xl border-2 border-primary/20 backdrop-blur-sm shadow-2xl flex items-center justify-center">
+                  {/* Placeholder para tu logo - reemplaza con tu imagen */}
+                  <div className="text-center space-y-3">
+                    <Logo size="2xl" showText={false} />
+                    <div className="space-y-1">
+                      <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                        Sistema POE
+                      </h1>
+                      <p className="text-base text-muted-foreground font-medium">
+                        Optimización de Rutas
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        para Supermercados
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Descripción adicional */}
+              <div className="space-y-4 max-w-sm mx-auto">
+                <h2 className="text-xl font-bold text-foreground">
+                  Gestión Inteligente de Inventario
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Optimiza las rutas de reposición, mejora la eficiencia operativa y mantén tu supermercado funcionando de manera perfecta.
+                </p>
+                <div className="flex items-center justify-center space-x-4 pt-3">
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center mb-2">
+                      <Truck className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Rutas Optimizadas</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-2">
+                      <MapPin className="w-5 h-5 text-secondary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Mapeo Inteligente</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center mb-2">
+                      <ShoppingCart className="w-5 h-5 text-accent" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Control Total</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                Sistema POE
-              </CardTitle>
-              <div className="space-y-2">
-                <CardDescription className="text-lg font-medium text-foreground">
-                  Optimización de Rutas para Supermercados
-                </CardDescription>
-                <CardDescription className="text-base text-muted-foreground bg-muted/30 rounded-lg px-4 py-2 backdrop-blur-sm">
-                  Ingresa tus credenciales para continuar
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-8 px-8 pb-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <Label htmlFor="correo" className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span>Correo Electrónico</span>
-                </Label>
-                <Input
-                  id="correo"
-                  type="email"
-                  placeholder="ejemplo@empresa.com"
-                  value={correo}
-                  onChange={(e) => setCorreo(e.target.value)}
-                  required
-                  className="h-14 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
-                />
-              </div>
-              <div className="space-y-4">
-                <Label htmlFor="contraseña" className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                  <span>Contraseña</span>
-                </Label>
-                <Input
-                  id="contraseña"
-                  type="password"
-                  placeholder="••••••••"
-                  value={contraseña}
-                  onChange={(e) => setContraseña(e.target.value)}
-                  required
-                  className="h-14 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-secondary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Iniciando sesión...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Truck className="w-5 h-5" />
-                    <span>Iniciar Sesión</span>
-                  </div>
-                )}
-              </Button>
-            </form>
+          </div>
 
-            {/* Credenciales de prueba con diseño mejorado */}
-            <div className="border-t border-border/30 pt-8">
-              <div className="bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 rounded-xl p-6 space-y-5 backdrop-blur-sm border border-border/20">
-                <div className="text-center">
-                  <p className="font-semibold text-lg text-primary mb-2 flex items-center justify-center space-x-2">
-                    <div className="w-3 h-3 bg-accent rounded-full"></div>
-                    <span>Credenciales de Prueba</span>
-                    <div className="w-3 h-3 bg-accent rounded-full"></div>
-                  </p>
-                  <p className="text-sm text-muted-foreground">Selecciona un rol para probar el sistema</p>
+          {/* Sección derecha para el formulario de login */}
+          <div className="w-full lg:w-auto lg:min-w-[420px] lg:max-w-md">
+            <Card className="w-full card-supermarket relative z-10 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/30 backdrop-blur-md bg-white/90 shadow-2xl">
+              <CardHeader className="space-y-6 text-center pb-6">
+                <div className="space-y-3">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                    Iniciar Sesión
+                  </CardTitle>
+                  <CardDescription className="text-base text-muted-foreground bg-muted/30 rounded-lg px-4 py-2 backdrop-blur-sm">
+                    Accede a tu cuenta del sistema POE
+                  </CardDescription>
                 </div>
-                <div className="grid gap-4">
-                  <div className="bg-gradient-to-r from-primary/15 to-primary/25 p-4 rounded-xl border border-primary/30 backdrop-blur-sm hover:from-primary/20 hover:to-primary/30 transition-all duration-200 cursor-pointer group">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-primary/30 rounded-lg group-hover:bg-primary/40 transition-all duration-200">
-                        <span className="text-lg">👑</span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-primary">Administrador</p>
-                        <p className="text-sm text-muted-foreground">admin@poe.com • admin123</p>
-                      </div>
-                    </div>
+              </CardHeader>
+              <CardContent className="space-y-6 px-6 pb-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="space-y-3">
+                    <Label htmlFor="correo" className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span>Correo Electrónico</span>
+                    </Label>
+                    <Input
+                      id="correo"
+                      type="email"
+                      placeholder="ejemplo@empresa.com"
+                      value={correo}
+                      onChange={(e) => setCorreo(e.target.value)}
+                      required
+                      className="h-12 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
+                    />
                   </div>
-                  <div className="bg-gradient-to-r from-secondary/15 to-secondary/25 p-4 rounded-xl border border-secondary/30 backdrop-blur-sm hover:from-secondary/20 hover:to-secondary/30 transition-all duration-200 cursor-pointer group">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-secondary/30 rounded-lg group-hover:bg-secondary/40 transition-all duration-200">
-                        <span className="text-lg">🏗️</span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-secondary">Supervisor</p>
-                        <p className="text-sm text-muted-foreground">supervisor@poe.com • supervisor123</p>
-                      </div>
-                    </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="contraseña" className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                      <span>Contraseña</span>
+                    </Label>
+                    <Input
+                      id="contraseña"
+                      type="password"
+                      placeholder="••••••••"
+                      value={contraseña}
+                      onChange={(e) => setContraseña(e.target.value)}
+                      required
+                      className="h-12 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-secondary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
+                    />
                   </div>
-                  <div className="bg-gradient-to-r from-accent/15 to-accent/25 p-4 rounded-xl border border-accent/30 backdrop-blur-sm hover:from-accent/20 hover:to-accent/30 transition-all duration-200 cursor-pointer group">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-accent/30 rounded-lg group-hover:bg-accent/40 transition-all duration-200">
-                        <span className="text-lg">📦</span>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base font-semibold rounded-xl bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Iniciando sesión...</span>
                       </div>
-                      <div>
-                        <p className="font-semibold text-accent">Reponedor</p>
-                        <p className="text-sm text-muted-foreground">reponedor@poe.com • reponedor123</p>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Truck className="w-4 h-4" />
+                        <span>Iniciar Sesión</span>
+                      </div>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Credenciales de prueba compactas */}
+                <div className="border-t border-border/30 pt-6">
+                  <div className="bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 rounded-xl p-4 space-y-4 backdrop-blur-sm border border-border/20">
+                    <div className="text-center">
+                      <p className="font-semibold text-sm text-primary mb-2">Credenciales de Prueba</p>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="bg-gradient-to-r from-primary/15 to-primary/25 p-3 rounded-lg border border-primary/30 backdrop-blur-sm hover:from-primary/20 hover:to-primary/30 transition-all duration-200 cursor-pointer group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm">👑</span>
+                            <span className="font-medium text-primary text-sm">Admin</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">admin@poe.com</span>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-r from-secondary/15 to-secondary/25 p-3 rounded-lg border border-secondary/30 backdrop-blur-sm hover:from-secondary/20 hover:to-secondary/30 transition-all duration-200 cursor-pointer group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm">🏗️</span>
+                            <span className="font-medium text-secondary text-sm">Supervisor</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">supervisor@poe.com</span>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-r from-accent/15 to-accent/25 p-3 rounded-lg border border-accent/30 backdrop-blur-sm hover:from-accent/20 hover:to-accent/30 transition-all duration-200 cursor-pointer group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm">📦</span>
+                            <span className="font-medium text-accent text-sm">Reponedor</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">reponedor@poe.com</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </>
   );
