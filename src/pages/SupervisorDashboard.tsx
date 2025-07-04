@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { User, Users, Calendar, Map, LogOut, Route } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
@@ -52,7 +53,13 @@ const SupervisorDashboard = () => {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Panel de Supervisión</h1>
+          <div className="flex items-center space-x-4">
+            <Logo size="lg" />
+            <div>
+              <h1 className="text-2xl font-bold">Panel de Supervisión</h1>
+              <p className="text-sm text-muted-foreground">Bienvenido, {userName}</p>
+            </div>
+          </div>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={() => navigate('/supervisor-profile')}>
               <User className="w-4 h-4 mr-2" />

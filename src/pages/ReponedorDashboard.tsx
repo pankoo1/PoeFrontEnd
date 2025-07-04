@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 import { User, Map, Calendar, CheckCircle, AlertTriangle, LogOut } from 'lucide-react';
 import { ApiService, Tarea } from "@/services/api";
+import Logo from '@/components/Logo';
 
 const ReponedorDashboard = () => {
   const navigate = useNavigate();
@@ -89,7 +90,13 @@ const ReponedorDashboard = () => {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Panel de Reponedor</h1>
+          <div className="flex items-center space-x-4">
+            <Logo size="lg" />
+            <div>
+              <h1 className="text-2xl font-bold">Panel de Reponedor</h1>
+              <p className="text-sm text-muted-foreground">Hola, {userName}</p>
+            </div>
+          </div>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={() => navigate('/reponedor-profile')}>
               <User className="w-4 h-4 mr-2" />

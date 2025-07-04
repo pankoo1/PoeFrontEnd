@@ -8,6 +8,7 @@ import { UbicacionFisica } from '@/types/mapa';
 import { Producto } from '@/types/producto';
 import { ShelfGrid } from '@/components/ui/shelf-grid';
 import { Input } from "@/components/ui/input";
+import Logo from '@/components/Logo';
 import {
     Dialog,
     DialogContent,
@@ -575,6 +576,7 @@ const MapPage = () => {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Volver
                     </Button>
+                    <Logo size="md" className="mr-4" />
                     <h1 className="text-2xl font-bold">Mapa Interactivo</h1>
                 </div>
             </header>
