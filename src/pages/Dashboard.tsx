@@ -14,11 +14,23 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <header className="header-admin border-b shadow-sm">
-        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
+    <>
+      {/* Background fijo que cubre toda la pantalla */}
+      <div 
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      />
+      
+      <div className="min-h-screen relative z-10">
+        <header className="header-admin border-b shadow-sm content-overlay rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
+          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <div className="p-3 bg-primary/10 rounded-xl border-2 border-primary/20 shadow-lg">
+            <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
               <Logo size="lg" showText={true} />
             </div>
             <div>
@@ -51,11 +63,11 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-6 py-8 content-overlay">
         {/* Banner de bienvenida */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/5 to-accent/10 border border-primary/20">
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-primary/20 rounded-xl">
+            <div className="p-3 bg-primary/40 rounded-xl">
               <Truck className="w-8 h-8 text-primary" />
             </div>
             <div>
@@ -67,10 +79,10 @@ const Dashboard = () => {
 
         {/* Métricas rápidas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/5 to-primary/10 group">
+          <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
             <div className="p-6 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="p-4 bg-primary/20 rounded-full group-hover:bg-primary/30 transition-all duration-300">
+                <div className="p-4 bg-primary/30 rounded-full group-hover:bg-primary/40 transition-all duration-300">
                   <Package className="w-8 h-8 text-primary" />
                 </div>
               </div>
@@ -82,10 +94,10 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-secondary/5 to-secondary/10 group" style={{animationDelay: '0.1s'}}>
+          <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-secondary/15 to-secondary/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.1s'}}>
             <div className="p-6 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="p-4 bg-secondary/20 rounded-full group-hover:bg-secondary/30 transition-all duration-300">
+                <div className="p-4 bg-secondary/30 rounded-full group-hover:bg-secondary/40 transition-all duration-300">
                   <Users className="w-8 h-8 text-secondary" />
                 </div>
               </div>
@@ -97,10 +109,10 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-accent/5 to-accent/10 group" style={{animationDelay: '0.2s'}}>
+          <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-accent/25 to-accent/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.2s'}}>
             <div className="p-6 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="p-4 bg-accent/20 rounded-full group-hover:bg-accent/30 transition-all duration-300">
+                <div className="p-4 bg-accent/40 rounded-full group-hover:bg-accent/50 transition-all duration-300">
                   <Truck className="w-8 h-8 text-accent" />
                 </div>
               </div>
@@ -112,17 +124,17 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/5 to-success/10 group" style={{animationDelay: '0.3s'}}>
+          <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/25 to-success/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.3s'}}>
             <div className="p-6 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="p-4 bg-success/20 rounded-full group-hover:bg-success/30 transition-all duration-300">
+                <div className="p-4 bg-success/40 rounded-full group-hover:bg-success/50 transition-all duration-300">
                   <BarChart3 className="w-8 h-8 text-success" />
                 </div>
               </div>
               <div className="metric-value text-success">98%</div>
               <div className="metric-label">Eficiencia Global</div>
               <div className="mt-3 flex items-center justify-center">
-                <span className="bg-success/10 text-success border border-success/30 px-2 py-1 rounded-md text-xs font-medium">↗ +2%</span>
+                <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">↗ +2%</span>
               </div>
             </div>
           </div>
@@ -254,31 +266,31 @@ const Dashboard = () => {
         {/* Actividad reciente y estadísticas */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Actividad reciente */}
-          <Card className="card-supermarket">
+          <Card className="card-supermarket bg-white/90 backdrop-blur-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2 bg-primary/30 rounded-lg">
                   <BarChart3 className="w-5 h-5 text-primary" />
                 </div>
                 <span>Actividad Reciente</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
                   <span className="text-sm">Ruta optimizada para Pasillo A</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Hace 5 min</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-secondary rounded-full"></div>
                   <span className="text-sm">Nuevo usuario registrado</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Hace 12 min</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-accent rounded-full"></div>
                   <span className="text-sm">Productos actualizados</span>
@@ -289,10 +301,10 @@ const Dashboard = () => {
           </Card>
 
           {/* Métricas operacionales */}
-          <Card className="card-logistics">
+          <Card className="card-logistics bg-white/90 backdrop-blur-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
-                <div className="p-2 bg-secondary/10 rounded-lg">
+                <div className="p-2 bg-secondary/30 rounded-lg">
                   <Users className="w-5 h-5 text-secondary" />
                 </div>
                 <span>Métricas Operacionales</span>
@@ -332,7 +344,8 @@ const Dashboard = () => {
           </Card>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 };
 
