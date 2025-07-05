@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, AlertCircle, Trash2, Home, MapPin, Target, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Map, AlertCircle, Trash2, Home, MapPin, Target } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/mapaService';
 import { ApiService } from '@/services/api';
@@ -48,29 +48,10 @@ const SupervisorMapPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Función para recargar datos
-  const recargarDatos = async () => {
-    const token = ApiService.getToken();
-    if (!token) {
-      toast({
-        variant: "destructive",
-        title: "Sin autenticación",
-        description: "No se encontró token de autenticación. Redirigiendo al login...",
-      });
-      setTimeout(() => navigate('/login'), 2000);
-      return;
-    }
-
-    // Reset states
-    setError(null);
-    setNoPointsAssigned(false);
-    
-    // Llamar la función de carga
+  useEffect(() => {
     const cargarDatos = async () => {
       try {
         setLoading(true);
-        setError(null);
-        
         const [mapaResponse, reponedoresResponse] = await Promise.all([
           MapaService.getMapaSupervisorVista(),
           ApiService.getReponedoresAsignados()
@@ -84,47 +65,15 @@ const SupervisorMapPage = () => {
         setMapaData(mapaResponse.mapa);
         setUbicaciones(mapaResponse.ubicaciones);
         setReponedores(reponedoresResponse);
-        
-        toast({
-          title: "Datos recargados",
-          description: "El mapa se ha actualizado correctamente",
-        });
       } catch (err) {
-        console.error('Error al cargar datos del mapa:', err);
-        
-        let mensaje = 'Error al cargar los datos del mapa';
-        
-        if (err instanceof Error) {
-          if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-            mensaje = 'No tienes permisos para acceder al mapa de supervisión. Verifica tu sesión.';
-            toast({
-              variant: "destructive",
-              title: "Error de autenticación",
-              description: "Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión nuevamente.",
-            });
-            setTimeout(() => {
-              navigate('/login');
-            }, 3000);
-          } else if (err.message.includes('403') || err.message.includes('Forbidden')) {
-            mensaje = 'No tienes permisos suficientes para acceder a esta función.';
-          } else if (err.message.includes('500')) {
-            mensaje = 'Error interno del servidor. Intenta de nuevo más tarde.';
-          } else {
-            mensaje = err.message;
-          }
-        }
-        
+        const mensaje = err instanceof Error ? err.message : 'Error al cargar los datos';
         handleMapError(mensaje);
       } finally {
         setLoading(false);
       }
     };
 
-    await cargarDatos();
-  };
-
-  useEffect(() => {
-    recargarDatos();
+    cargarDatos();
   }, []);
 
   const handleObjectClick = (ubicacion: UbicacionFisica) => {
@@ -234,24 +183,12 @@ const SupervisorMapPage = () => {
       <p className="text-gray-600 mb-4">
         Actualmente no tienes puntos de reposición asignados para supervisar.
       </p>
-      <div className="space-y-2">
-        <Button 
-          variant="outline"
-          onClick={() => navigate('/supervisor-dashboard')}
-          className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-        >
-          Volver al Dashboard
-        </Button>
-        <br />
-        <Button 
-          variant="outline"
-          onClick={() => recargarDatos()}
-          className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Recargar Página
-        </Button>
-      </div>
+      <Button 
+        variant="outline"
+        onClick={() => navigate('/supervisor-dashboard')}
+      >
+        Volver al Dashboard
+      </Button>
     </div>
   );
 
@@ -297,15 +234,6 @@ const SupervisorMapPage = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => recargarDatos()}
-                className="border-2 border-success/30 hover:bg-success/10 hover:border-success/50 transition-all duration-200"
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Recargar
-              </Button>
-              <Button 
-                variant="outline" 
                 onClick={() => navigate('/supervisor-dashboard')}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
@@ -327,25 +255,13 @@ const SupervisorMapPage = () => {
         <main className="container mx-auto px-6 py-8 flex-1 flex flex-col">
           {/* Banner informativo */}
           <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-warning/40 rounded-xl">
-                  <MapPin className="w-8 h-8 text-warning" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Vista de Supervisión</h2>
-                  <p className="text-muted-foreground">Supervisa ubicaciones y crea tareas para tu equipo de reponedores</p>
-                </div>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-warning/40 rounded-xl">
+                <MapPin className="w-8 h-8 text-warning" />
               </div>
-              <div className="text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <span>Estado:</span>
-                  {ApiService.getToken() ? (
-                    <span className="text-success">✓ Autenticado</span>
-                  ) : (
-                    <span className="text-destructive">✗ Sin autenticación</span>
-                  )}
-                </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Vista de Supervisión</h2>
+                <p className="text-muted-foreground">Supervisa ubicaciones y crea tareas para tu equipo de reponedores</p>
               </div>
             </div>
           </div>
@@ -376,28 +292,9 @@ const SupervisorMapPage = () => {
                   )}
                   {error && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center p-6 max-w-md">
+                      <div className="text-center p-6">
                         <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2 text-destructive">Error al cargar el mapa</h3>
-                        <p className="text-muted-foreground mb-4">{error}</p>
-                        <div className="space-y-2">
-                          <Button 
-                            variant="outline"
-                            onClick={() => recargarDatos()}
-                            className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Reintentar
-                          </Button>
-                          <br />
-                          <Button 
-                            variant="outline"
-                            onClick={() => navigate('/supervisor-dashboard')}
-                            className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-                          >
-                            Volver al Dashboard
-                          </Button>
-                        </div>
+                        <span className="text-destructive text-lg">{error}</span>
                       </div>
                     </div>
                   )}
@@ -525,82 +422,185 @@ const SupervisorMapPage = () => {
             </Card>
           </div>
         </main>
-
-        {/* Dialog para mostrar estantería */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Estantería - {selectedLocation?.objeto?.tipo || 'Sin nombre'}
-              </DialogTitle>
-              <DialogDescription>
-                Selecciona los puntos de reposición para crear una tarea
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
-              <div>
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-lg">Vista de la estantería</h3>
-                    <p className="text-sm text-gray-600">
-                      Los productos con fondo verde están asignados a tu supervisión. 
-                      Haz clic en ellos para agregarlos a la tarea.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {Array.from({length: selectedLocation?.mueble?.filas || 3}, (_, fila) => (
-                      <div key={fila} className="flex space-x-2">
-                        {Array.from({length: selectedLocation?.mueble?.columnas || 4}, (_, columna) => {
-                          const puntoIndex = fila * (selectedLocation?.mueble?.columnas || 4) + columna;
-                          const punto = selectedLocation?.mueble?.puntos_reposicion?.[puntoIndex];
-                          const isSelected = puntosSeleccionados.some(p => p.punto?.id_punto === punto?.id_punto);
-                          
-                          return (
-                            <div
-                              key={`${fila}-${columna}`}
-                              className={`
-                                w-32 h-24 border-2 rounded-lg cursor-pointer transition-all text-xs relative
-                                ${punto?.producto 
-                                  ? isSelected 
-                                    ? 'bg-blue-200 border-blue-500 shadow-lg' 
-                                    : 'bg-green-100 border-green-300 hover:bg-green-200' 
-                                  : 'bg-gray-100 border-gray-300'
-                                }
-                              `}
-                              onClick={() => punto?.producto && handlePuntoClick(punto)}
-                            >
-                              {punto?.producto && (
-                                <div className="p-1 text-center w-full">
-                                  <div className="font-medium text-sm truncate px-1">
-                                    {punto.producto.nombre}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {punto.producto.unidad_cantidad} {punto.producto.unidad_tipo}
-                                  </div>
-                                </div>
-                              )}
-                              {!punto?.producto && (
-                                <div className="text-xs text-gray-400 text-center pt-2">
-                                  {fila + 1},{columna + 1}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                            onClick={() => eliminarPunto(punto.punto!.id_punto)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 text-sm text-gray-500 text-center">
-                    Dimensiones: {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
-                    <br />
-                    <span className="text-xs">Los números en las celdas vacías indican: Fila,Columna</span>
-                    <br />
-                    <span className="text-xs text-blue-600">
-                      Total de puntos: {selectedLocation?.mueble?.puntos_reposicion?.length || 0} | 
-                      Productos asignados: {selectedLocation?.mueble?.puntos_reposicion?.filter(p => p.producto).length || 0}
+                )}
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="reponedor">Asignar a Reponedor (Opcional)</Label>
+                  <Select
+                    value={reponedorSeleccionado}
+                    onValueChange={setReponedorSeleccionado}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar reponedor (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                      {reponedores && reponedores.map((reponedor) => (
+                        <SelectItem 
+                          key={reponedor.id_usuario} 
+                          value={reponedor.id_usuario.toString()}
+                        >
+                          {reponedor.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(!reponedorSeleccionado || reponedorSeleccionado === "sin_asignar") && puntosSeleccionados.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2 text-yellow-600 text-sm">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>La tarea se creará sin reponedor asignado</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={crearTarea} 
+                  disabled={puntosSeleccionados.length === 0 || creandoTarea}
+                  className="w-full"
+                >
+                  {creandoTarea ? (
+                    "Creando tarea..."
+                  ) : (
+                    reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
+                      ? "Crear y Asignar Tarea" 
+                      : "Crear Tarea Sin Asignar"
+                  )}
+                </Button>
+
+                {mostrarBotonTareas && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/tareas')}
+                  >
+                    Ver Tareas Creadas
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      {/* Diálogo de selección de puntos */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-7xl min-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-3xl mb-6">
+              {selectedLocation?.mueble ? 
+                `Estantería ${selectedLocation.mueble.estanteria}` : 
+                'Detalles de la Ubicación'
+              }
+            </DialogTitle>
+            <div className="grid grid-cols-[2fr,1fr] gap-8 h-full">
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Información del Mueble</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Estantería:</span>
+                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.estanteria}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Nivel:</span>
+                      <span className="ml-2 font-medium">{selectedLocation?.mueble?.nivel}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Dimensiones:</span>
+                    <span className="ml-2 font-medium">
+                      {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
                     </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Ubicación:</span>
+                    <span className="ml-2 font-medium">({selectedLocation?.x}, {selectedLocation?.y})</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Vista de la Estantería</h3>
+                  <div className="border rounded-lg p-4">
+                    <div 
+                      className="grid gap-2 bg-white"
+                      style={{
+                        gridTemplateColumns: `repeat(${selectedLocation?.mueble?.columnas || 4}, minmax(80px, 1fr))`,
+                        gridTemplateRows: `repeat(${selectedLocation?.mueble?.filas || 3}, minmax(80px, 1fr))`
+                      }}
+                    >
+                      {/* Crear una matriz de celdas basada en filas y columnas */}
+                      {Array.from({ length: (selectedLocation?.mueble?.filas || 3) * (selectedLocation?.mueble?.columnas || 4) }, (_, index) => {
+                        const fila = Math.floor(index / (selectedLocation?.mueble?.columnas || 4)) + 1; // base 1
+                        const columna = (index % (selectedLocation?.mueble?.columnas || 4)) + 1; // base 1
+                        
+                        // Buscar el punto que corresponde a esta posición específica
+                        const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
+                          p => p.nivel === fila && p.estanteria === columna
+                        );
+                        
+                        return (
+                          <div
+                            key={`${fila}-${columna}`}
+                            className={`
+                              relative
+                              w-full
+                              h-full
+                              min-h-[50px]
+                              rounded
+                              transition-all
+                              duration-200
+                              border
+                              border-gray-300
+                              flex
+                              items-center
+                              justify-center
+                              text-xs
+                              font-medium
+                              ${punto?.producto ? 'bg-green-50 hover:bg-green-100 cursor-pointer' : 'bg-gray-50'}
+                              ${punto && puntosSeleccionados.some(p => p.punto?.id_punto === punto.id_punto) ? 'ring-2 ring-primary' : ''}
+                            `}
+                            onClick={() => punto?.producto && handlePuntoClick(punto)}
+                            title={`Posición: Fila ${fila}, Columna ${columna}${punto?.producto ? ` - ${punto.producto.nombre}` : ' - Vacío'}`}
+                          >
+                            {punto?.producto && (
+                              <div className="p-1 text-center w-full">
+                                <div className="font-medium text-sm truncate px-1">
+                                  {punto.producto.nombre}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {punto.producto.unidad_cantidad} {punto.producto.unidad_tipo}
+                                </div>
+                              </div>
+                            )}
+                            {!punto?.producto && (
+                              <div className="text-xs text-gray-400">
+                                {fila},{columna}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-4 text-sm text-gray-500 text-center">
+                      Dimensiones: {selectedLocation?.mueble?.filas || 3} filas × {selectedLocation?.mueble?.columnas || 4} columnas
+                      <br />
+                      <span className="text-xs">Los números en las celdas vacías indican: Fila,Columna</span>
+                      <br />
+                      <span className="text-xs text-blue-600">
+                        Total de puntos: {selectedLocation?.mueble?.puntos_reposicion?.length || 0} | 
+                        Productos asignados: {selectedLocation?.mueble?.puntos_reposicion?.filter(p => p.producto).length || 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -653,10 +653,10 @@ const SupervisorMapPage = () => {
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

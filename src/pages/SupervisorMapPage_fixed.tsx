@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, AlertCircle, Trash2, Home, MapPin, Target, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Map, AlertCircle, Trash2, Home, MapPin, Target } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/mapaService';
 import { ApiService } from '@/services/api';
@@ -48,29 +48,10 @@ const SupervisorMapPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Función para recargar datos
-  const recargarDatos = async () => {
-    const token = ApiService.getToken();
-    if (!token) {
-      toast({
-        variant: "destructive",
-        title: "Sin autenticación",
-        description: "No se encontró token de autenticación. Redirigiendo al login...",
-      });
-      setTimeout(() => navigate('/login'), 2000);
-      return;
-    }
-
-    // Reset states
-    setError(null);
-    setNoPointsAssigned(false);
-    
-    // Llamar la función de carga
+  useEffect(() => {
     const cargarDatos = async () => {
       try {
         setLoading(true);
-        setError(null);
-        
         const [mapaResponse, reponedoresResponse] = await Promise.all([
           MapaService.getMapaSupervisorVista(),
           ApiService.getReponedoresAsignados()
@@ -84,47 +65,15 @@ const SupervisorMapPage = () => {
         setMapaData(mapaResponse.mapa);
         setUbicaciones(mapaResponse.ubicaciones);
         setReponedores(reponedoresResponse);
-        
-        toast({
-          title: "Datos recargados",
-          description: "El mapa se ha actualizado correctamente",
-        });
       } catch (err) {
-        console.error('Error al cargar datos del mapa:', err);
-        
-        let mensaje = 'Error al cargar los datos del mapa';
-        
-        if (err instanceof Error) {
-          if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-            mensaje = 'No tienes permisos para acceder al mapa de supervisión. Verifica tu sesión.';
-            toast({
-              variant: "destructive",
-              title: "Error de autenticación",
-              description: "Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión nuevamente.",
-            });
-            setTimeout(() => {
-              navigate('/login');
-            }, 3000);
-          } else if (err.message.includes('403') || err.message.includes('Forbidden')) {
-            mensaje = 'No tienes permisos suficientes para acceder a esta función.';
-          } else if (err.message.includes('500')) {
-            mensaje = 'Error interno del servidor. Intenta de nuevo más tarde.';
-          } else {
-            mensaje = err.message;
-          }
-        }
-        
+        const mensaje = err instanceof Error ? err.message : 'Error al cargar los datos';
         handleMapError(mensaje);
       } finally {
         setLoading(false);
       }
     };
 
-    await cargarDatos();
-  };
-
-  useEffect(() => {
-    recargarDatos();
+    cargarDatos();
   }, []);
 
   const handleObjectClick = (ubicacion: UbicacionFisica) => {
@@ -234,24 +183,13 @@ const SupervisorMapPage = () => {
       <p className="text-gray-600 mb-4">
         Actualmente no tienes puntos de reposición asignados para supervisar.
       </p>
-      <div className="space-y-2">
-        <Button 
-          variant="outline"
-          onClick={() => navigate('/supervisor-dashboard')}
-          className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-        >
-          Volver al Dashboard
-        </Button>
-        <br />
-        <Button 
-          variant="outline"
-          onClick={() => recargarDatos()}
-          className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Recargar Página
-        </Button>
-      </div>
+      <Button 
+        variant="outline"
+        onClick={() => navigate('/supervisor-dashboard')}
+        className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+      >
+        Volver al Dashboard
+      </Button>
     </div>
   );
 
@@ -297,15 +235,6 @@ const SupervisorMapPage = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => recargarDatos()}
-                className="border-2 border-success/30 hover:bg-success/10 hover:border-success/50 transition-all duration-200"
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Recargar
-              </Button>
-              <Button 
-                variant="outline" 
                 onClick={() => navigate('/supervisor-dashboard')}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
@@ -327,25 +256,13 @@ const SupervisorMapPage = () => {
         <main className="container mx-auto px-6 py-8 flex-1 flex flex-col">
           {/* Banner informativo */}
           <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-warning/40 rounded-xl">
-                  <MapPin className="w-8 h-8 text-warning" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Vista de Supervisión</h2>
-                  <p className="text-muted-foreground">Supervisa ubicaciones y crea tareas para tu equipo de reponedores</p>
-                </div>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-warning/40 rounded-xl">
+                <MapPin className="w-8 h-8 text-warning" />
               </div>
-              <div className="text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <span>Estado:</span>
-                  {ApiService.getToken() ? (
-                    <span className="text-success">✓ Autenticado</span>
-                  ) : (
-                    <span className="text-destructive">✗ Sin autenticación</span>
-                  )}
-                </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Vista de Supervisión</h2>
+                <p className="text-muted-foreground">Supervisa ubicaciones y crea tareas para tu equipo de reponedores</p>
               </div>
             </div>
           </div>
@@ -376,28 +293,9 @@ const SupervisorMapPage = () => {
                   )}
                   {error && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center p-6 max-w-md">
+                      <div className="text-center p-6">
                         <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2 text-destructive">Error al cargar el mapa</h3>
-                        <p className="text-muted-foreground mb-4">{error}</p>
-                        <div className="space-y-2">
-                          <Button 
-                            variant="outline"
-                            onClick={() => recargarDatos()}
-                            className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Reintentar
-                          </Button>
-                          <br />
-                          <Button 
-                            variant="outline"
-                            onClick={() => navigate('/supervisor-dashboard')}
-                            className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-                          >
-                            Volver al Dashboard
-                          </Button>
-                        </div>
+                        <span className="text-destructive text-lg">{error}</span>
                       </div>
                     </div>
                   )}
@@ -531,7 +429,7 @@ const SupervisorMapPage = () => {
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Estantería - {selectedLocation?.objeto?.tipo || 'Sin nombre'}
+                Estantería - {selectedLocation?.mueble?.nombre || 'Sin nombre'}
               </DialogTitle>
               <DialogDescription>
                 Selecciona los puntos de reposición para crear una tarea
@@ -553,8 +451,9 @@ const SupervisorMapPage = () => {
                     {Array.from({length: selectedLocation?.mueble?.filas || 3}, (_, fila) => (
                       <div key={fila} className="flex space-x-2">
                         {Array.from({length: selectedLocation?.mueble?.columnas || 4}, (_, columna) => {
-                          const puntoIndex = fila * (selectedLocation?.mueble?.columnas || 4) + columna;
-                          const punto = selectedLocation?.mueble?.puntos_reposicion?.[puntoIndex];
+                          const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
+                            p => p.fila === fila + 1 && p.columna === columna + 1
+                          );
                           const isSelected = puntosSeleccionados.some(p => p.punto?.id_punto === punto?.id_punto);
                           
                           return (
@@ -582,7 +481,7 @@ const SupervisorMapPage = () => {
                                 </div>
                               )}
                               {!punto?.producto && (
-                                <div className="text-xs text-gray-400 text-center pt-2">
+                                <div className="text-xs text-gray-400">
                                   {fila + 1},{columna + 1}
                                 </div>
                               )}

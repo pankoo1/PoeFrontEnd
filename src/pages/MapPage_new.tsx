@@ -9,7 +9,6 @@ import { Producto } from '@/types/producto';
 import { ShelfGrid } from '@/components/ui/shelf-grid';
 import { Input } from "@/components/ui/input";
 import Logo from '@/components/Logo';
-import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import {
     Dialog,
     DialogContent,
@@ -37,7 +36,6 @@ interface ProductosResponse {
 
 const MapPage = () => {
     const navigate = useNavigate();
-    const navigateToDashboard = useNavigateToDashboard();
     const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
     const [productos, setProductos] = useState<Producto[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -246,8 +244,7 @@ const MapPage = () => {
             // Procesar asignaciones
             for (const [idPunto, producto] of Object.entries(asignaciones)) {
                 try {
-                    // TODO: Reemplaza 1 por el idUsuario real del usuario autenticado
-                    await ApiService.asignarProductoAPunto(parseInt(idPunto), producto.id_producto, 1);
+                    await ApiService.asignarProductoAPunto(parseInt(idPunto), producto.id_producto);
                     console.log(`✅ Producto ${producto.nombre} asignado correctamente al punto ${idPunto}`);
                     exitos++;
                 } catch (error) {
@@ -348,7 +345,7 @@ const MapPage = () => {
                         <div className="flex items-center space-x-3">
                             <Button 
                                 variant="outline" 
-                                onClick={navigateToDashboard}
+                                onClick={() => navigate('/dashboard')}
                                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
                             >
                                 <Home className="w-4 h-4 mr-2" />
@@ -391,7 +388,7 @@ const MapPage = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[72vh] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
+                            <div className="h-[70vh] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
                                 <MapViewer
                                     onObjectClick={handleObjectClick}
                                     className="w-full h-full"

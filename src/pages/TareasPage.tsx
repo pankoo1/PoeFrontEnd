@@ -1,43 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ClipboardList, Search, Edit, UserX, Package } from 'lucide-react';
-import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Search, CheckCircle, Home, CheckCircle2, Clock, AlertTriangle, ClipboardList, Target, User } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { ApiService, Tarea, Reponedor } from '@/services/api';
-import { API_URL } from '@/config/api';
+import Logo from '@/components/Logo';
 
-interface Ubicacion {
-  id_punto: number;
-  estanteria: string;
-  nivel: number;
-}
-
-interface Producto {
-  id_producto: number;
-  nombre: string;
+interface Tarea {
+  id: number;
+  producto: string;
+  area: string;
   cantidad: number;
-  ubicacion: Ubicacion;
-}
-
-interface TareaDetalle {
-  id_tarea: number;
-  fecha_creacion: string;
-  estado: string;
-  color_estado: string;
-  reponedor: string;
-  productos: Producto[];
-}
-
-interface EditingProducts {
-  id_tarea: number;
-  productos: Producto[];
+  prioridad: 'Alta' | 'Media' | 'Baja';
+  estado: 'Pendiente' | 'En Progreso' | 'Completada';
+  fechaAsignacion: string;
+  fechaLimite: string;
+  supervisor: string;
 }
 
 const TareasPage = () => {
@@ -45,607 +29,309 @@ const TareasPage = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
-  const [editingTarea, setEditingTarea] = useState(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editProductsDialogOpen, setEditProductsDialogOpen] = useState(false);
-  const [editingProducts, setEditingProducts] = useState<EditingProducts | null>(null);
-  const [tempProductQuantities, setTempProductQuantities] = useState<Record<number, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [tareas, setTareas] = useState<Tarea[]>([]);
-  const [reponedores, setReponedores] = useState<Reponedor[]>([]);
-  const [loadingReponedores, setLoadingReponedores] = useState(false);
-  const [selectedTarea, setSelectedTarea] = useState<TareaDetalle | null>(null);
-  const [showDetalleDialog, setShowDetalleDialog] = useState(false);
-  
-  const estadoMap: Record<string, string> = {
-    todos: '',
-    sin_asignar: 'sin asignar',
-    pendiente: 'pendiente',
-    en_progreso: 'en progreso',
-    completada: 'completada',
-    cancelada: 'cancelada',
-  };
 
-  useEffect(() => {
-    cargarTareas();
-  }, [filtroEstado]);
+  const [tareas, setTareas] = useState<Tarea[]>([
+    { id: 1, producto: 'Leche Entera 1L', area: 'Lácteos', cantidad: 24, prioridad: 'Alta', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 14:00', supervisor: 'María García' },
+    { id: 2, producto: 'Manzanas Rojas', area: 'Frutas y Verduras', cantidad: 50, prioridad: 'Media', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 16:00', supervisor: 'Juan Pérez' },
+    { id: 3, producto: 'Pan Integral', area: 'Panadería', cantidad: 30, prioridad: 'Baja', estado: 'Completada', fechaAsignacion: '2024-01-14', fechaLimite: '2024-01-15 10:00', supervisor: 'Ana López' },
+    { id: 4, producto: 'Pollo Entero', area: 'Carnicería', cantidad: 15, prioridad: 'Alta', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 12:00', supervisor: 'Carlos Ruiz' },
+    { id: 5, producto: 'Yogurt Natural', area: 'Lácteos', cantidad: 40, prioridad: 'Media', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 18:00', supervisor: 'María García' },
+  ]);
 
-  useEffect(() => {
-    if (editDialogOpen) {
-      cargarReponedores();
-    }
-  }, [editDialogOpen]);
-
-  const cargarTareas = async () => {
-    try {
-      setLoading(true);
-      // Enviar el valor correcto al backend (o undefined para todos)
-      const estadoBackend = estadoMap[filtroEstado] || undefined;
-      const tareasResponse = await ApiService.getTareasSupervisor(estadoBackend);
-      setTareas(tareasResponse);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las tareas",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cargarReponedores = async () => {
-    try {
-      setLoadingReponedores(true);
-      const reponedoresData = await ApiService.getReponedoresAsignados();
-      setReponedores(reponedoresData);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los reponedores",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingReponedores(false);
-    }
-  };
-
-  const cancelarTarea = async (id: number) => {
-    try {
-      await ApiService.actualizarEstadoTarea(id, 'cancelada');
+  const completarTarea = (id: number) => {
     setTareas(tareas.map(tarea => {
-      if (tarea.id_tarea === id) {
-          return { ...tarea, estado: 'cancelada' };
+      if (tarea.id === id) {
+        return { ...tarea, estado: 'Completada' as const };
       }
       return tarea;
     }));
     toast({
-      title: "Tarea cancelada",
-      description: "La tarea ha sido cancelada exitosamente",
+      title: "Tarea completada",
+      description: "La tarea ha sido marcada como completada",
     });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo cancelar la tarea",
-        variant: "destructive",
-      });
-    }
   };
 
-  const editarTarea = (tarea) => {
-    setEditingTarea(tarea);
-    setEditDialogOpen(true);
-  };
-
-  const editarProductos = async (tarea: any) => {
-    try {
-      const tareaActualizada = await ApiService.getTareaById(tarea.id_tarea);
-      
-      setEditingProducts({
-        id_tarea: tareaActualizada.id_tarea,
-        productos: tareaActualizada.productos
-      });
-
-      // Inicializar las cantidades temporales con las cantidades actuales
-      const initialQuantities: Record<number, number> = {};
-      tareaActualizada.productos.forEach((producto: Producto) => {
-        initialQuantities[producto.ubicacion.id_punto] = producto.cantidad;
-      });
-      setTempProductQuantities(initialQuantities);
-      setEditProductsDialogOpen(true);
-    } catch (error) {
-      console.error('Error al cargar tarea:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar la información de la tarea",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const actualizarCantidadTemporal = (idPunto: number, nuevaCantidad: number) => {
-    if (nuevaCantidad < 1) return; // No permitir cantidades menores a 1
-    
-    // Actualizar el estado temporal de cantidades
-    setTempProductQuantities(prev => ({
-      ...prev,
-      [idPunto]: nuevaCantidad
+  const iniciarTarea = (id: number) => {
+    setTareas(tareas.map(tarea => {
+      if (tarea.id === id) {
+        return { ...tarea, estado: 'En Progreso' as const };
+      }
+      return tarea;
     }));
-  };
-
-  const guardarCambiosCantidad = async () => {
-    try {
-      if (!editingProducts) return;
-
-      // Crear un array de promesas para todas las actualizaciones
-      const actualizaciones = editingProducts.productos.map(async (producto) => {
-        const idPunto = producto.ubicacion.id_punto;
-        const nuevaCantidad = tempProductQuantities[idPunto];
-        
-        // Solo actualizar si la cantidad ha cambiado
-        if (nuevaCantidad !== undefined && nuevaCantidad !== producto.cantidad) {
-          console.log('Actualizando producto:', {
-            id_tarea: editingProducts.id_tarea,
-            id_punto: idPunto,
-            cantidad_actual: producto.cantidad,
-            nueva_cantidad: nuevaCantidad
-          });
-          
-          await ApiService.actualizarCantidadProductoTareaPorPunto(
-            editingProducts.id_tarea,
-            idPunto,
-            nuevaCantidad
-          );
-        }
-      });
-
-      // Esperar a que todas las actualizaciones se completen
-      await Promise.all(actualizaciones);
-
-      setEditingProducts(null);
-      setTempProductQuantities({});
-      setEditProductsDialogOpen(false);
-      
-      toast({
-        title: "Éxito",
-        description: "Los cambios han sido guardados correctamente",
-      });
-      
-      // Recargar las tareas para mostrar los cambios actualizados
-      await cargarTareas();
-    } catch (error) {
-      console.error('Error al guardar cambios:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los cambios",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const guardarEdicion = async () => {
-    try {
-      // Si hay un reponedor seleccionado (diferente de 'sin_asignar') y la tarea no tenía reponedor
-      if (editingTarea.reponedor && editingTarea.reponedor !== 'sin_asignar' && !editingTarea.reponedor_original) {
-        // Usamos asignar-reponedor solo cuando la tarea no tenía reponedor previamente
-        await ApiService.asignarReponedor(editingTarea.id_tarea, editingTarea.reponedor);
-      }
-      // Si se está cambiando el reponedor (la tarea ya tenía uno asignado)
-      else if (editingTarea.reponedor && editingTarea.reponedor !== 'sin_asignar' && editingTarea.reponedor_original) {
-        await ApiService.actualizarReponedor(editingTarea.id_tarea, editingTarea.reponedor);
-      }
-
-      // Actualizamos el estado local
-    setTareas(tareas.map(tarea => 
-        tarea.id_tarea === editingTarea.id_tarea ? {
-          ...tarea,
-          reponedor: editingTarea.reponedor === 'sin_asignar' ? null : editingTarea.reponedor,
-          estado: editingTarea.reponedor === 'sin_asignar' ? 'sin_asignar' : 'pendiente'
-        } : tarea
-      ));
-      
-    setEditDialogOpen(false);
-    setEditingTarea(null);
     toast({
-      title: "Tarea actualizada",
-        description: "La tarea ha sido actualizada exitosamente",
-      });
-    } catch (error) {
-      console.error('Error al actualizar la tarea:', error);
-      let errorMessage = "No se pudo actualizar la tarea.";
-      
-      // Si es un error 409, probablemente el reponedor ya está asignado a otra tarea
-      if (error.message?.includes('409')) {
-        errorMessage = "El reponedor seleccionado no está disponible o ya está asignado a otra tarea.";
-      }
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTareaClick = async (tarea: any) => {
-    try {
-      const response = await ApiService.getTareaById(tarea.id_tarea);
-      setSelectedTarea(response);
-      setShowDetalleDialog(true);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los detalles de la tarea",
-        variant: "destructive",
-      });
-    }
+      title: "Tarea iniciada",
+      description: "La tarea ha sido marcada como en progreso",
+    });
   };
 
   const filteredTareas = tareas.filter(tarea => {
-    const matchesSearch =
-      (tarea.reponedor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      tarea.productos[0].nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tarea.estado.toLowerCase().includes(searchTerm.toLowerCase());
-    // Filtrar por estado usando el mapeo
-    const estadoFiltro = estadoMap[filtroEstado];
-    const matchesEstado = !estadoFiltro || tarea.estado.toLowerCase() === estadoFiltro;
+    const matchesSearch = tarea.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.supervisor.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase().replace(' ', '') === filtroEstado;
     return matchesSearch && matchesEstado;
   });
 
-  const formatearFecha = (fechaStr: string) => {
-    const fecha = new Date(fechaStr);
-    return fecha.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/supervisor-dashboard')}
-            className="mr-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Button>
-          <h1 className="text-2xl font-bold">Tareas Asignadas</h1>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-orange-500 text-white">
-                  <ClipboardList className="w-6 h-6" />
-                </div>
-                <CardTitle className="text-2xl">Tareas de Reposición</CardTitle>
+    <>
+      {/* Background fijo que cubre toda la pantalla */}
+      <div 
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      />
+      
+      <div className="min-h-screen relative z-10">
+        {/* Header con diseño unificado */}
+        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
+          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
+                <Logo size="lg" showText={true} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  Mis Tareas
+                </h1>
+                <p className="text-base text-muted-foreground mt-1">
+                  Gestiona y completa tus tareas de reposición asignadas
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6 flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Buscar tareas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrar por estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="sin_asignar">Sin Asignar</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en_progreso">En Progreso</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-8">
-                <p>Cargando tareas...</p>
-              </div>
-            ) : filteredTareas.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No hay tareas {filtroEstado !== 'todos' && `en estado ${filtroEstado}`}</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredTareas.map((tarea) => (
-                  <div
-                    key={tarea.id_tarea}
-                    className="border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer"
-                    onClick={() => handleTareaClick(tarea)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          style={{ 
-                            backgroundColor: tarea.color_estado,
-                            color: 'white'
-                          }}
-                        >
-                          {tarea.estado === 'sin_asignar' ? 'Sin Asignar' :
-                           tarea.estado === 'en_progreso' ? 'En Progreso' :
-                           tarea.estado.charAt(0).toUpperCase() + tarea.estado.slice(1)}
-                        </Badge>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {formatearFecha(tarea.fecha_creacion)}
-                      </span>
-                    </div>
-                    <div className="mb-2">
-                      {tarea.reponedor ? (
-                        <>
-                      <span className="font-medium">Reponedor: </span>
-                      <span>{tarea.reponedor}</span>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2 text-yellow-600">
-                          <UserX className="w-4 h-4" />
-                          <span>Sin reponedor asignado</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mb-4">
-                      <span className="font-medium">Productos: </span>
-                      <div className="mt-1 space-y-1">
-                        {tarea.productos.map((producto, index) => (
-                          <div 
-                            key={`tarea-${tarea.id_tarea}-${producto.ubicacion.id_punto ? `punto-${producto.ubicacion.id_punto}` : `producto-${producto.id_producto}-${index}`}`} 
-                            className="text-sm"
-                          >
-                            • {producto.nombre} - {producto.cantidad} unidades
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          editarTarea(tarea);
-                        }}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        {tarea.reponedor ? 'Editar' : 'Asignar Reponedor'}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          editarProductos(tarea);
-                        }}
-                      >
-                        <Package className="w-3 h-3 mr-1" />
-                        Editar Productos
-                      </Button>
-                      {tarea.estado !== 'cancelada' && (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            cancelarTarea(tarea.id_tarea);
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTarea?.reponedor ? 'Editar Tarea' : 'Asignar Reponedor'}
-              </DialogTitle>
-            </DialogHeader>
-            {editingTarea && (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-reponedor" className="text-right">Reponedor</Label>
-                  <Select 
-                    value={editingTarea.reponedor || 'sin_asignar'} 
-                    onValueChange={(value) => setEditingTarea({
-                      ...editingTarea, 
-                      reponedor: value === 'sin_asignar' ? null : value,
-                      reponedor_original: editingTarea.reponedor
-                    })}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Seleccionar reponedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sin_asignar">Sin asignar</SelectItem>
-                      {loadingReponedores ? (
-                        <SelectItem value="loading" disabled>Cargando reponedores...</SelectItem>
-                      ) : (
-                        reponedores.map((reponedor) => (
-                          <SelectItem key={reponedor.id_usuario} value={reponedor.id_usuario.toString()}>
-                            {reponedor.nombre}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={guardarEdicion}>
-                    Guardar Cambios
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={editProductsDialogOpen} onOpenChange={setEditProductsDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Productos de la Tarea</DialogTitle>
-            </DialogHeader>
-            {editingProducts && (
-              <div className="space-y-4">
-                {editingProducts.productos.map((producto) => {
-                  const cantidadActual = tempProductQuantities[producto.ubicacion.id_punto] ?? producto.cantidad;
-                  
-                  return (
-                    <div 
-                      key={`punto-${producto.ubicacion.id_punto}`} 
-                      className="grid grid-cols-6 items-center gap-4 p-4 border rounded-lg"
-                    >
-                      <div className="col-span-3">
-                        <Label>Producto</Label>
-                        <p className="text-sm font-medium">{producto.nombre}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Ubicación: Estantería {producto.ubicacion.estanteria}, Nivel {producto.ubicacion.nivel}
-                        </p>
-                      </div>
-                      <div className="col-span-3 flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            actualizarCantidadTemporal(producto.ubicacion.id_punto, cantidadActual - 1);
-                          }}
-                          disabled={cantidadActual <= 1}
-                        >
-                          -
-                        </Button>
-                        <Input
-                          type="number"
-                          value={cantidadActual}
-                          onChange={(e) => {
-                            const nuevaCantidad = parseInt(e.target.value) || 0;
-                            if (nuevaCantidad >= 1) {
-                              actualizarCantidadTemporal(producto.ubicacion.id_punto, nuevaCantidad);
-                            }
-                          }}
-                          className="w-20 text-center"
-                          min="1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            actualizarCantidadTemporal(producto.ubicacion.id_punto, cantidadActual + 1);
-                          }}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditingProducts(null);
-                  setTempProductQuantities({});
-                  setEditProductsDialogOpen(false);
-                }}
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard')}
+                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
-                Cancelar
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
               </Button>
-              <Button onClick={guardarCambiosCantidad}>
-                Confirmar Cambios
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard')}
+                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </header>
 
-        <Dialog open={showDetalleDialog} onOpenChange={setShowDetalleDialog}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Detalles de la Tarea</DialogTitle>
-            </DialogHeader>
-            {selectedTarea && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">ID Tarea</p>
-                    <p className="text-lg">{selectedTarea.id_tarea}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Estado</p>
-                    <Badge 
-                      style={{ backgroundColor: selectedTarea.color_estado }}
-                      className="text-white"
-                    >
-                      {selectedTarea.estado}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Fecha de Creación</p>
-                    <p className="text-lg">{new Date(selectedTarea.fecha_creacion).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Reponedor</p>
-                    <p className="text-lg">{selectedTarea.reponedor || 'Sin asignar'}</p>
+        <main className="container mx-auto px-6 py-8">
+          {/* Banner informativo */}
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-warning/40 rounded-xl">
+                <ClipboardList className="w-8 h-8 text-warning" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Panel de Tareas del Reponedor</h2>
+                <p className="text-muted-foreground">Administra y completa tus tareas de reposición de manera eficiente</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Estadísticas de tareas */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 bg-primary/30 rounded-full group-hover:bg-primary/40 transition-all duration-300">
+                    <ClipboardList className="w-8 h-8 text-primary" />
                   </div>
                 </div>
+                <div className="metric-value text-primary">{tareas.length}</div>
+                <div className="metric-label">Total Tareas</div>
+                <div className="mt-3 flex items-center justify-center">
+                  <span className="badge-primary">Asignadas</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/15 to-success/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.1s'}}>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 bg-success/30 rounded-full group-hover:bg-success/40 transition-all duration-300">
+                    <CheckCircle2 className="w-8 h-8 text-success" />
+                  </div>
+                </div>
+                <div className="metric-value text-success">{tareas.filter(t => t.estado === 'Completada').length}</div>
+                <div className="metric-label">Completadas</div>
+                <div className="mt-3 flex items-center justify-center">
+                  <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-warning/25 to-warning/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.2s'}}>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 bg-warning/40 rounded-full group-hover:bg-warning/50 transition-all duration-300">
+                    <Clock className="w-8 h-8 text-warning" />
+                  </div>
+                </div>
+                <div className="metric-value text-warning">{tareas.filter(t => t.estado === 'En Progreso').length}</div>
+                <div className="metric-label">En Progreso</div>
+                <div className="mt-3 flex items-center justify-center">
+                  <span className="badge-warning">Activas</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-destructive/15 to-destructive/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.3s'}}>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 bg-destructive/30 rounded-full group-hover:bg-destructive/40 transition-all duration-300">
+                    <AlertTriangle className="w-8 h-8 text-destructive" />
+                  </div>
+                </div>
+                <div className="metric-value text-destructive">{tareas.filter(t => t.prioridad === 'Alta').length}</div>
+                <div className="metric-label">Alta Prioridad</div>
+                <div className="mt-3 flex items-center justify-center">
+                  <span className="bg-destructive/20 text-destructive border border-destructive/40 px-2 py-1 rounded-md text-xs font-medium">⚠ Urgente</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Productos</h3>
-                  <div className="space-y-2">
-                    {selectedTarea.productos.map((producto, index) => (
-                      <div 
-                        key={`detalle-${selectedTarea.id_tarea}-producto-${index}`}
-                        className="p-3 border rounded-lg"
-                      >
-                        <p className="font-medium">{producto.nombre}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Cantidad: {producto.cantidad} unidades
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Ubicación: Estantería {producto.ubicacion.estanteria}, Nivel {producto.ubicacion.nivel}
-                        </p>
-                      </div>
-                    ))}
+          {/* Card principal de tareas */}
+          <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-warning/30 rounded-xl">
+                    <Target className="w-6 h-6 text-warning" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Tareas de Reposición</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Completa tus tareas asignadas</p>
                   </div>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </main>
-    </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6 flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Buscar tareas por producto, área o supervisor..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 border-2 border-primary/20 focus:border-primary/50 transition-colors"
+                  />
+                </div>
+                <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                  <SelectTrigger className="w-48 border-2 border-primary/20 focus:border-primary/50">
+                    <SelectValue placeholder="Filtrar por estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="enprogreso">En Progreso</SelectItem>
+                    <SelectItem value="completada">Completada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead>Área</TableHead>
+                      <TableHead>Cantidad</TableHead>
+                      <TableHead>Prioridad</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Supervisor</TableHead>
+                      <TableHead>Fecha Límite</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTareas.map((tarea) => (
+                      <TableRow key={tarea.id} className="hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-medium">{tarea.producto}</TableCell>
+                        <TableCell>{tarea.area}</TableCell>
+                        <TableCell>{tarea.cantidad}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              tarea.prioridad === 'Alta' ? 'bg-destructive/20 text-destructive border-destructive/40' :
+                              tarea.prioridad === 'Media' ? 'bg-warning/20 text-warning border-warning/40' :
+                              'bg-success/20 text-success border-success/40'
+                            }
+                          >
+                            {tarea.prioridad}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              tarea.estado === 'Completada' ? 'bg-success/20 text-success border-success/40' :
+                              tarea.estado === 'En Progreso' ? 'bg-warning/20 text-warning border-warning/40' :
+                              'bg-muted/20 text-muted-foreground border-muted/40'
+                            }
+                          >
+                            {tarea.estado}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span>{tarea.supervisor}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{tarea.fechaLimite}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {tarea.estado === 'Pendiente' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => iniciarTarea(tarea.id)}
+                                className="border-2 border-warning/30 hover:bg-warning/10 hover:border-warning/50 transition-all duration-200"
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                Iniciar
+                              </Button>
+                            )}
+                            {tarea.estado === 'En Progreso' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => completarTarea(tarea.id)}
+                                className="border-2 border-success/30 hover:bg-success/10 hover:border-success/50 transition-all duration-200"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Completar
+                              </Button>
+                            )}
+                            {tarea.estado === 'Completada' && (
+                              <Badge variant="outline" className="bg-success/20 text-success border-success/40">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Finalizada
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    </>
   );
 };
 
