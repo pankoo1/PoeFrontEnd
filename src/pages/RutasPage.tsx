@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Route, Search, Eye, Home, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import Logo from '@/components/Logo';
 
 const RutasPage = () => {
   const navigate = useNavigate();
+  const navigateToDashboard = useNavigateToDashboard();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [rutas] = useState([
@@ -103,7 +105,7 @@ const RutasPage = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
                 <Home className="w-4 h-4 mr-2" />

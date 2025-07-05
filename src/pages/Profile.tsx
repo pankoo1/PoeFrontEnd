@@ -1,23 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/compon            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={navigateToDashboard}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={navigateToDashboard}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-            </div>mport { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Save, Home, Settings, Shield } from 'lucide-react';
@@ -151,7 +135,7 @@ const Profile = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
                 <Home className="w-4 h-4 mr-2" />
@@ -159,7 +143,7 @@ const Profile = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />

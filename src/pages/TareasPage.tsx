@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, CheckCircle, Home, CheckCircle2, Clock, AlertTriangle, ClipboardList, Target, User } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import Logo from '@/components/Logo';
 
 interface Tarea {
@@ -26,6 +27,7 @@ interface Tarea {
 
 const TareasPage = () => {
   const navigate = useNavigate();
+  const navigateToDashboard = useNavigateToDashboard();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -105,7 +107,7 @@ const TareasPage = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
                 <Home className="w-4 h-4 mr-2" />
@@ -113,7 +115,7 @@ const TareasPage = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
