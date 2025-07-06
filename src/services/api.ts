@@ -141,6 +141,130 @@ export interface RutaOptimizadaResponse {
     estado_tarea: string;
 }
 
+// Interfaces para reportes
+export interface ReponedorReporte {
+    id_usuario: number;
+    nombre: string;
+    email: string;
+    estado: string;
+}
+
+export interface ListaReponedoresResponse {
+    total: number;
+    reponedores: ReponedorReporte[];
+}
+
+export interface TareaHistorial {
+    id_tarea: number;
+    fecha_creacion: string;
+    fecha_completado?: string;
+    estado: string;
+    total_productos: number;
+    tiempo_completado?: string;
+    puntos_visitados: number;
+}
+
+export interface HistorialReponedorResponse {
+    reponedor: {
+        id: number;
+        nombre: string;
+        email: string;
+    };
+    periodo: {
+        fecha_inicio?: string;
+        fecha_fin?: string;
+    };
+    estadisticas: {
+        total_tareas: number;
+        tareas_completadas: number;
+        tareas_pendientes: number;
+        tiempo_promedio?: string;
+        eficiencia: number;
+    };
+    tareas: TareaHistorial[];
+    paginacion: {
+        total: number;
+        limit: number;
+        offset: number;
+        pagina_actual: number;
+        total_paginas: number;
+    };
+}
+
+export interface EstadisticasGenerales {
+    periodo: {
+        fecha_inicio?: string;
+        fecha_fin?: string;
+    };
+    total_tareas: number;
+    estadisticas_por_estado: Record<string, number>;
+    estadisticas_por_reponedor: Record<string, number>;
+}
+
+export interface ProductoMasRepuesto {
+    producto: {
+        id: number;
+        nombre: string;
+        categoria: string;
+        unidad_tipo: string;
+    };
+    cantidad_total: number;
+    numero_tareas: number;
+    promedio_por_tarea: number;
+    porcentaje_total: number;
+}
+
+export interface ProductosRepuestosResponse {
+    periodo: {
+        fecha_inicio: string;
+        fecha_fin: string;
+    };
+    estadisticas: {
+        total_productos_diferentes: number;
+        cantidad_total_repuesta: number;
+        promedio_por_producto: number;
+    };
+    productos: ProductoMasRepuesto[];
+    categorias: Record<string, {
+        cantidad_total: number;
+        numero_productos: number;
+        porcentaje: number;
+    }>;
+    metadatos: {
+        fecha_generacion: string;
+        total_registros: number;
+        limit_aplicado: number;
+    };
+}
+
+export interface ProductosReportRequest {
+    fecha_inicio: string; // YYYY-MM-DD
+    fecha_fin: string; // YYYY-MM-DD
+    limit?: number;
+}
+
+// Interfaces para dashboard
+export interface DashboardResumen {
+    tareas: {
+        total: number;
+        pendientes: number;
+        en_progreso: number;
+        completadas: number;
+    };
+    top_productos: Array<{
+        nombre: string;
+        cantidad_repuesta: number;
+    }>;
+    actividad_usuarios: Array<{
+        nombre: string;
+        tareas_completadas: number;
+        tiempo_total_minutos: number;
+    }>;
+    periodo: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -424,45 +548,12 @@ export class ApiService {
         }
     }
 
-    // Perfil
+    // Perfil unificado para todos los roles
     static async getProfile(): Promise<Usuario> {
         const response = await this.fetchApi<Usuario>(
             API_ENDPOINTS.profile,
             {
                 method: 'GET'
-            }
-        );
-        return response;
-    }
-
-    static async updateProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
-        const response = await this.fetchApi<Usuario>(
-            API_ENDPOINTS.profile,
-            {
-                method: 'PUT',
-                body: JSON.stringify(data),
-            }
-        );
-        return response;
-    }
-
-    // Perfil del Supervisor
-    static async getSupervisorProfile(): Promise<Usuario> {
-        const response = await this.fetchApi<Usuario>(
-            `${API_ENDPOINTS.usuarios}/me`,
-            {
-                method: 'GET'
-            }
-        );
-        return response;
-    }
-
-    static async updateSupervisorProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
-        const response = await this.fetchApi<Usuario>(
-            `${API_ENDPOINTS.usuarios}/me`,
-            {
-                method: 'PUT',
-                body: JSON.stringify(data),
             }
         );
         return response;
@@ -730,6 +821,153 @@ export class ApiService {
                     'Content-Type': 'application/json',
                 }
             }
+        );
+    }
+
+    // ============ MÉTODOS DE REPORTES ============
+    
+    // Obtener lista de todos los reponedores
+    static async getReponedoresReporte(): Promise<ListaReponedoresResponse> {
+        return await this.fetchApi<ListaReponedoresResponse>(
+            `${API_ENDPOINTS.reportes}/reponedores`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener historial de tareas de un reponedor específico
+    static async getHistorialReponedor(
+        idReponedor: number,
+        fechaInicio?: string,
+        fechaFin?: string,
+        estado?: string,
+        limit: number = 100,
+        offset: number = 0
+    ): Promise<HistorialReponedorResponse> {
+        const params = new URLSearchParams();
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        if (estado) params.append('estado', estado);
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
+
+        return await this.fetchApi<HistorialReponedorResponse>(
+            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Descargar reporte de reponedor en Excel o PDF
+    static async descargarReporteReponedor(
+        idReponedor: number,
+        formato: 'excel' | 'pdf',
+        fechaInicio?: string,
+        fechaFin?: string,
+        estado?: string
+    ): Promise<Blob> {
+        const params = new URLSearchParams();
+        params.append('formato', formato);
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        if (estado) params.append('estado', estado);
+
+        const response = await fetch(
+            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}/descargar?${params.toString()}`,
+            {
+                method: 'GET',
+                headers: this.getHeaders()
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar reporte: ${response.statusText}`);
+        }
+
+        return await response.blob();
+    }
+
+    // Obtener estadísticas generales del sistema
+    static async getEstadisticasGenerales(
+        fechaInicio?: string,
+        fechaFin?: string
+    ): Promise<EstadisticasGenerales> {
+        const params = new URLSearchParams();
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+
+        return await this.fetchApi<EstadisticasGenerales>(
+            `${API_ENDPOINTS.reportes}/estadisticas/general?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener productos más repuestos (JSON)
+    static async getProductosMasRepuestos(request: ProductosReportRequest): Promise<ProductosRepuestosResponse> {
+        return await this.fetchApi<ProductosRepuestosResponse>(
+            `${API_ENDPOINTS.reportes}/productos-repuestos`,
+            {
+                method: 'POST',
+                body: JSON.stringify(request)
+            }
+        );
+    }
+
+    // Descargar reporte de productos más repuestos
+    static async descargarReporteProductos(
+        request: ProductosReportRequest,
+        formato: 'excel' | 'pdf'
+    ): Promise<Blob> {
+        const params = new URLSearchParams();
+        params.append('formato', formato);
+
+        const response = await fetch(
+            `${API_ENDPOINTS.reportes}/productos-repuestos/descargar?${params.toString()}`,
+            {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(request)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar reporte: ${response.statusText}`);
+        }
+
+        return await response.blob();
+    }
+
+    // Obtener preview de productos más repuestos
+    static async getPreviewProductosRepuestos(
+        fechaInicio: string,
+        fechaFin: string,
+        limite: number = 20
+    ): Promise<ProductosRepuestosResponse> {
+        const params = new URLSearchParams();
+        params.append('fecha_inicio', fechaInicio);
+        params.append('fecha_fin', fechaFin);
+        params.append('limite', limite.toString());
+
+        return await this.fetchApi<ProductosRepuestosResponse>(
+            `${API_ENDPOINTS.reportes}/productos-repuestos/preview?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // ============ MÉTODOS DE DASHBOARD ============
+    
+    // Obtener resumen del dashboard para administrador
+    static async getDashboardResumen(
+        periodo: 'dia' | 'semana' | 'mes' = 'dia',
+        fecha?: string
+    ): Promise<DashboardResumen> {
+        const params = new URLSearchParams();
+        params.append('periodo', periodo);
+        if (fecha) {
+            params.append('fecha', fecha);
+        }
+
+        return await this.fetchApi<DashboardResumen>(
+            `${API_ENDPOINTS.dashboard}/resumen?${params.toString()}`,
+            { method: 'GET' }
         );
     }
 }

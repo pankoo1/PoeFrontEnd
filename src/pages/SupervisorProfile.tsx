@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Save, Home, Shield } from 'lucide-react';
+import { ArrowLeft, User, Home, Shield, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
+import { Badge } from "@/components/ui/badge";
+import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import Logo from '@/components/Logo';
 
 interface ProfileData {
@@ -18,16 +20,10 @@ interface ProfileData {
 
 const SupervisorProfile = () => {
   const navigate = useNavigate();
+  const navigateToDashboard = useNavigateToDashboard();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData>({
-    nombre: '',
-    correo: '',
-    rol: '',
-    estado: ''
-  });
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState<ProfileData>({
     nombre: '',
     correo: '',
     rol: '',
@@ -41,9 +37,8 @@ const SupervisorProfile = () => {
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
-      const response = await ApiService.getSupervisorProfile();
+      const response = await ApiService.getProfile();
       setProfileData(response);
-      setEditedData(response);
     } catch (error) {
       console.error('Error al cargar datos del perfil:', error);
       toast({
@@ -56,33 +51,29 @@ const SupervisorProfile = () => {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      // Solo enviamos los campos que pueden ser actualizados
-      const updateData = {
-        nombre: editedData.nombre,
-        correo: editedData.correo
-      };
-
-      await ApiService.updateSupervisorProfile(updateData);
-      
-      setProfileData(editedData);
-      setIsEditing(false);
-      
-      toast({
-        title: "Perfil actualizado",
-        description: "Los datos han sido actualizados exitosamente",
-      });
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      toast({
-        title: "Error al actualizar perfil",
-        description: error instanceof Error ? error.message : "Ha ocurrido un error al actualizar el perfil",
-        variant: "destructive",
-      });
+  const getRolBadgeVariant = (rol: string) => {
+    switch (rol.toLowerCase()) {
+      case 'supervisor':
+        return 'bg-primary/20 text-primary border-primary/40';
+      case 'reponedor':
+        return 'bg-secondary/20 text-secondary border-secondary/40';
+      case 'administrador':
+        return 'bg-destructive/20 text-destructive border-destructive/40';
+      default:
+        return 'bg-muted/20 text-muted-foreground border-muted/40';
     }
   };
 
+  const getEstadoBadgeVariant = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case 'activo':
+        return 'bg-success/20 text-success border-success/40';
+      case 'inactivo':
+        return 'bg-destructive/20 text-destructive border-destructive/40';
+      default:
+        return 'bg-warning/20 text-warning border-warning/40';
+    }
+  };
   return (
     <>
       {/* Background fijo que cubre toda la pantalla */}
@@ -116,7 +107,7 @@ const SupervisorProfile = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/supervisor/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
                 <Home className="w-4 h-4 mr-2" />
@@ -124,7 +115,7 @@ const SupervisorProfile = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/supervisor/dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -143,7 +134,7 @@ const SupervisorProfile = () => {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">Perfil de Supervisor</h2>
-                <p className="text-muted-foreground">Administra tu información personal y ajustes de cuenta</p>
+                <p className="text-muted-foreground">Información personal del supervisor (solo lectura)</p>
               </div>
             </div>
           </div>
@@ -161,34 +152,10 @@ const SupervisorProfile = () => {
                       <p className="text-sm text-muted-foreground mt-1">Datos de tu cuenta de supervisor</p>
                     </div>
                   </div>
-                  {!isEditing ? (
-                    <Button 
-                      onClick={() => setIsEditing(true)}
-                      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200"
-                    >
-                      Editar Datos
-                    </Button>
-                  ) : (
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditedData(profileData);
-                        }}
-                        className="border-2 border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-200"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button 
-                        onClick={handleSave}
-                        className="bg-gradient-to-r from-success to-success/80 hover:from-success/90 hover:to-success/70 transition-all duration-200"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Guardar
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm font-medium">Solo lectura</span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -205,14 +172,9 @@ const SupervisorProfile = () => {
                       <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
                       <Input
                         id="name"
-                        value={isEditing ? editedData.nombre : profileData.nombre}
-                        onChange={(e) => setEditedData({...editedData, nombre: e.target.value})}
-                        disabled={!isEditing}
-                        className={`border-2 transition-colors ${
-                          !isEditing 
-                            ? "bg-muted border-muted/40" 
-                            : "border-primary/20 focus:border-primary/50"
-                        }`}
+                        value={profileData.nombre}
+                        disabled={true}
+                        className="bg-muted/50"
                       />
                     </div>
                     <div className="space-y-2">
@@ -220,38 +182,50 @@ const SupervisorProfile = () => {
                       <Input
                         id="email"
                         type="email"
-                        value={isEditing ? editedData.correo : profileData.correo}
-                        onChange={(e) => setEditedData({...editedData, correo: e.target.value})}
-                        disabled={!isEditing}
-                        className={`border-2 transition-colors ${
-                          !isEditing 
-                            ? "bg-muted border-muted/40" 
-                            : "border-primary/20 focus:border-primary/50"
-                        }`}
+                        value={profileData.correo}
+                        disabled={true}
+                        className="bg-muted/50"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="role" className="text-sm font-medium">Rol</Label>
-                      <div className="relative">
-                        <Input
-                          id="role"
-                          value={profileData.rol}
-                          disabled
-                          className="bg-gradient-to-r from-primary/10 to-primary/20 border-primary/30 text-primary font-medium"
-                        />
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <Shield className="w-4 h-4 text-primary" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="role" className="text-sm font-medium text-foreground">Rol del Sistema</Label>
+                        <div className="flex items-center space-x-2">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          <Badge 
+                            variant="outline"
+                            className={getRolBadgeVariant(profileData.rol)}
+                          >
+                            {profileData.rol}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status" className="text-sm font-medium text-foreground">Estado de la Cuenta</Label>
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded-full ${profileData.estado.toLowerCase() === 'activo' ? 'bg-success' : 'bg-destructive'}`}></div>
+                          <Badge 
+                            variant="outline"
+                            className={getEstadoBadgeVariant(profileData.estado)}
+                          >
+                            {profileData.estado}
+                          </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status" className="text-sm font-medium">Estado</Label>
-                      <Input
-                        id="status"
-                        value={profileData.estado}
-                        disabled
-                        className="bg-gradient-to-r from-success/10 to-success/20 border-success/30 text-success font-medium"
-                      />
+
+                    {/* Información adicional */}
+                    <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Shield className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold text-foreground">Información de Seguridad</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Tu perfil está en modo solo lectura para mantener la integridad y seguridad del sistema.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Los datos de perfil son gestionados centralmente. Para cualquier cambio, contacta al administrador del sistema.
+                      </p>
                     </div>
                   </div>
                 )}

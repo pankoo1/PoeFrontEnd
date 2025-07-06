@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Save, Home, Settings, Shield } from 'lucide-react';
+import { ArrowLeft, User, Home, Settings, Shield } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,6 @@ const Profile = () => {
     rol: '',
     estado: ''
   });
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState<ProfileData>({
-    nombre: '',
-    correo: '',
-    rol: '',
-    estado: ''
-  });
 
   useEffect(() => {
     loadProfileData();
@@ -46,7 +39,6 @@ const Profile = () => {
       setIsLoading(true);
       const response = await ApiService.getProfile();
       setProfileData(response);
-      setEditedData(response);
     } catch (error) {
       console.error('Error al cargar datos del perfil:', error);
       toast({
@@ -56,25 +48,6 @@ const Profile = () => {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      await ApiService.updateProfile(editedData);
-      setProfileData(editedData);
-      setIsEditing(false);
-      toast({
-        title: "Perfil actualizado",
-        description: "Los datos del perfil se han actualizado correctamente.",
-      });
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      toast({
-        title: "Error al actualizar perfil",
-        description: error instanceof Error ? error.message : "Ha ocurrido un error al actualizar el perfil",
-        variant: "destructive",
-      });
     }
   };
 
@@ -161,8 +134,8 @@ const Profile = () => {
                 <Settings className="w-8 h-8 text-warning" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">Configuración de Perfil</h2>
-                <p className="text-muted-foreground">Actualiza tu información personal y configuraciones de cuenta</p>
+                <h2 className="text-xl font-bold text-foreground">Información de Perfil</h2>
+                <p className="text-muted-foreground">Visualiza tu información personal (solo lectura)</p>
               </div>
             </div>
           </div>
@@ -177,38 +150,13 @@ const Profile = () => {
                     </div>
                     <div className="flex-1">
                       <CardTitle className="text-2xl">Información Personal</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">Revisa y actualiza tus datos personales</p>
+                      <p className="text-sm text-muted-foreground mt-1">Información personal del usuario (solo lectura)</p>
                     </div>
                   </div>
-                  {!isEditing ? (
-                    <Button 
-                      onClick={() => setIsEditing(true)}
-                      className="bg-primary hover:bg-primary/90 text-white"
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Editar Datos
-                    </Button>
-                  ) : (
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditedData(profileData);
-                        }}
-                        className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button 
-                        onClick={handleSave}
-                        className="bg-success hover:bg-success/90 text-white"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Guardar
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm font-medium">Solo lectura</span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -224,10 +172,9 @@ const Profile = () => {
                         <Label htmlFor="name" className="text-sm font-medium text-foreground">Nombre Completo</Label>
                         <Input
                           id="name"
-                          value={isEditing ? editedData.nombre : profileData.nombre}
-                          onChange={(e) => setEditedData({...editedData, nombre: e.target.value})}
-                          disabled={!isEditing}
-                          className={`transition-colors ${!isEditing ? "bg-muted/50" : "border-2 border-primary/20 focus:border-primary/50"}`}
+                          value={profileData.nombre}
+                          disabled={true}
+                          className="bg-muted/50"
                         />
                       </div>
                       <div className="space-y-2">
@@ -235,10 +182,9 @@ const Profile = () => {
                         <Input
                           id="email"
                           type="email"
-                          value={isEditing ? editedData.correo : profileData.correo}
-                          onChange={(e) => setEditedData({...editedData, correo: e.target.value})}
-                          disabled={!isEditing}
-                          className={`transition-colors ${!isEditing ? "bg-muted/50" : "border-2 border-primary/20 focus:border-primary/50"}`}
+                          value={profileData.correo}
+                          disabled={true}
+                          className="bg-muted/50"
                         />
                       </div>
                     </div>
@@ -277,10 +223,10 @@ const Profile = () => {
                         <h3 className="font-semibold text-foreground">Información de Seguridad</h3>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Tu cuenta está protegida y verificada. Los campos de rol y estado no son editables por razones de seguridad.
+                        Tu perfil está en modo solo lectura para mantener la integridad y seguridad del sistema.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Para cambios en permisos o estado de cuenta, contacta al administrador del sistema.
+                        Los datos de perfil son gestionados centralmente. Para cualquier cambio, contacta al administrador del sistema.
                       </p>
                     </div>
                   </div>

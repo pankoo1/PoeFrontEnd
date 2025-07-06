@@ -1,24 +1,55 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Info, Home, UserCheck } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { ApiService } from '@/services/api';
+import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import Logo from '@/components/Logo';
+
+interface ProfileData {
+  nombre: string;
+  correo: string;
+  rol: string;
+  estado: string;
+}
 
 const ReponedorProfile = () => {
   const navigate = useNavigate();
-  
-  // Datos del perfil en modo solo lectura
-  const [profileData] = useState({
-    nombre: 'Juan Pérez',
-    email: 'reponedor@reponedor.com',
-    supervisor: 'María González',
-    sucursal: 'Supermercado Central',
-    empleadoId: 'EMP-2023-0045'
+  const navigateToDashboard = useNavigateToDashboard();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<ProfileData>({
+    nombre: '',
+    correo: '',
+    rol: '',
+    estado: ''
   });
+
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await ApiService.getProfile();
+      setProfileData(response);
+    } catch (error) {
+      console.error('Error al cargar datos del perfil:', error);
+      toast({
+        title: "Error al cargar perfil",
+        description: "No se pudieron cargar los datos del perfil. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -53,7 +84,7 @@ const ReponedorProfile = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
               >
                 <Home className="w-4 h-4 mr-2" />
@@ -61,7 +92,7 @@ const ReponedorProfile = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
+                onClick={navigateToDashboard}
                 className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -109,71 +140,68 @@ const ReponedorProfile = () => {
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nombre" className="text-sm font-medium">Nombre Completo</Label>
-                      <Input
-                        id="nombre"
-                        value={profileData.nombre}
-                        readOnly
-                        className="bg-muted/50 border-2 border-muted/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.email}
-                        readOnly
-                        className="bg-muted/50 border-2 border-muted/30"
-                      />
-                    </div>
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Cargando datos del perfil...</p>
                   </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre" className="text-sm font-medium">Nombre Completo</Label>
+                        <Input
+                          id="nombre"
+                          value={profileData.nombre}
+                          readOnly
+                          className="bg-muted/50 border-2 border-muted/30"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.correo}
+                          readOnly
+                          className="bg-muted/50 border-2 border-muted/30"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="empleadoId" className="text-sm font-medium">ID Empleado</Label>
-                      <Input
-                        id="empleadoId"
-                        value={profileData.empleadoId}
-                        readOnly
-                        className="bg-muted/50 border-2 border-muted/30"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="rol" className="text-sm font-medium">Rol</Label>
+                        <Input
+                          id="rol"
+                          value={profileData.rol}
+                          readOnly
+                          className="bg-muted/50 border-2 border-muted/30"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="estado" className="text-sm font-medium">Estado</Label>
+                        <Input
+                          id="estado"
+                          value={profileData.estado}
+                          readOnly
+                          className="bg-muted/50 border-2 border-muted/30"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="supervisor" className="text-sm font-medium">Supervisor Asignado</Label>
-                      <Input
-                        id="supervisor"
-                        value={profileData.supervisor}
-                        readOnly
-                        className="bg-muted/50 border-2 border-muted/30"
-                      />
+
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={navigateToDashboard}
+                        className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                      >
+                        <Home className="w-4 h-4 mr-2" />
+                        Volver al Dashboard
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sucursal" className="text-sm font-medium">Sucursal</Label>
-                    <Input
-                      id="sucursal"
-                      value={profileData.sucursal}
-                      readOnly
-                      className="bg-muted/50 border-2 border-muted/30"
-                    />
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate('/reponedor-dashboard')}
-                      className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      Volver al Dashboard
-                    </Button>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

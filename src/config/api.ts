@@ -10,5 +10,7 @@ export const API_ENDPOINTS = {
     muebles_reposicion: `${API_URL}/muebles/reposicion`,
     mapa: `${API_URL}/mapa`,
     mapa_reposicion: `${API_URL}/mapa/reposicion`,
-    tareas: `${API_URL}/tareas`
+    tareas: `${API_URL}/tareas`,
+    reportes: `${API_URL}/reportes`,
+    dashboard: `${API_URL}/dashboard`
 } as const;

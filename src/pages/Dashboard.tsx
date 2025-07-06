@@ -1,17 +1,131 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
-import { Users, Package, MapPin, FileText, LogOut, User, BarChart3, Settings, Truck } from 'lucide-react';
+import { Users, Package, MapPin, FileText, LogOut, User, BarChart3, Settings, Truck, Loader2, RefreshCw, Clock } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { ApiService, type DashboardResumen } from '@/services/api';
 import Logo from '@/components/Logo';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Estados para el dashboard
+  const [dashboardData, setDashboardData] = useState<DashboardResumen | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [periodo, setPeriodo] = useState<'dia' | 'semana' | 'mes'>('dia');
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('');
+
+  // Inicializar fecha actual
+  useEffect(() => {
+    const hoy = new Date();
+    setFechaSeleccionada(hoy.toISOString().split('T')[0]);
+    
+    // Establecer datos por defecto iniciales
+    setDashboardData({
+      tareas: {
+        total: 0,
+        pendientes: 0,
+        en_progreso: 0,
+        completadas: 0
+      },
+      top_productos: [],
+      actividad_usuarios: [],
+      periodo: 'dia',
+      fecha_inicio: hoy.toISOString().split('T')[0],
+      fecha_fin: hoy.toISOString().split('T')[0]
+    });
+  }, []);
+
+  // Cargar datos del dashboard
+  const cargarDashboard = async () => {
+    try {
+      setIsLoading(true);
+      const datos = await ApiService.getDashboardResumen(periodo, fechaSeleccionada || undefined);
+      setDashboardData(datos);
+    } catch (error) {
+      console.error('Error al cargar dashboard:', error);
+      
+      // Establecer datos por defecto en caso de error
+      setDashboardData({
+        tareas: {
+          total: 0,
+          pendientes: 0,
+          en_progreso: 0,
+          completadas: 0
+        },
+        top_productos: [],
+        actividad_usuarios: [],
+        periodo: periodo,
+        fecha_inicio: fechaSeleccionada || new Date().toISOString().split('T')[0],
+        fecha_fin: fechaSeleccionada || new Date().toISOString().split('T')[0]
+      });
+      
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las métricas del dashboard. Mostrando datos por defecto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    if (fechaSeleccionada) {
+      cargarDashboard();
+    }
+  }, [periodo, fechaSeleccionada]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/');
   };
+
+  // Funciones para calcular métricas basadas en datos reales
+  const calcularEficiencia = (): number => {
+    if (!dashboardData || dashboardData.tareas.total === 0) return 0;
+    return (dashboardData.tareas.completadas / dashboardData.tareas.total) * 100;
+  };
+
+  const formatearEficiencia = (valor: number): string => {
+    return `${valor.toFixed(1)}%`;
+  };
+
+  const obtenerTiempoPromedio = (): string => {
+    if (!dashboardData || dashboardData.actividad_usuarios.length === 0) return 'N/A';
+    
+    const totalMinutos = dashboardData.actividad_usuarios.reduce(
+      (sum, usuario) => sum + usuario.tiempo_total_minutos, 0
+    );
+    const totalTareas = dashboardData.actividad_usuarios.reduce(
+      (sum, usuario) => sum + usuario.tareas_completadas, 0
+    );
+    
+    if (totalTareas === 0) return 'N/A';
+    
+    const promedioMinutos = totalMinutos / totalTareas;
+    const horas = Math.floor(promedioMinutos / 60);
+    const minutos = Math.round(promedioMinutos % 60);
+    
+    return horas > 0 ? `${horas}h ${minutos}m` : `${minutos}m`;
+  };
+
+  // Mostrar loading screen inicial si no hay datos
+  if (isLoading && !dashboardData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-primary" />
+          <h2 className="text-xl font-semibold mb-2">Cargando Dashboard</h2>
+          <p className="text-muted-foreground">Obteniendo métricas del sistema...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -43,6 +157,32 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {/* Controles de filtro */}
+            <div className="flex items-center space-x-2">
+              <Select value={periodo} onValueChange={(value) => setPeriodo(value as 'dia' | 'semana' | 'mes')}>
+                <SelectTrigger className="w-32 border-2 border-primary/20 focus:border-primary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dia">Hoy</SelectItem>
+                  <SelectItem value="semana">Semana</SelectItem>
+                  <SelectItem value="mes">Mes</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={cargarDashboard}
+                disabled={isLoading}
+                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
             <Button 
               variant="outline" 
               onClick={() => navigate('/profile')}
@@ -86,10 +226,16 @@ const Dashboard = () => {
                   <Package className="w-8 h-8 text-primary" />
                 </div>
               </div>
-              <div className="metric-value text-primary">156</div>
-              <div className="metric-label">Productos Activos</div>
+              <div className="metric-value text-primary">
+                {isLoading ? (
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                ) : (
+                  dashboardData?.top_productos?.length || 0
+                )}
+              </div>
+              <div className="metric-label">Productos Repuestos</div>
               <div className="mt-3 flex items-center justify-center">
-                <span className="badge-primary">+12 este mes</span>
+                <span className="badge-primary">Top productos</span>
               </div>
             </div>
           </div>
@@ -101,10 +247,16 @@ const Dashboard = () => {
                   <Users className="w-8 h-8 text-secondary" />
                 </div>
               </div>
-              <div className="metric-value text-secondary">24</div>
-              <div className="metric-label">Usuarios Registrados</div>
+              <div className="metric-value text-secondary">
+                {isLoading ? (
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                ) : (
+                  dashboardData?.actividad_usuarios?.length || 0
+                )}
+              </div>
+              <div className="metric-label">Reponedores Activos</div>
               <div className="mt-3 flex items-center justify-center">
-                <span className="badge-secondary">3 supervisores</span>
+                <span className="badge-secondary">En período</span>
               </div>
             </div>
           </div>
@@ -113,13 +265,19 @@ const Dashboard = () => {
             <div className="p-6 text-center">
               <div className="flex items-center justify-center mb-4">
                 <div className="p-4 bg-accent/40 rounded-full group-hover:bg-accent/50 transition-all duration-300">
-                  <Truck className="w-8 h-8 text-accent" />
+                  <Clock className="w-8 h-8 text-accent" />
                 </div>
               </div>
-              <div className="metric-value text-accent">8</div>
-              <div className="metric-label">Rutas Optimizadas</div>
+              <div className="metric-value text-accent">
+                {isLoading ? (
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                ) : (
+                  obtenerTiempoPromedio()
+                )}
+              </div>
+              <div className="metric-label">Tiempo Promedio</div>
               <div className="mt-3 flex items-center justify-center">
-                <span className="badge-accent">Activas hoy</span>
+                <span className="badge-accent">Por tarea</span>
               </div>
             </div>
           </div>
@@ -131,10 +289,18 @@ const Dashboard = () => {
                   <BarChart3 className="w-8 h-8 text-success" />
                 </div>
               </div>
-              <div className="metric-value text-success">98%</div>
-              <div className="metric-label">Eficiencia Global</div>
+              <div className="metric-value text-success">
+                {isLoading ? (
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                ) : (
+                  formatearEficiencia(calcularEficiencia())
+                )}
+              </div>
+              <div className="metric-label">Eficiencia</div>
               <div className="mt-3 flex items-center justify-center">
-                <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">↗ +2%</span>
+                <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">
+                  {dashboardData?.tareas.completadas || 0}/{dashboardData?.tareas.total || 0}
+                </span>
               </div>
             </div>
           </div>
@@ -145,6 +311,129 @@ const Dashboard = () => {
           <h3 className="text-2xl font-bold text-foreground mb-2">Módulos del Sistema</h3>
           <p className="text-muted-foreground">Accede a todas las funcionalidades de administración del sistema POE</p>
         </div>
+
+        {/* Estadísticas detalladas */}
+        {dashboardData && !isLoading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Tareas por Estado */}
+            <Card className="card-logistics bg-white/90 backdrop-blur-md">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2">
+                  <div className="p-2 bg-primary/30 rounded-lg">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                  </div>
+                  <span>Estado de Tareas</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Tareas Completadas</span>
+                    <span className="badge-success">{dashboardData.tareas.completadas}/{dashboardData.tareas.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{
+                        width: `${dashboardData.tareas.total > 0 ? (dashboardData.tareas.completadas / dashboardData.tareas.total) * 100 : 0}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Tareas en Progreso</span>
+                    <span className="badge-warning">{dashboardData.tareas.en_progreso}/{dashboardData.tareas.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-yellow-500 h-2 rounded-full transition-all duration-300" 
+                      style={{
+                        width: `${dashboardData.tareas.total > 0 ? (dashboardData.tareas.en_progreso / dashboardData.tareas.total) * 100 : 0}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Tareas Pendientes</span>
+                    <span className="badge-destructive">{dashboardData.tareas.pendientes}/{dashboardData.tareas.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300" 
+                      style={{
+                        width: `${dashboardData.tareas.total > 0 ? (dashboardData.tareas.pendientes / dashboardData.tareas.total) * 100 : 0}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {dashboardData.tareas.total > 0 && (
+                  <div className="pt-2 border-t border-muted">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Eficiencia General</span>
+                      <span className="text-sm font-bold text-primary">
+                        {formatearEficiencia(calcularEficiencia())}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Productos */}
+            <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2">
+                  <div className="p-2 bg-primary/30 rounded-lg">
+                    <Package className="w-5 h-5 text-primary" />
+                  </div>
+                  <span>Productos Más Repuestos</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {dashboardData.top_productos.length > 0 ? (
+                  dashboardData.top_productos.map((producto, index) => {
+                    // Asignar colores rotativos para los indicadores
+                    const colors = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-success', 'bg-warning'];
+                    const colorClass = colors[index % colors.length];
+                    
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm hover:bg-muted/80 transition-all duration-200">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-3 h-3 ${colorClass} rounded-full flex-shrink-0`}></div>
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1.5 bg-primary/10 rounded-md">
+                              <Package className="w-4 h-4 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {producto.nombre}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="badge-primary">
+                            {producto.cantidad_repuesta} rep.
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            #{index + 1}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center justify-center p-6 bg-muted/30 rounded-lg backdrop-blur-sm">
+                    <p className="text-sm text-muted-foreground">No hay datos de productos para este período</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 cursor-pointer group" onClick={() => navigate('/users')}>
@@ -266,82 +555,10 @@ const Dashboard = () => {
         {/* Actividad reciente y estadísticas */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Actividad reciente */}
-          <Card className="card-supermarket bg-white/90 backdrop-blur-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/30 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                </div>
-                <span>Actividad Reciente</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-success rounded-full"></div>
-                  <span className="text-sm">Ruta optimizada para Pasillo A</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Hace 5 min</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                  <span className="text-sm">Nuevo usuario registrado</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Hace 12 min</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-accent rounded-full"></div>
-                  <span className="text-sm">Productos actualizados</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Hace 1 hora</span>
-              </div>
-            </CardContent>
-          </Card>
+         
 
           {/* Métricas operacionales */}
-          <Card className="card-logistics bg-white/90 backdrop-blur-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <div className="p-2 bg-secondary/30 rounded-lg">
-                  <Users className="w-5 h-5 text-secondary" />
-                </div>
-                <span>Métricas Operacionales</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Reponedores activos</span>
-                  <span className="badge-primary">15/18 trabajando</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{width: '83%'}}></div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Tareas completadas hoy</span>
-                  <span className="badge-secondary">47/52 completadas</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-secondary h-2 rounded-full" style={{width: '90%'}}></div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Supervisión de calidad</span>
-                  <span className="badge-accent">Excelente</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-accent h-2 rounded-full" style={{width: '96%'}}></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
         </div>
       </main>
       </div>

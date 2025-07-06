@@ -1,57 +1,248 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Download, TrendingUp, Clock, Users, Home, FileText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Download, TrendingUp, Clock, Users, Home, FileText, CheckCircle2, Calendar, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
+import { ApiService, type ReponedorReporte, type HistorialReponedorResponse, type EstadisticasGenerales, type ProductosRepuestosResponse } from '@/services/api';
 import Logo from '@/components/Logo';
 
 const ReportesPage = () => {
   const navigate = useNavigate();
   const navigateToDashboard = useNavigateToDashboard();
   const { toast } = useToast();
+  
+  // Estados para formularios
   const [tipoReporte, setTipoReporte] = useState('rendimiento');
   const [periodo, setPeriodo] = useState('semana');
+  const [reponedorSeleccionado, setReponedorSeleccionado] = useState<string>('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  
+  // Estados para datos
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reponedores, setReponedores] = useState<ReponedorReporte[]>([]);
+  const [estadisticasGenerales, setEstadisticasGenerales] = useState<EstadisticasGenerales | null>(null);
+  const [historialReponedor, setHistorialReponedor] = useState<HistorialReponedorResponse | null>(null);
+  const [productosRepuestos, setProductosRepuestos] = useState<ProductosRepuestosResponse | null>(null);
 
-  const datosRendimiento = [
-    { reponedor: 'Carlos Martínez', tareasCompletadas: 45, tiempoPromedio: '2.3h', eficiencia: '94%', pasillosRecorridos: 12 },
-    { reponedor: 'Ana López', tareasCompletadas: 38, tiempoPromedio: '2.1h', eficiencia: '96%', pasillosRecorridos: 10 },
-    { reponedor: 'Miguel Santos', tareasCompletadas: 42, tiempoPromedio: '2.5h', eficiencia: '89%', pasillosRecorridos: 11 },
-    { reponedor: 'Laura Pérez', tareasCompletadas: 40, tiempoPromedio: '2.2h', eficiencia: '92%', pasillosRecorridos: 9 },
-  ];
+  // Inicializar fechas por defecto
+  useEffect(() => {
+    const hoy = new Date();
+    const haceUnaSemana = new Date();
+    haceUnaSemana.setDate(hoy.getDate() - 7);
+    
+    setFechaFin(hoy.toISOString().split('T')[0]);
+    setFechaInicio(haceUnaSemana.toISOString().split('T')[0]);
+  }, []);
 
-  const datosRutas = [
-    { ruta: 'Ruta Pasillo A-B', totalRecorridos: 28, tiempoPromedio: '1.5h', eficiencia: '95%', incidencias: 2 },
-    { ruta: 'Ruta Pasillo C-D', totalRecorridos: 25, tiempoPromedio: '1.8h', eficiencia: '88%', incidencias: 4 },
-    { ruta: 'Ruta Pasillo E', totalRecorridos: 30, tiempoPromedio: '1.2h', eficiencia: '97%', incidencias: 1 },
-    { ruta: 'Ruta Pasillo F-G', totalRecorridos: 22, tiempoPromedio: '2.0h', eficiencia: '85%', incidencias: 5 },
-  ];
+  // Cargar datos iniciales
+  useEffect(() => {
+    cargarReponedores();
+    cargarEstadisticasGenerales();
+  }, []);
 
-  const estadisticasGenerales = {
-    totalTareas: 165,
-    tareasCompletadas: 152,
-    tiempoPromedioGeneral: '2.2h',
-    eficienciaGeneral: '92%'
+  // Actualizar fechas cuando cambia el período
+  useEffect(() => {
+    const hoy = new Date();
+    let fechaInicioNueva: Date;
+    
+    switch (periodo) {
+      case 'dia':
+        fechaInicioNueva = new Date(hoy);
+        break;
+      case 'semana':
+        fechaInicioNueva = new Date();
+        fechaInicioNueva.setDate(hoy.getDate() - 7);
+        break;
+      case 'mes':
+        fechaInicioNueva = new Date();
+        fechaInicioNueva.setMonth(hoy.getMonth() - 1);
+        break;
+      case 'trimestre':
+        fechaInicioNueva = new Date();
+        fechaInicioNueva.setMonth(hoy.getMonth() - 3);
+        break;
+      default:
+        fechaInicioNueva = new Date();
+        fechaInicioNueva.setDate(hoy.getDate() - 7);
+    }
+    
+    setFechaInicio(fechaInicioNueva.toISOString().split('T')[0]);
+    setFechaFin(hoy.toISOString().split('T')[0]);
+  }, [periodo]);
+
+  const cargarReponedores = async () => {
+    try {
+      const response = await ApiService.getReponedoresReporte();
+      setReponedores(response.reponedores);
+      if (response.reponedores.length > 0 && !reponedorSeleccionado) {
+        setReponedorSeleccionado(response.reponedores[0].id_usuario.toString());
+      }
+    } catch (error) {
+      console.error('Error al cargar reponedores:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los reponedores",
+        variant: "destructive",
+      });
+    }
   };
 
-  const generarReporte = () => {
-    toast({
-      title: "Reporte generado",
-      description: `Reporte de ${tipoReporte} para ${periodo} generado exitosamente`,
-    });
-    console.log('Generando reporte:', tipoReporte, periodo);
+  const cargarEstadisticasGenerales = async () => {
+    try {
+      setIsLoading(true);
+      const stats = await ApiService.getEstadisticasGenerales();
+      setEstadisticasGenerales(stats);
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las estadísticas generales",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const exportarDatos = () => {
-    toast({
-      title: "Exportando datos",
-      description: "Los datos se están descargando en formato Excel",
-    });
-    console.log('Exportando datos del reporte');
+  const generarReporte = async () => {
+    if (!fechaInicio || !fechaFin) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona las fechas de inicio y fin",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingReport(true);
+
+      if (tipoReporte === 'rendimiento' && reponedorSeleccionado) {
+        // Cargar historial del reponedor
+        const historial = await ApiService.getHistorialReponedor(
+          parseInt(reponedorSeleccionado),
+          fechaInicio,
+          fechaFin
+        );
+        setHistorialReponedor(historial);
+        
+      } else if (tipoReporte === 'productos') {
+        // Cargar productos más repuestos
+        const productos = await ApiService.getProductosMasRepuestos({
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          limit: 50
+        });
+        setProductosRepuestos(productos);
+        
+      } else if (tipoReporte === 'general') {
+        // Cargar estadísticas generales con fechas
+        const stats = await ApiService.getEstadisticasGenerales(fechaInicio, fechaFin);
+        setEstadisticasGenerales(stats);
+      }
+
+      toast({
+        title: "Reporte generado",
+        description: `Reporte de ${tipoReporte} generado exitosamente`,
+      });
+    } catch (error) {
+      console.error('Error al generar reporte:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar el reporte",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const exportarDatos = async () => {
+    try {
+      setIsLoading(true);
+      let blob: Blob;
+
+      if (tipoReporte === 'rendimiento' && reponedorSeleccionado) {
+        blob = await ApiService.descargarReporteReponedor(
+          parseInt(reponedorSeleccionado),
+          'excel',
+          fechaInicio,
+          fechaFin
+        );
+        descargarArchivo(blob, `reporte_reponedor_${reponedorSeleccionado}.xlsx`);
+        
+      } else if (tipoReporte === 'productos') {
+        blob = await ApiService.descargarReporteProductos(
+          {
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            limit: 100
+          },
+          'excel'
+        );
+        descargarArchivo(blob, `productos_mas_repuestos.xlsx`);
+      }
+
+      toast({
+        title: "Exportando datos",
+        description: "Los datos se están descargando en formato Excel",
+      });
+    } catch (error) {
+      console.error('Error al exportar datos:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar los datos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const descargarArchivo = (blob: Blob, nombreArchivo: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const formatearEficiencia = (tareas_completadas: number, total_tareas: number): string => {
+    if (total_tareas === 0) return '0%';
+    return `${Math.round((tareas_completadas / total_tareas) * 100)}%`;
+  };
+
+  const obtenerEstadisticasCalculadas = () => {
+    if (!estadisticasGenerales) {
+      return {
+        totalTareas: 0,
+        tareasCompletadas: 0,
+        tiempoPromedioGeneral: 'N/A',
+        eficienciaGeneral: '0%'
+      };
+    }
+    
+    const tareas_completadas = estadisticasGenerales.estadisticas_por_estado['completada'] || 0;
+    const eficiencia = formatearEficiencia(tareas_completadas, estadisticasGenerales.total_tareas);
+    
+    return {
+      totalTareas: estadisticasGenerales.total_tareas,
+      tareasCompletadas: tareas_completadas,
+      tiempoPromedioGeneral: 'N/A', // El backend no provee tiempo promedio general
+      eficienciaGeneral: eficiencia
+    };
   };
 
   return (
@@ -128,7 +319,7 @@ const ReportesPage = () => {
                     <FileText className="w-8 h-8 text-primary" />
                   </div>
                 </div>
-                <div className="metric-value text-primary">{estadisticasGenerales.totalTareas}</div>
+                <div className="metric-value text-primary">{obtenerEstadisticasCalculadas().totalTareas}</div>
                 <div className="metric-label">Total Tareas</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="badge-primary">Registradas</span>
@@ -143,7 +334,7 @@ const ReportesPage = () => {
                     <CheckCircle2 className="w-8 h-8 text-success" />
                   </div>
                 </div>
-                <div className="metric-value text-success">{estadisticasGenerales.tareasCompletadas}</div>
+                <div className="metric-value text-success">{obtenerEstadisticasCalculadas().tareasCompletadas}</div>
                 <div className="metric-label">Completadas</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
@@ -158,7 +349,7 @@ const ReportesPage = () => {
                     <Clock className="w-8 h-8 text-warning" />
                   </div>
                 </div>
-                <div className="metric-value text-warning">{estadisticasGenerales.tiempoPromedioGeneral}</div>
+                <div className="metric-value text-warning">{obtenerEstadisticasCalculadas().tiempoPromedioGeneral}</div>
                 <div className="metric-label">Tiempo Promedio</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="badge-warning">Por tarea</span>
@@ -173,7 +364,7 @@ const ReportesPage = () => {
                     <TrendingUp className="w-8 h-8 text-secondary" />
                   </div>
                 </div>
-                <div className="metric-value text-secondary">{estadisticasGenerales.eficienciaGeneral}</div>
+                <div className="metric-value text-secondary">{obtenerEstadisticasCalculadas().eficienciaGeneral}</div>
                 <div className="metric-label">Eficiencia General</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="bg-secondary/20 text-secondary border border-secondary/40 px-2 py-1 rounded-md text-xs font-medium">📊 Promedio</span>
@@ -196,8 +387,8 @@ const ReportesPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-4 items-end">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
                   <label className="text-sm font-medium mb-2 block">Tipo de Reporte</label>
                   <Select value={tipoReporte} onValueChange={setTipoReporte}>
                     <SelectTrigger className="border-2 border-primary/20 focus:border-primary/50">
@@ -205,12 +396,31 @@ const ReportesPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="rendimiento">Rendimiento por Reponedor</SelectItem>
-                      <SelectItem value="rutas">Eficiencia de Rutas</SelectItem>
+                      <SelectItem value="productos">Productos Más Repuestos</SelectItem>
                       <SelectItem value="general">Reporte General</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex-1">
+                
+                {tipoReporte === 'rendimiento' && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Reponedor</label>
+                    <Select value={reponedorSeleccionado} onValueChange={setReponedorSeleccionado}>
+                      <SelectTrigger className="border-2 border-primary/20 focus:border-primary/50">
+                        <SelectValue placeholder="Seleccionar reponedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {reponedores.map((reponedor) => (
+                          <SelectItem key={reponedor.id_usuario} value={reponedor.id_usuario.toString()}>
+                            {reponedor.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div>
                   <label className="text-sm font-medium mb-2 block">Período</label>
                   <Select value={periodo} onValueChange={setPeriodo}>
                     <SelectTrigger className="border-2 border-primary/20 focus:border-primary/50">
@@ -221,26 +431,63 @@ const ReportesPage = () => {
                       <SelectItem value="semana">Esta Semana</SelectItem>
                       <SelectItem value="mes">Este Mes</SelectItem>
                       <SelectItem value="trimestre">Trimestre</SelectItem>
+                      <SelectItem value="personalizado">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={generarReporte}
-                    className="bg-primary hover:bg-primary/90 text-white"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Generar
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={exportarDatos}
-                    className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar
-                  </Button>
+              </div>
+              
+              {periodo === 'personalizado' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <Label htmlFor="fechaInicio" className="text-sm font-medium">Fecha Inicio</Label>
+                    <Input
+                      id="fechaInicio"
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="border-2 border-primary/20 focus:border-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="fechaFin" className="text-sm font-medium">Fecha Fin</Label>
+                    <Input
+                      id="fechaFin"
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="border-2 border-primary/20 focus:border-primary/50"
+                    />
+                  </div>
                 </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={generarReporte}
+                  disabled={isGeneratingReport || (tipoReporte === 'rendimiento' && !reponedorSeleccionado)}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  {isGeneratingReport ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                  )}
+                  Generar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={exportarDatos}
+                  disabled={isLoading}
+                  className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Exportar
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -254,97 +501,190 @@ const ReportesPage = () => {
                 </div>
                 <div>
                   <CardTitle className="text-2xl">
-                    {tipoReporte === 'rendimiento' ? 'Rendimiento por Reponedor' : 'Eficiencia de Rutas'}
+                    {tipoReporte === 'rendimiento' ? 'Rendimiento por Reponedor' : 
+                     tipoReporte === 'productos' ? 'Productos Más Repuestos' : 'Estadísticas Generales'}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {tipoReporte === 'rendimiento' ? 'Análisis detallado del desempeño individual' : 'Métricas de eficiencia por ruta'}
+                    {tipoReporte === 'rendimiento' ? 'Análisis detallado del desempeño individual' : 
+                     tipoReporte === 'productos' ? 'Productos con mayor frecuencia de reposición' : 
+                     'Métricas generales del sistema'}
                   </p>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                {tipoReporte === 'rendimiento' ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Reponedor</TableHead>
-                        <TableHead>Tareas Completadas</TableHead>
-                        <TableHead>Tiempo Promedio</TableHead>
-                        <TableHead>Eficiencia</TableHead>
-                        <TableHead>Pasillos Recorridos</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {datosRendimiento.map((reponedor, index) => (
-                        <TableRow key={index} className="hover:bg-primary/5 transition-colors">
-                          <TableCell className="font-medium">{reponedor.reponedor}</TableCell>
-                          <TableCell>{reponedor.tareasCompletadas}</TableCell>
-                          <TableCell>{reponedor.tiempoPromedio}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              className={
-                                parseInt(reponedor.eficiencia) >= 95 ? 'bg-success/20 text-success border-success/40' :
-                                parseInt(reponedor.eficiencia) >= 90 ? 'bg-warning/20 text-warning border-warning/40' :
-                                'bg-destructive/20 text-destructive border-destructive/40'
-                              }
-                            >
-                              {reponedor.eficiencia}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{reponedor.pasillosRecorridos}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ruta</TableHead>
-                        <TableHead>Total Recorridos</TableHead>
-                        <TableHead>Tiempo Promedio</TableHead>
-                        <TableHead>Eficiencia</TableHead>
-                        <TableHead>Incidencias</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {datosRutas.map((ruta, index) => (
-                        <TableRow key={index} className="hover:bg-primary/5 transition-colors">
-                          <TableCell className="font-medium">{ruta.ruta}</TableCell>
-                          <TableCell>{ruta.totalRecorridos}</TableCell>
-                          <TableCell>{ruta.tiempoPromedio}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              className={
-                                parseInt(ruta.eficiencia) >= 95 ? 'bg-success/20 text-success border-success/40' :
-                                parseInt(ruta.eficiencia) >= 90 ? 'bg-warning/20 text-warning border-warning/40' :
-                                'bg-destructive/20 text-destructive border-destructive/40'
-                              }
-                            >
-                              {ruta.eficiencia}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              className={
-                                ruta.incidencias <= 2 ? 'bg-success/20 text-success border-success/40' :
-                                ruta.incidencias <= 4 ? 'bg-warning/20 text-warning border-warning/40' :
-                                'bg-destructive/20 text-destructive border-destructive/40'
-                              }
-                            >
-                              {ruta.incidencias}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+              {isGeneratingReport ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin mr-2" />
+                  <span>Generando reporte...</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {tipoReporte === 'rendimiento' && historialReponedor ? (
+                    <>
+                      {/* Información del reponedor */}
+                      <div className="mb-6 p-4 bg-primary/10 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">
+                          Reponedor: {historialReponedor.reponedor.nombre}
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Total Tareas:</span>
+                            <div className="font-medium">{historialReponedor.estadisticas.total_tareas}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Completadas:</span>
+                            <div className="font-medium text-success">{historialReponedor.estadisticas.tareas_completadas}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Pendientes:</span>
+                            <div className="font-medium text-warning">{historialReponedor.estadisticas.tareas_pendientes}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Eficiencia:</span>
+                            <div className="font-medium text-secondary">{historialReponedor.estadisticas.eficiencia}%</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tabla de tareas */}
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID Tarea</TableHead>
+                            <TableHead>Fecha Creación</TableHead>
+                            <TableHead>Fecha Completado</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Productos</TableHead>
+                            <TableHead>Puntos Visitados</TableHead>
+                            <TableHead>Tiempo</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {historialReponedor.tareas.map((tarea, index) => (
+                            <TableRow key={index} className="hover:bg-primary/5 transition-colors">
+                              <TableCell className="font-medium">{tarea.id_tarea}</TableCell>
+                              <TableCell>{new Date(tarea.fecha_creacion).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                {tarea.fecha_completado ? 
+                                  new Date(tarea.fecha_completado).toLocaleDateString() : 
+                                  '-'
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="outline"
+                                  className={
+                                    tarea.estado === 'completada' ? 'bg-success/20 text-success border-success/40' :
+                                    tarea.estado === 'en_progreso' ? 'bg-warning/20 text-warning border-warning/40' :
+                                    'bg-destructive/20 text-destructive border-destructive/40'
+                                  }
+                                >
+                                  {tarea.estado.replace('_', ' ')}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{tarea.total_productos}</TableCell>
+                              <TableCell>{tarea.puntos_visitados}</TableCell>
+                              <TableCell>{tarea.tiempo_completado || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </>
+                  ) : tipoReporte === 'productos' && productosRepuestos ? (
+                    <>
+                      {/* Estadísticas de productos */}
+                      <div className="mb-6 p-4 bg-warning/10 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Estadísticas del Período</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Productos Diferentes:</span>
+                            <div className="font-medium">{productosRepuestos.estadisticas.total_productos_diferentes}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Cantidad Total:</span>
+                            <div className="font-medium">{productosRepuestos.estadisticas.cantidad_total_repuesta}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Promedio por Producto:</span>
+                            <div className="font-medium">{productosRepuestos.estadisticas.promedio_por_producto.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tabla de productos */}
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Producto</TableHead>
+                            <TableHead>Categoría</TableHead>
+                            <TableHead>Cantidad Total</TableHead>
+                            <TableHead>Nº Tareas</TableHead>
+                            <TableHead>Promedio/Tarea</TableHead>
+                            <TableHead>% del Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {productosRepuestos.productos.map((producto, index) => (
+                            <TableRow key={index} className="hover:bg-primary/5 transition-colors">
+                              <TableCell className="font-medium">{producto.producto.nombre}</TableCell>
+                              <TableCell>{producto.producto.categoria}</TableCell>
+                              <TableCell>{producto.cantidad_total}</TableCell>
+                              <TableCell>{producto.numero_tareas}</TableCell>
+                              <TableCell>{producto.promedio_por_tarea.toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="outline"
+                                  className={
+                                    producto.porcentaje_total >= 10 ? 'bg-destructive/20 text-destructive border-destructive/40' :
+                                    producto.porcentaje_total >= 5 ? 'bg-warning/20 text-warning border-warning/40' :
+                                    'bg-success/20 text-success border-success/40'
+                                  }
+                                >
+                                  {producto.porcentaje_total.toFixed(1)}%
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </>
+                  ) : tipoReporte === 'general' && estadisticasGenerales ? (
+                    <>
+                      {/* Estadísticas por estado */}
+                      <div className="mb-6 p-4 bg-secondary/10 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Estadísticas por Estado</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          {Object.entries(estadisticasGenerales.estadisticas_por_estado).map(([estado, cantidad]) => (
+                            <div key={estado}>
+                              <span className="text-muted-foreground">{estado.replace('_', ' ')}:</span>
+                              <div className="font-medium">{cantidad}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Estadísticas por reponedor */}
+                      <div className="mb-6 p-4 bg-primary/10 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Estadísticas por Reponedor</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          {Object.entries(estadisticasGenerales.estadisticas_por_reponedor).map(([reponedor, cantidad]) => (
+                            <div key={reponedor}>
+                              <span className="text-muted-foreground">{reponedor}:</span>
+                              <div className="font-medium">{cantidad} tareas</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Selecciona un tipo de reporte y haz clic en "Generar" para ver los datos</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </main>
