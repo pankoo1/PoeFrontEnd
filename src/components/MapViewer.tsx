@@ -270,30 +270,103 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         setHoveredObjectName(null);
     };
 
+    // Función para agrupar muebles contiguos en pasillos
+    const agruparMueblesEnPasillos = useMemo(() => {
+        if (!mapa || ubicaciones.length === 0) return [];
+
+        const mueblesUbicaciones = ubicaciones.filter(u => u.mueble);
+        const pasillos: Array<{
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            ubicaciones: UbicacionFisica[];
+            esHorizontal: boolean;
+        }> = [];
+        const procesados = new Set<string>();
+
+        mueblesUbicaciones.forEach(mueble => {
+            const key = `${mueble.x}-${mueble.y}`;
+            if (procesados.has(key)) return;
+
+            // Buscar muebles contiguos horizontalmente
+            const pasilloHorizontal = [mueble];
+            let x = mueble.x + 1;
+            while (x < mapa.ancho) {
+                const siguienteMueble = mueblesUbicaciones.find(u => u.x === x && u.y === mueble.y);
+                if (siguienteMueble) {
+                    pasilloHorizontal.push(siguienteMueble);
+                    x++;
+                } else {
+                    break;
+                }
+            }
+
+            // Buscar muebles contiguos verticalmente
+            const pasilloVertical = [mueble];
+            let y = mueble.y + 1;
+            while (y < mapa.alto) {
+                const siguienteMueble = mueblesUbicaciones.find(u => u.x === mueble.x && u.y === y);
+                if (siguienteMueble) {
+                    pasilloVertical.push(siguienteMueble);
+                    y++;
+                } else {
+                    break;
+                }
+            }
+
+            // Elegir el pasillo más largo (horizontal vs vertical)
+            const pasilloFinal = pasilloHorizontal.length >= pasilloVertical.length 
+                ? pasilloHorizontal 
+                : pasilloVertical;
+            const esHorizontal = pasilloFinal === pasilloHorizontal;
+
+            // Marcar como procesados
+            pasilloFinal.forEach(u => {
+                procesados.add(`${u.x}-${u.y}`);
+            });
+
+            // Crear el rectángulo del pasillo
+            pasillos.push({
+                x: pasilloFinal[0].x,
+                y: pasilloFinal[0].y,
+                width: esHorizontal ? pasilloFinal.length : 1,
+                height: esHorizontal ? 1 : pasilloFinal.length,
+                ubicaciones: pasilloFinal,
+                esHorizontal
+            });
+        });
+
+        return pasillos;
+    }, [mapa, ubicaciones]);
+
+    // Memoizar los overlays para mejorar rendimiento en mapas grandes
     // Memoizar los overlays para mejorar rendimiento en mapas grandes
     const overlays = useMemo(() => {
         if (!mapa || !canvasRef.current) return [];
         
-        return ubicaciones.filter(u => u.mueble || u.punto?.producto).map(u => {
-            const isHighlightedNode = isHighlighted(u);
-            const canvas = canvasRef.current;
-            if (!canvas) return null;
+        const canvas = canvasRef.current;
+        const cellW = canvas.width / mapa.ancho;
+        const cellH = canvas.height / mapa.alto;
+        const gap = 4; // mismo gap que el canvas
+        const radius = 10; // mismo radius que el canvas
+        
+        const overlaysArray: JSX.Element[] = [];
+
+        // Renderizar pasillos (muebles agrupados)
+        agruparMueblesEnPasillos.forEach((pasillo, index) => {
+            const isHighlightedPasillo = pasillo.ubicaciones.some(u => isHighlighted(u));
+            const tieneDestino = pasillo.ubicaciones.some(u => esMuebleDestino(u));
             
-            // Usar las mismas coordenadas exactas que el canvas - píxeles absolutos
-            const cellW = canvas.width / mapa.ancho;
-            const cellH = canvas.height / mapa.alto;
-            const gap = 4; // mismo gap que el canvas
-            const radius = 10; // mismo radius que el canvas
+            // Coordenadas del rectángulo del pasillo
+            const left = pasillo.x * cellW + gap / 2;
+            const top = pasillo.y * cellH + gap / 2;
+            const width = pasillo.width * cellW - gap;
+            const height = pasillo.height * cellH - gap;
             
-            // Coordenadas exactas como en el canvas - píxeles absolutos
-            const left = u.x * cellW + gap / 2;
-            const top = u.y * cellH + gap / 2;
-            const width = cellW - gap;
-            const height = cellH - gap;
-            
-            return (
+            overlaysArray.push(
                 <div
-                    key={`${u.x}-${u.y}-${canvasKey}`}
+                    key={`pasillo-${index}-${canvasKey}`}
                     style={{
                         position: 'absolute',
                         left: `${left}px`,
@@ -301,48 +374,163 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         width: `${width}px`,
                         height: `${height}px`,
                         zIndex: 2,
-                        pointerEvents: modoReponedor ? 'none' : 'auto', // Desactivar interacciones en modo reponedor
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'transform 0.2s',
-                        transform: isHighlightedNode ? 'scale(1.1)' : 'scale(1)',
-                        boxShadow: isHighlightedNode ? '0 0 0 2px orange' : undefined,
+                        pointerEvents: modoReponedor ? 'none' : 'auto',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        transform: isHighlightedPasillo ? 'scale(1.02)' : 'scale(1)',
+                        borderRadius: `${radius}px`,
+                        background: modoReponedor && tieneDestino 
+                            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // gradiente naranja para destinos
+                            : 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)', // gradiente azul por defecto
+                        border: modoReponedor && tieneDestino
+                            ? '2px solid #d97706'
+                            : '1px solid #60a5fa',
+                        cursor: modoReponedor ? 'default' : 'pointer',
+                        // Efecto de pasillo de supermercado
+                        boxShadow: isHighlightedPasillo 
+                            ? '0 0 0 3px orange, 0 4px 12px rgba(0,0,0,0.15)' 
+                            : '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)',
                     }}
-                    onClick={() => !modoReponedor && onObjectClick?.(u)} // Solo permitir click si no es modo reponedor
-                    onMouseEnter={() => handleMouseEnter(u)}
-                    onMouseLeave={handleMouseLeave}
-                    title={!modoReponedor ? (u.mueble ?
-                        `Mueble - Estantería: ${u.mueble.estanteria}, Nivel: ${u.mueble.nivel}, Filas: ${u.mueble.filas}, Columnas: ${u.mueble.columnas}` :
-                        u.objeto?.nombre || '') : ''} // Desactivar tooltips en modo reponedor
+                    onClick={() => {
+                        if (!modoReponedor && onObjectClick) {
+                            // Llamar onClick para la primera ubicación del pasillo
+                            onObjectClick(pasillo.ubicaciones[0]);
+                        }
+                    }}
+                    onMouseEnter={() => {
+                        if (!modoReponedor && pasillo.ubicaciones[0].objeto?.nombre) {
+                            setHoveredObjectName(pasillo.ubicaciones[0].objeto.nombre);
+                        }
+                    }}
+                    onMouseLeave={() => {
+                        if (!modoReponedor) {
+                            setHoveredObjectName(null);
+                        }
+                    }}
+                    title={!modoReponedor ? 
+                        `Pasillo ${pasillo.ubicaciones[0].objeto?.nombre || ''} - ${pasillo.ubicaciones.length} sección(es)` 
+                        : ''}
                 >
-                    {u.mueble && (
-                        <div style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            borderRadius: `${radius}px`, 
-                            background: modoReponedor && esMuebleDestino(u) 
-                                ? '#f59e0b' // amarillo/naranja para destinos en modo reponedor
-                                : '#bfdbfe', // azul claro por defecto
-                            border: modoReponedor && esMuebleDestino(u)
-                                ? '2px solid #d97706' // borde más grueso para destinos
-                                : '1px solid #d1d5db' 
-                        }} />
-                    )}
-                    {u.punto?.producto && (
-                        <div className="bg-green-500 text-white w-5/6 h-5/6 flex items-center justify-center rounded">
-                            {u.punto.producto.nombre.substring(0, 3)}
+                    {/* Etiqueta del pasillo */}
+                    <div 
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            color: '#1f2937',
+                            fontWeight: '600',
+                            fontSize: '12px',
+                            textAlign: 'center',
+                            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
+                            maxWidth: '90%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        {pasillo.ubicaciones[0].objeto?.nombre || `Pasillo ${index + 1}`}
+                    </div>
+                    
+                    {/* Indicador de productos en el pasillo */}
+                    {pasillo.ubicaciones.some(u => u.punto?.producto) && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                background: '#22c55e',
+                                border: '2px solid white',
+                                fontSize: '8px',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            {pasillo.ubicaciones.filter(u => u.punto?.producto).length}
                         </div>
                     )}
-                    {isHighlightedNode && u.objeto?.nombre && (
-                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-                            {u.objeto.nombre}
+                    
+                    {/* Tooltip mejorado */}
+                    {isHighlightedPasillo && pasillo.ubicaciones[0].objeto?.nombre && (
+                        <div 
+                            style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(0,0,0,0.9)',
+                                color: 'white',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                whiteSpace: 'nowrap',
+                                marginBottom: '4px',
+                                zIndex: 10,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            {pasillo.ubicaciones[0].objeto.nombre}
+                            <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                                {pasillo.ubicaciones.length} sección(es) - {pasillo.esHorizontal ? 'Horizontal' : 'Vertical'}
+                            </div>
                         </div>
                     )}
                 </div>
             );
-        }).filter(Boolean);
-    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick, modoReponedor, rutaOptimizada]);
+        });
+
+        // Renderizar productos individuales que no están en pasillos
+        ubicaciones.filter(u => u.punto?.producto && !u.mueble).forEach(u => {
+            const left = u.x * cellW + gap / 2;
+            const top = u.y * cellH + gap / 2;
+            const width = cellW - gap;
+            const height = cellH - gap;
+            
+            overlaysArray.push(
+                <div
+                    key={`producto-${u.x}-${u.y}-${canvasKey}`}
+                    style={{
+                        position: 'absolute',
+                        left: `${left}px`,
+                        top: `${top}px`,
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        zIndex: 3,
+                        pointerEvents: modoReponedor ? 'none' : 'auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: `${radius}px`,
+                    }}
+                    onClick={() => !modoReponedor && onObjectClick?.(u)}
+                >
+                    <div 
+                        style={{
+                            background: '#22c55e',
+                            color: 'white',
+                            width: '80%',
+                            height: '80%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: `${radius}px`,
+                            fontSize: '10px',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        {u.punto?.producto?.nombre.substring(0, 3)}
+                    </div>
+                </div>
+            );
+        });
+
+        return overlaysArray;
+    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick, modoReponedor, rutaOptimizada, agruparMueblesEnPasillos]);
     const renderDebugInfo = () => {
         const muebles = ubicaciones.filter(u => u.mueble !== null);
         const productos = ubicaciones.filter(u => u.punto?.producto !== null);
