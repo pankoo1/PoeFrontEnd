@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
 import { MapaService } from '@/services/mapaService';
 import { useToast } from '@/hooks/use-toast';
-import { RutaOptimizadaResponse } from '@/services/api';
 
 interface MapViewerProps {
     idMapa?: number;
@@ -10,8 +9,9 @@ interface MapViewerProps {
     className?: string;
     ubicaciones?: UbicacionFisica[];
     mapa?: Mapa;
-    rutaOptimizada?: RutaOptimizadaResponse | null;
     modoReponedor?: boolean; // Nuevo: modo especial para reponedores
+    modoSupervisor?: boolean; // Nuevo: modo especial para supervisores
+    rutaOptimizada?: any; // Nueva prop para recibir datos de ruta del endpoint
 }
 
 export const MapViewer: React.FC<MapViewerProps> = ({
@@ -20,8 +20,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     className = '',
     ubicaciones: ubicacionesProp,
     mapa: mapaProp,
-    rutaOptimizada,
-    modoReponedor = false
+    modoReponedor = false,
+    modoSupervisor = false,
+    rutaOptimizada = null
 }) => {
     const [mapa, setMapa] = useState<Mapa | null>(mapaProp || null);
     const [ubicaciones, setUbicaciones] = useState<UbicacionFisica[]>(ubicacionesProp || []);
@@ -60,7 +61,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         }
     }, [idMapa, ubicacionesProp]);
 
-    // Dibuja el fondo y celdas caminables/vacías en el canvas
+    // Dibuja el fondo, celdas caminables/vacías y rutas optimizadas en el canvas
     useEffect(() => {
         if (!mapa || !canvasRef.current) return;
         
@@ -89,8 +90,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             const gap = 4; // px, espacio entre celdas
             const radius = 10; // px, radio de borde
             
+            // Limpiar canvas
             ctx.clearRect(0, 0, width, height);
             
+            // PASO 1: Dibujar el fondo y celdas caminables
             for (let y = 0; y < mapa.alto; y++) {
                 for (let x = 0; x < mapa.ancho; x++) {
                     const ubicacion = ubicaciones.find(u => u.x === x && u.y === y);
@@ -123,6 +126,158 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                     }
                 }
             }
+            
+            // PASO 2: Dibujar la ruta optimizada del endpoint si existe
+            if (rutaOptimizada) {
+                console.log('[MapViewer] Dibujando ruta del endpoint:', rutaOptimizada);
+                
+                // NUEVO: Manejo de la estructura de muebles_rutas del endpoint
+                if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
+                    console.log('[MapViewer] Dibujando ruta desde muebles_rutas');
+                    
+                    // Primero dibujar la ruta global si existe
+                    if (rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 1) {
+                        ctx.strokeStyle = '#3b82f6'; // azul
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.globalAlpha = 0.6;
+                        
+                        ctx.beginPath();
+                        const primeraCoord = rutaOptimizada.coordenadas_ruta_global[0];
+                        ctx.moveTo(primeraCoord.x * cellW + cellW / 2, primeraCoord.y * cellH + cellH / 2);
+                        
+                        rutaOptimizada.coordenadas_ruta_global.forEach((coord: any, index: number) => {
+                            if (index > 0) {
+                                ctx.lineTo(coord.x * cellW + cellW / 2, coord.y * cellH + cellH / 2);
+                            }
+                        });
+                        
+                        ctx.stroke();
+                        ctx.globalAlpha = 1.0;
+                    }
+                    
+                    // Dibujar punto de inicio (verde)
+                    ctx.fillStyle = '#22c55e'; // verde
+                    ctx.beginPath();
+                    ctx.arc(0 * cellW + cellW / 2, 0 * cellH + cellH / 2, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Dibujar marcadores para cada mueble en la ruta
+                    let numeroMueble = 1;
+                    rutaOptimizada.muebles_rutas.forEach((mueble: any) => {
+                        // Encontrar la ubicación del mueble en el mapa
+                        const ubicacionMueble = ubicaciones.find(u => 
+                            u.mueble && u.mueble.id_mueble === mueble.id_mueble
+                        );
+                        
+                        if (ubicacionMueble) {
+                            const x = ubicacionMueble.x * cellW + cellW / 2;
+                            const y = ubicacionMueble.y * cellH + cellH / 2;
+                            
+                            // Marcador del mueble (círculo azul con número)
+                            ctx.fillStyle = '#2563eb'; // azul más oscuro
+                            ctx.beginPath();
+                            ctx.arc(x, y, 12, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                            
+                            // Número del mueble
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 10px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(numeroMueble.toString(), x, y);
+                            
+                            numeroMueble++;
+                        }
+                    });
+                    
+                    console.log(`[MapViewer] Dibujados ${numeroMueble - 1} muebles en la ruta`);
+                } 
+                // BACKWARD COMPATIBILITY: Mantener soporte para estructura antigua
+                else if (rutaOptimizada.detalle_tareas) {
+                    console.log('[MapViewer] Dibujando ruta desde detalle_tareas (compatibilidad)');
+                    
+                    const puntosReposicion = rutaOptimizada.detalle_tareas || [];
+                    
+                    if (puntosReposicion.length > 0) {
+                        // Dibujar líneas conectando los puntos
+                        ctx.strokeStyle = '#3b82f6'; // azul
+                        ctx.lineWidth = 4;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.globalAlpha = 0.8;
+                        
+                        ctx.beginPath();
+                        
+                        // Punto de inicio (0,0)
+                        let currentX = 0 * cellW + cellW / 2;
+                        let currentY = 0 * cellH + cellH / 2;
+                        ctx.moveTo(currentX, currentY);
+                        
+                        // Conectar con cada punto de reposición
+                        puntosReposicion.forEach((detalle: any, index: number) => {
+                            if (detalle.mueble && detalle.mueble.coordenadas) {
+                                const x = detalle.mueble.coordenadas.x * cellW + cellW / 2;
+                                const y = detalle.mueble.coordenadas.y * cellH + cellH / 2;
+                                ctx.lineTo(x, y);
+                                currentX = x;
+                                currentY = y;
+                            }
+                        });
+                        
+                        ctx.stroke();
+                        ctx.globalAlpha = 1.0;
+                        
+                        // Dibujar punto de inicio (verde)
+                        ctx.fillStyle = '#22c55e'; // verde
+                        ctx.beginPath();
+                        ctx.arc(0 * cellW + cellW / 2, 0 * cellH + cellH / 2, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        // Dibujar puntos de reposición con números
+                        puntosReposicion.forEach((detalle: any, index: number) => {
+                            if (detalle.mueble && detalle.mueble.coordenadas) {
+                                const x = detalle.mueble.coordenadas.x * cellW + cellW / 2;
+                                const y = detalle.mueble.coordenadas.y * cellH + cellH / 2;
+                                
+                                // Punto rojo para destinos
+                                ctx.fillStyle = '#dc2626'; // rojo
+                                ctx.beginPath();
+                                ctx.arc(x, y, 15, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Borde blanco
+                                ctx.strokeStyle = '#ffffff';
+                                ctx.lineWidth = 3;
+                                ctx.stroke();
+                                
+                                // Número del orden de visita
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 14px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText((index + 1).toString(), x, y);
+                            }
+                        });
+                        
+                        console.log('[MapViewer] Ruta del endpoint (compatibilidad) dibujada exitosamente');
+                    }
+                }
+            } else {
+                console.log('[MapViewer] No hay ruta del endpoint para dibujar');
+            }
+            
+            console.log('[MapViewer] Canvas dibujado exitosamente');
         };
         
         // Dibujar inicialmente
@@ -146,112 +301,45 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             window.removeEventListener('resize', handleResize);
             clearTimeout(timeoutId);
         };
-    }, [mapa, ubicaciones]);
-
-    // Dibuja las rutas optimizadas en el canvas
-    useEffect(() => {
-        if (!mapa || !canvasRef.current || !rutaOptimizada) return;
-        
-        const drawRoute = () => {
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext('2d') as CanvasRenderingContext2D;
-            if (!canvas || !ctx) return;
-            
-            const width = canvas.width;
-            const height = canvas.height;
-            const cellW = width / mapa.ancho;
-            const cellH = height / mapa.alto;
-            
-            // Dibujar la ruta optimizada
-            if (rutaOptimizada.coordenadas_ruta && rutaOptimizada.coordenadas_ruta.length > 0) {
-                ctx.strokeStyle = '#3b82f6'; // azul
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                // Agregar un poco de transparencia para que se vea mejor
-                ctx.globalAlpha = 0.8;
-                
-                ctx.beginPath();
-                rutaOptimizada.coordenadas_ruta.forEach((coord, index) => {
-                    const x = coord.x * cellW + cellW / 2;
-                    const y = coord.y * cellH + cellH / 2;
-                    
-                    if (index === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                ctx.stroke();
-                
-                // Dibujar puntos importantes: inicio y fin
-                ctx.globalAlpha = 1.0;
-                
-                // Punto de inicio (verde)
-                if (rutaOptimizada.coordenadas_ruta.length > 0) {
-                    const startCoord = rutaOptimizada.coordenadas_ruta[0];
-                    const startX = startCoord.x * cellW + cellW / 2;
-                    const startY = startCoord.y * cellH + cellH / 2;
-                    
-                    ctx.fillStyle = '#22c55e'; // verde
-                    ctx.beginPath();
-                    ctx.arc(startX, startY, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Borde blanco
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                
-                // Dibujar puntos de reposición con el mismo estilo de punto rojo
-                rutaOptimizada.puntos_reposicion.forEach((punto, index) => {
-                    const x = punto.mueble.coordenadas.x * cellW + cellW / 2;
-                    const y = punto.mueble.coordenadas.y * cellH + cellH / 2;
-                    
-                    // Punto rojo más grande y visible para todos los destinos
-                    ctx.fillStyle = '#dc2626'; // rojo más intenso
-                    ctx.beginPath();
-                    ctx.arc(x, y, 15, 0, Math.PI * 2); // Radio aumentado para mayor visibilidad
-                    ctx.fill();
-                    
-                    // Borde blanco más grueso
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    
-                    // Número del orden de visita con fuente más grande
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(punto.orden_visita.toString(), x, y);
-                });
-            }
-        };
-        
-        // Pequeño delay para asegurar que el canvas base ya esté dibujado
-        const timeoutId = setTimeout(drawRoute, 100);
-        
-        return () => clearTimeout(timeoutId);
-    }, [mapa, rutaOptimizada]);
+    }, [mapa, ubicaciones, rutaOptimizada]); // Dependencias del efecto del canvas
 
     const isHighlighted = (ubicacion: UbicacionFisica) => {
         if (!hoveredObjectName || !ubicacion.objeto) return false;
         return ubicacion.objeto.nombre === hoveredObjectName;
     };
 
-    // Función para determinar si un mueble es un destino en la ruta optimizada
+    // Función para determinar si un mueble es un destino en la ruta optimizada del endpoint
     const esMuebleDestino = (ubicacion: UbicacionFisica) => {
-        if (!rutaOptimizada?.puntos_reposicion || !ubicacion.mueble) return false;
+        if (!rutaOptimizada || !ubicacion.mueble) return false;
         
-        // Verificar si las coordenadas de esta ubicación coinciden con algún punto de reposición
-        return rutaOptimizada.puntos_reposicion.some(punto => {
-            // Comparar coordenadas del punto de reposición con la ubicación actual
-            return punto.mueble.coordenadas.x === ubicacion.x && 
-                   punto.mueble.coordenadas.y === ubicacion.y;
-        });
+        // Nuevo: Verificar en muebles_rutas
+        if (rutaOptimizada.muebles_rutas) {
+            return rutaOptimizada.muebles_rutas.some((mueble: any) => 
+                mueble.id_mueble === ubicacion.mueble.id_mueble
+            );
+        }
+        
+        // Backward compatibility: estructura antigua
+        if (rutaOptimizada.detalle_tareas) {
+            return rutaOptimizada.detalle_tareas.some((detalle: any) => {
+                return detalle.mueble && 
+                       detalle.mueble.coordenadas &&
+                       detalle.mueble.coordenadas.x === ubicacion.x && 
+                       detalle.mueble.coordenadas.y === ubicacion.y;
+            });
+        }
+        
+        return false;
+    };
+
+    // Función para determinar si un pasillo pertenece al supervisor (tiene productos asignados)
+    const esPasilloDeSupervisor = (ubicaciones: UbicacionFisica[]) => {
+        if (!modoSupervisor) return true; // En otros modos, todos los pasillos son "del usuario"
+        
+        // Un pasillo pertenece al supervisor si al menos uno de sus puntos tiene productos
+        return ubicaciones.some(ubicacion => 
+            ubicacion.mueble?.puntos_reposicion?.some(punto => punto.producto !== null)
+        );
     };
 
     const handleMouseEnter = (ubicacion: UbicacionFisica) => {
@@ -357,6 +445,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         agruparMueblesEnPasillos.forEach((pasillo, index) => {
             const isHighlightedPasillo = pasillo.ubicaciones.some(u => isHighlighted(u));
             const tieneDestino = pasillo.ubicaciones.some(u => esMuebleDestino(u));
+            const esPasilloDeSup = esPasilloDeSupervisor(pasillo.ubicaciones);
             
             // Coordenadas del rectángulo del pasillo
             const left = pasillo.x * cellW + gap / 2;
@@ -380,15 +469,22 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         borderRadius: `${radius}px`,
                         background: modoReponedor && tieneDestino 
                             ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // gradiente naranja para destinos
+                            : modoSupervisor && !esPasilloDeSup
+                            ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)' // gradiente gris para pasillos no del supervisor
                             : 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)', // gradiente azul por defecto
                         border: modoReponedor && tieneDestino
                             ? '2px solid #d97706'
+                            : modoSupervisor && !esPasilloDeSup
+                            ? '1px solid #9ca3af' // borde gris para pasillos no del supervisor
                             : '1px solid #60a5fa',
                         cursor: modoReponedor ? 'default' : 'pointer',
                         // Efecto de pasillo de supermercado
                         boxShadow: isHighlightedPasillo 
                             ? '0 0 0 3px orange, 0 4px 12px rgba(0,0,0,0.15)' 
+                            : modoSupervisor && !esPasilloDeSup
+                            ? '0 1px 4px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.1)' // sombra más sutil para pasillos no del supervisor
                             : '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)',
+                        opacity: modoSupervisor && !esPasilloDeSup ? 0.6 : 1, // Hacer más transparentes los pasillos no del supervisor
                     }}
                     onClick={() => {
                         if (!modoReponedor && onObjectClick) {
@@ -407,7 +503,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         }
                     }}
                     title={!modoReponedor ? 
-                        `Pasillo ${pasillo.ubicaciones[0].objeto?.nombre || ''} - ${pasillo.ubicaciones.length} sección(es)` 
+                        modoSupervisor 
+                            ? `${pasillo.ubicaciones[0].objeto?.nombre || 'Pasillo'} - ${esPasilloDeSup ? 'ASIGNADO' : 'NO ASIGNADO'} (${pasillo.ubicaciones.length} sección(es))`
+                            : `Pasillo ${pasillo.ubicaciones[0].objeto?.nombre || ''} - ${pasillo.ubicaciones.length} sección(es)` 
                         : ''}
                 >
                     {/* Etiqueta del pasillo */}
@@ -417,11 +515,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
-                            color: '#1f2937',
-                            fontWeight: '600',
+                            color: modoSupervisor && !esPasilloDeSup ? '#6b7280' : '#1f2937', // Color más tenue para pasillos no del supervisor
+                            fontWeight: modoSupervisor && !esPasilloDeSup ? '500' : '600',
                             fontSize: '12px',
                             textAlign: 'center',
-                            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
+                            textShadow: modoSupervisor && !esPasilloDeSup 
+                                ? '0 1px 2px rgba(255,255,255,0.6)' 
+                                : '0 1px 2px rgba(255,255,255,0.8)',
                             maxWidth: '90%',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -429,6 +529,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                         }}
                     >
                         {pasillo.ubicaciones[0].objeto?.nombre || `Pasillo ${index + 1}`}
+                        {modoSupervisor && !esPasilloDeSup && (
+                            <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '2px' }}>
+                                (No asignado)
+                            </div>
+                        )}
                     </div>
                     
                     {/* Indicador de productos en el pasillo */}
@@ -477,6 +582,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             {pasillo.ubicaciones[0].objeto.nombre}
                             <div style={{ fontSize: '10px', opacity: 0.8 }}>
                                 {pasillo.ubicaciones.length} sección(es) - {pasillo.esHorizontal ? 'Horizontal' : 'Vertical'}
+                                {modoSupervisor && (
+                                    <div style={{ color: esPasilloDeSup ? '#22c55e' : '#f59e0b' }}>
+                                        {esPasilloDeSup ? '✓ Asignado a tu supervisión' : '⚠ No asignado'}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -530,7 +640,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         });
 
         return overlaysArray;
-    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick, modoReponedor, rutaOptimizada, agruparMueblesEnPasillos]);
+    }, [mapa, ubicaciones, hoveredObjectName, canvasKey, onObjectClick, modoReponedor, modoSupervisor, rutaOptimizada, agruparMueblesEnPasillos]);
     const renderDebugInfo = () => {
         const muebles = ubicaciones.filter(u => u.mueble !== null);
         const productos = ubicaciones.filter(u => u.punto?.producto !== null);

@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Map, MapPin, AlertCircle, CheckCircle, Route, Clock, BarChart3, Zap, Home, Navigation } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Map, MapPin, AlertCircle, CheckCircle, Home, Route, Navigation } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/mapaService';
-import { ApiService, Tarea, RutaOptimizadaResponse } from '@/services/api';
+import { ApiService, Tarea } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
 import Logo from '@/components/Logo';
@@ -27,19 +27,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const ReponedorMapPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Algoritmos válidos para optimización de rutas
+  const ALGORITMOS_VALIDOS = ['vecino_mas_cercano', 'fuerza_bruta', 'genetico'];
 
   // Estado para el mapa y puntos reales
   const [mapaData, setMapaData] = useState<Mapa | null>(null);
@@ -55,12 +49,10 @@ const ReponedorMapPage = () => {
   const [loadingTareas, setLoadingTareas] = useState(true);
   const [errorTareas, setErrorTareas] = useState<string | null>(null);
 
-  // Estado para la ruta optimizada
-  const [rutaOptimizada, setRutaOptimizada] = useState<RutaOptimizadaResponse | null>(null);
-  const [mostrarRuta, setMostrarRuta] = useState(false);
-  const [tareaSeleccionada, setTareaSeleccionada] = useState<number | null>(null);
+  // Estado para la ruta optimizada - integración con endpoint del backend
+  const [rutaOptimizada, setRutaOptimizada] = useState<any>(null);
+  const [mostrandoRuta, setMostrandoRuta] = useState(false);
   const [generandoRuta, setGenerandoRuta] = useState(false);
-  const [algoritmoSeleccionado, setAlgoritmoSeleccionado] = useState<'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico'>('vecino_mas_cercano');
 
   useEffect(() => {
     const fetchMapa = async () => {
@@ -92,22 +84,6 @@ const ReponedorMapPage = () => {
     };
     fetchMapa();
   }, []);
-
-  // Verificar si hay una ruta en el estado de navegación o parámetros URL
-  useEffect(() => {
-    const rutaDesdeEstado = location.state?.rutaOptimizada;
-    const tareaId = searchParams.get('tarea');
-    const mostrarRutaParam = searchParams.get('mostrar_ruta') === 'true';
-
-    if (rutaDesdeEstado) {
-      setRutaOptimizada(rutaDesdeEstado);
-      setMostrarRuta(true);
-      setTareaSeleccionada(rutaDesdeEstado.id_tarea);
-    } else if (tareaId && mostrarRutaParam) {
-      // Si no hay ruta en el estado pero se solicita mostrar una, cargarla
-      cargarRutaOptimizada(parseInt(tareaId));
-    }
-  }, [location.state, searchParams]);
 
   useEffect(() => {
     // Cargar tareas del reponedor
@@ -176,23 +152,74 @@ const ReponedorMapPage = () => {
     }
   };
 
-  // Función para cargar ruta optimizada desde el backend
-  const cargarRutaOptimizada = async (idTarea: number, algoritmo: 'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico' = 'vecino_mas_cercano') => {
+  // Función para generar ruta optimizada usando el endpoint del backend
+  const generarRutaOptimizada = async (idTarea: number, algoritmo: string = 'vecino_mas_cercano') => {
     try {
       setGenerandoRuta(true);
-      const ruta = await ApiService.obtenerRutaOptimizada(idTarea, algoritmo);
-      setRutaOptimizada(ruta);
-      setMostrarRuta(true);
-      setTareaSeleccionada(idTarea);
+      console.log(`[Frontend] Generando ruta para tarea ${idTarea} con algoritmo ${algoritmo}`);
       
-      toast({
-        title: "Ruta optimizada generada",
-        description: `Algoritmo: ${ruta.algoritmo_utilizado.nombre}. Distancia: ${ruta.distancia_total} unidades.`,
+      // Verificar que el usuario esté autenticado
+      const token = ApiService.getToken();
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+      
+      // Hacer llamada al endpoint del backend
+      const response = await fetch(`http://localhost:8000/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
-    } catch (error: any) {
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Error ${response.status}: ${errorText}`;
+        
+        // Manejo específico para errores de algoritmo
+        if (errorText.includes('no válido') || errorText.includes('Algoritmos disponibles')) {
+          errorMessage = `Algoritmo no válido. Algoritmos disponibles: ${ALGORITMOS_VALIDOS.join(', ')}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const rutaData = await response.json();
+      console.log('[Frontend] Ruta recibida del backend:', rutaData);
+
+      // Validar la estructura de la respuesta
+      if (rutaData.error) {
+        throw new Error(rutaData.error);
+      }
+
+      if (rutaData.warning) {
+        toast({
+          title: "⚠️ Advertencia",
+          description: rutaData.warning,
+          variant: "destructive",
+        });
+      }
+
+      // Guardar la ruta en el estado
+      setRutaOptimizada(rutaData);
+      setMostrandoRuta(true);
+
+      // Mensaje de éxito más detallado
+      const muebles = rutaData.muebles_rutas?.length || 0;
+      const productos = rutaData.muebles_rutas?.reduce((total: number, mueble: any) => 
+        total + (mueble.detalle_tareas?.length || 0), 0) || 0;
+
       toast({
-        title: "Error",
-        description: error.message || "No se pudo generar la ruta optimizada.",
+        title: "✅ Ruta optimizada generada",
+        description: `Ruta para ${muebles} muebles y ${productos} productos`,
+      });
+
+    } catch (error: any) {
+      console.error('[Frontend] Error al generar ruta:', error);
+      toast({
+        title: "❌ Error",
+        description: error.message || "No se pudo generar la ruta optimizada",
         variant: "destructive",
       });
     } finally {
@@ -200,45 +227,10 @@ const ReponedorMapPage = () => {
     }
   };
 
-  // Función para comenzar una tarea desde el mapa
-  const comenzarTareaDesdeMap = async (idTarea: number) => {
-    try {
-      setGenerandoRuta(true);
-      
-      // Primero iniciar la tarea
-      await ApiService.iniciarTarea(idTarea);
-      
-      // Luego generar la ruta optimizada
-      await cargarRutaOptimizada(idTarea, algoritmoSeleccionado);
-      
-      // Actualizar el estado local de la tarea
-      setTareas((prevTareas) =>
-        prevTareas.map((t) =>
-          t.id_tarea === idTarea ? { ...t, estado: 'en_progreso' } : t
-        )
-      );
-
-      toast({
-        title: "¡Tarea iniciada!",
-        description: "Ruta optimizada generada y mostrada en el mapa.",
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo iniciar la tarea.",
-        variant: "destructive",
-      });
-    } finally {
-      setGenerandoRuta(false);
-    }
-  };
-
-  // Función para limpiar la ruta mostrada
+  // Función para limpiar la ruta actual
   const limpiarRuta = () => {
     setRutaOptimizada(null);
-    setMostrarRuta(false);
-    setTareaSeleccionada(null);
+    setMostrandoRuta(false);
   };
 
   // Función para reiniciar una tarea completada (útil para pruebas)
@@ -259,11 +251,6 @@ const ReponedorMapPage = () => {
           t.id_tarea === idTarea ? { ...t, estado: 'pendiente' } : t
         )
       );
-
-      // Limpiar ruta si está mostrando la ruta de esta tarea
-      if (tareaSeleccionada === idTarea) {
-        limpiarRuta();
-      }
 
       toast({
         title: "¡Tarea reiniciada!",
@@ -335,7 +322,7 @@ const ReponedorMapPage = () => {
           <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-accent/40 rounded-xl">
-                <Navigation className="w-8 h-8 text-accent" />
+                <Map className="w-8 h-8 text-accent" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">Sistema de Navegación</h2>
@@ -382,11 +369,29 @@ const ReponedorMapPage = () => {
                       ubicaciones={ubicaciones}
                       onObjectClick={handleObjectClick}
                       className="w-full h-full"
-                      // Pasar datos de ruta si está disponible
-                      rutaOptimizada={mostrarRuta ? rutaOptimizada : null}
-                      // Activar modo reponedor para desactivar hover y resaltar solo destinos
                       modoReponedor={true}
+                      rutaOptimizada={mostrandoRuta ? rutaOptimizada : null}
                     />
+                    
+                    {/* Panel de debug mejorado */}
+                    {mostrandoRuta && rutaOptimizada && (
+                      <div className="absolute top-4 left-4 bg-black/80 text-white text-xs p-3 rounded-lg max-w-sm z-50">
+                        <div className="font-bold mb-2">🔍 Debug - Ruta del Endpoint</div>
+                        <div>Tarea ID: {rutaOptimizada.id_tarea}</div>
+                        <div>Reponedor: {rutaOptimizada.reponedor}</div>
+                        <div>Muebles: {rutaOptimizada.muebles_rutas?.length || 0}</div>
+                        <div>Productos: {rutaOptimizada.muebles_rutas?.reduce((total: number, mueble: any) => 
+                          total + (mueble.detalle_tareas?.length || 0), 0) || 0}</div>
+                        <div>Tiempo estimado: {rutaOptimizada.tiempo_estimado_total || 'N/A'} min</div>
+                        <div>Ruta global: {rutaOptimizada.coordenadas_ruta_global?.length || 0} pasos</div>
+                        {rutaOptimizada.warning && (
+                          <div className="mt-2 text-yellow-400">⚠️ {rutaOptimizada.warning}</div>
+                        )}
+                        <div className="mt-2 text-green-400">
+                          ✅ Endpoint: /tareas/{rutaOptimizada.id_tarea}/ruta-optimizada
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -404,84 +409,96 @@ const ReponedorMapPage = () => {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
               
-              {/* Información de ruta actual */}
-              {mostrarRuta && rutaOptimizada && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              {/* Panel de información de ruta optimizada */}
+              {mostrandoRuta && rutaOptimizada && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-blue-900 flex items-center">
                       <Route className="w-4 h-4 mr-2" />
                       Ruta Optimizada Activa
                     </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={limpiarRuta}
-                      className="text-blue-700 hover:text-blue-900"
+                      className="text-blue-700 hover:text-blue-900 text-lg font-bold"
                     >
                       ✕
-                    </Button>
+                    </button>
                   </div>
+                  
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Algoritmo:</span>
-                      <span className="font-medium">{rutaOptimizada.algoritmo_utilizado.nombre}</span>
+                      <span className="text-blue-700">Tarea ID:</span>
+                      <span className="font-medium">{rutaOptimizada.id_tarea || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Distancia:</span>
-                      <span className="font-medium">{rutaOptimizada.distancia_total} unidades</span>
+                      <span className="text-blue-700">Reponedor:</span>
+                      <span className="font-medium">{rutaOptimizada.reponedor || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Tiempo estimado:</span>
-                      <span className="font-medium">{rutaOptimizada.tiempo_estimado_minutos} min</span>
+                      <span className="text-blue-700">Muebles:</span>
+                      <span className="font-medium">{rutaOptimizada.muebles_rutas?.length || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Puntos a visitar:</span>
-                      <span className="font-medium">{rutaOptimizada.puntos_reposicion.length}</span>
+                      <span className="text-blue-700">Productos:</span>
+                      <span className="font-medium">
+                        {rutaOptimizada.muebles_rutas?.reduce((total: number, mueble: any) => 
+                          total + (mueble.detalle_tareas?.length || 0), 0) || 0}
+                      </span>
+                    </div>
+                    {rutaOptimizada.tiempo_estimado_total && (
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Tiempo estimado:</span>
+                        <span className="font-medium">{rutaOptimizada.tiempo_estimado_total} min</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Pasos totales:</span>
+                      <span className="font-medium">{rutaOptimizada.coordenadas_ruta_global?.length || 0}</span>
                     </div>
                   </div>
                   
-                  {/* Lista de puntos de la ruta */}
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">Orden de visita:</h4>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {rutaOptimizada.puntos_reposicion.map((punto) => (
-                        <div key={punto.id_punto} className="flex items-center text-xs">
-                          <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2 text-xs">
-                            {punto.orden_visita}
-                          </div>
-                          <span className="truncate">{punto.producto.nombre}</span>
-                        </div>
-                      ))}
+                  {/* Mostrar advertencias si existen */}
+                  {rutaOptimizada.warning && (
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                      ⚠️ {rutaOptimizada.warning}
                     </div>
-                  </div>
+                  )}
+                  
+                  {/* Mostrar detalles de muebles si existen */}
+                  {rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <h4 className="text-sm font-medium text-blue-900 mb-2">Ruta por muebles:</h4>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {rutaOptimizada.muebles_rutas.map((mueble: any, muebleIndex: number) => (
+                          <div key={muebleIndex} className="bg-white rounded p-3 border border-blue-100">
+                            <div className="flex items-center mb-2">
+                              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2 text-xs">
+                                {muebleIndex + 1}
+                              </div>
+                              <div className="font-medium text-blue-900">{mueble.nombre_mueble}</div>
+                              <span className="ml-auto text-xs text-gray-500">
+                                {mueble.detalle_tareas?.length || 0} productos
+                              </span>
+                            </div>
+                            <div className="space-y-1 ml-8">
+                              {mueble.detalle_tareas?.map((detalle: any, detalleIndex: number) => (
+                                <div key={detalleIndex} className="text-xs text-gray-600">
+                                  • {detalle.producto || 'Producto'} ({detalle.cantidad || 0} unidades)
+                                </div>
+                              ))}
+                              {mueble.distancia_total_mueble > 0 && (
+                                <div className="text-xs text-green-600 mt-1">
+                                  🗺️ {mueble.distancia_total_mueble} pasos
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* Controles de algoritmo (solo si no hay ruta activa) */}
-              {!mostrarRuta && (
-                <div className="mb-4 p-4 bg-gray-50 border rounded-lg">
-                  <div className="flex items-center space-x-4 mb-2">
-                    <Zap className="w-4 h-4 text-orange-500" />
-                    <span className="font-medium text-sm">Algoritmo de Optimización</span>
-                  </div>
-                  <Select value={algoritmoSeleccionado} onValueChange={(valor) => setAlgoritmoSeleccionado(valor as any)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vecino_mas_cercano">Vecino más cercano</SelectItem>
-                      <SelectItem value="fuerza_bruta">Fuerza bruta</SelectItem>
-                      <SelectItem value="genetico">Genético</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {algoritmoSeleccionado === 'vecino_mas_cercano' && 'Rápido y eficiente para la mayoría de casos'}
-                    {algoritmoSeleccionado === 'fuerza_bruta' && 'Más preciso pero lento (máx. 8 puntos)'}
-                    {algoritmoSeleccionado === 'genetico' && 'Buena precisión con muchos puntos'}
-                  </p>
-                </div>
-              )}
-
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                 {loadingTareas ? (
                   <div className="text-center text-muted-foreground">Cargando tareas...</div>
@@ -493,11 +510,7 @@ const ReponedorMapPage = () => {
                   tareas.map((tarea) => (
                     <div
                       key={tarea.id_tarea}
-                      className={`border rounded-lg p-4 transition-all ${
-                        tareaSeleccionada === tarea.id_tarea 
-                          ? 'bg-blue-50 border-blue-300 shadow-md' 
-                          : 'bg-white/80 hover:shadow-lg'
-                      }`}
+                      className="border rounded-lg p-4 transition-all bg-white/80 hover:shadow-lg"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex flex-col flex-1">
@@ -524,12 +537,13 @@ const ReponedorMapPage = () => {
                       
                       {/* Botones de acción */}
                       <div className="space-y-2">
-                        {/* Botón para comenzar tarea (solo si está pendiente) */}
-                        {tarea.estado && tarea.estado.toLowerCase() === 'pendiente' && (
+                        
+                        {/* Botón para generar ruta optimizada */}
+                        {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => comenzarTareaDesdeMap(tarea.id_tarea)}
+                            onClick={() => generarRutaOptimizada(tarea.id_tarea)}
                             disabled={generandoRuta}
                             className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
                           >
@@ -540,36 +554,13 @@ const ReponedorMapPage = () => {
                               </>
                             ) : (
                               <>
-                                <Route className="w-4 h-4 mr-2" />
-                                Comenzar Tarea
+                                <Navigation className="w-4 h-4 mr-2" />
+                                Generar Ruta Optimizada
                               </>
                             )}
                           </Button>
                         )}
 
-                        {/* Botón para regenerar ruta (si está en progreso y no se está mostrando) */}
-                        {tarea.estado && tarea.estado.toLowerCase() === 'en_progreso' && (!mostrarRuta || tareaSeleccionada !== tarea.id_tarea) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => cargarRutaOptimizada(tarea.id_tarea, algoritmoSeleccionado)}
-                            disabled={generandoRuta}
-                            className="w-full text-purple-600 border-purple-200 hover:bg-purple-50"
-                          >
-                            {generandoRuta ? (
-                              <>
-                                <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
-                                Cargando...
-                              </>
-                            ) : (
-                              <>
-                                <MapPin className="w-4 h-4 mr-2" />
-                                Mostrar Ruta
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        
                         {/* Botón para completar tarea */}
                         {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                           <AlertDialog>
@@ -613,10 +604,6 @@ const ReponedorMapPage = () => {
                                           t.id_tarea === tarea.id_tarea ? { ...t, estado: 'completada' } : t
                                         )
                                       );
-                                      // Limpiar ruta si es la tarea completada
-                                      if (tareaSeleccionada === tarea.id_tarea) {
-                                        limpiarRuta();
-                                      }
                                     } catch (error: any) {
                                       toast({
                                         title: "Error",
@@ -648,7 +635,7 @@ const ReponedorMapPage = () => {
                               onClick={() => reiniciarTarea(tarea.id_tarea)}
                               className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
                             >
-                              <Route className="w-4 h-4 mr-2" />
+                              <MapPin className="w-4 h-4 mr-2" />
                               Reiniciar Tarea
                             </Button>
                           </div>

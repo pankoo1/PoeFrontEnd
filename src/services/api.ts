@@ -284,6 +284,12 @@ export class ApiService {
         return this.token;
     }
 
+    // Método para obtener el ID del usuario actual
+    static getCurrentUserId(): number | null {
+        const userId = localStorage.getItem('userId');
+        return userId ? parseInt(userId) : null;
+    }
+
     // Método para limpiar el token (logout)
     static clearToken(): void {
         this.token = null;
@@ -291,6 +297,7 @@ export class ApiService {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userRole');
         localStorage.removeItem('userName');
+        localStorage.removeItem('userId'); // ← Limpiar también el ID del usuario
     }
 
     // Headers por defecto para las peticiones autenticadas
@@ -333,17 +340,35 @@ export class ApiService {
             // Asegurarse de que el endpoint comienza con la URL base si no es una URL completa
             const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
 
+            console.log('🔍 fetchApi llamada:', {
+                url,
+                method: options.method || 'GET',
+                headers,
+                body: options.body
+            });
+
             const response = await fetch(url, {
                 ...options,
                 headers,
             });
 
+            console.log('📡 Respuesta recibida:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Error en respuesta:', errorText);
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
             }
 
             // Si la respuesta está vacía, retornar null
             const text = await response.text();
+            console.log('📄 Texto de respuesta:', text);
+            
             if (!text) {
                 return null as T;
             }
@@ -398,11 +423,13 @@ export class ApiService {
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userRole', userRole);
             localStorage.setItem('userName', response.user_info.nombre);
+            localStorage.setItem('userId', response.user_info.id); // ← Guardar el ID del usuario
             
             console.log('Login exitoso:', {
                 token: response.access_token,
                 role: userRole,
-                name: response.user_info.nombre
+                name: response.user_info.nombre,
+                id: response.user_info.id
             });
             
             return response;
@@ -638,12 +665,19 @@ export class ApiService {
         return response.json();
     }
 
-    static async asignarProductoAPunto(idProducto: number, idPunto: number, idUsuario: number): Promise<any> {
+    static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
+        console.log('🎯 [API] asignarProductoAPunto llamado con:', {
+            idProducto,
+            idPunto,
+            endpoint: `/puntos/${idPunto}/asignar-producto`,
+            body: { id_producto: idProducto }
+        });
+        
         return await this.fetchApi(
             `/puntos/${idPunto}/asignar-producto`,
             {
                 method: 'PUT',
-                body: JSON.stringify({ id_producto: idProducto, id_usuario: idUsuario })
+                body: JSON.stringify({ id_producto: idProducto })
             }
         );
     }

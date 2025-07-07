@@ -238,16 +238,23 @@ const MapPage = () => {
     };
 
     const handleConfirmarTodosLosCambios = async () => {
+        console.log('🚀 [INICIO] Confirmando todos los cambios...');
+        console.log('   - Asignaciones pendientes:', asignaciones);
+        console.log('   - Desasignaciones pendientes:', desasignaciones);
+        
         setIsLoading(true);
         let errores = 0;
         let exitos = 0;
 
         try {
             // Procesar asignaciones
+            console.log('📝 Procesando asignaciones...');
             for (const [idPunto, producto] of Object.entries(asignaciones)) {
                 try {
-                    // TODO: Reemplaza 1 por el idUsuario real del usuario autenticado
-                    await ApiService.asignarProductoAPunto(parseInt(idPunto), producto.id_producto, 1);
+                    console.log(`🎯 Asignando producto ${producto.nombre} (ID: ${producto.id_producto}) al punto ${idPunto}...`);
+                    console.log(`ℹ️ El supervisor del producto será asignado automáticamente al punto`);
+                    
+                    await ApiService.asignarProductoAPunto(producto.id_producto, parseInt(idPunto));
                     console.log(`✅ Producto ${producto.nombre} asignado correctamente al punto ${idPunto}`);
                     exitos++;
                 } catch (error) {

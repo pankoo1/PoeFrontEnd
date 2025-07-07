@@ -72,13 +72,23 @@ const SupervisorMapPage = () => {
         setError(null);
         
         const [mapaResponse, reponedoresResponse] = await Promise.all([
-          MapaService.getMapaSupervisorVista(),
+          MapaService.getMapaSupervisor(), // Cambiado para usar el endpoint específico de supervisores
           ApiService.getReponedoresAsignados()
         ]);
         
         if (mapaResponse.mensaje && !mapaResponse.mapa) {
           setNoPointsAssigned(true);
           return;
+        }
+
+        // Verificar si el supervisor tiene puntos asignados en este mapa
+        const tieneProductosAsignados = mapaResponse.ubicaciones.some(ubicacion => 
+          ubicacion.mueble?.puntos_reposicion?.some(punto => punto.producto !== null)
+        );
+
+        if (!tieneProductosAsignados) {
+          // Aún mostrar el mapa, pero indicar que no hay puntos asignados
+          setNoPointsAssigned(true);
         }
 
         setMapaData(mapaResponse.mapa);
@@ -402,17 +412,27 @@ const SupervisorMapPage = () => {
                     </div>
                   )}
                   {noPointsAssigned && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {renderNoPointsMessage()}
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80 backdrop-blur-sm">
+                      <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
+                        <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2 text-yellow-800">Sin puntos asignados</h3>
+                        <p className="text-yellow-700 mb-4">
+                          No tienes productos asignados en este mapa. Los muebles se muestran atenuados.
+                        </p>
+                        <p className="text-sm text-yellow-600">
+                          Los muebles resaltados pertenecen a otros supervisores.
+                        </p>
+                      </div>
                     </div>
                   )}
-                  {!loading && !error && !noPointsAssigned && mapaData && (
+                  {!loading && !error && mapaData && (
                     <div className="w-full h-[700px]">
                       <MapViewer
                         mapa={mapaData}
                         ubicaciones={ubicaciones}
                         onObjectClick={handleObjectClick}
                         className="w-full h-full rounded-2xl"
+                        modoSupervisor={true}
                       />
                     </div>
                   )}

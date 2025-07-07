@@ -17,7 +17,7 @@ export const MapaService = {
 
         const params = idMapa ? `?id_mapa=${idMapa}` : '';
         try {
-            const response = await fetch(`${API_URL}/mapa/supervisor${params}`, {
+            const response = await fetch(`${API_URL}/mapa/supervisor/vista${params}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
