@@ -96,175 +96,6 @@ export interface Reponedor {
     estado: string;
 }
 
-// Interfaces para ruta optimizada
-export interface CoordenadaResponse {
-    x: number;
-    y: number;
-}
-
-export interface MuebleRutaResponse {
-    id_mueble: number;
-    nombre_objeto: string;
-    coordenadas: CoordenadaResponse;
-    nivel: number;
-    estanteria: number;
-}
-
-export interface ProductoRutaResponse {
-    id_producto: number;
-    nombre: string;
-    categoria: string;
-    cantidad: number;
-}
-
-export interface PuntoRutaResponse {
-    id_punto: number;
-    mueble: MuebleRutaResponse;
-    producto: ProductoRutaResponse;
-    orden_visita: number;
-}
-
-export interface AlgoritmoResponse {
-    nombre: string;
-    descripcion: string;
-}
-
-export interface RutaOptimizadaResponse {
-    id_tarea: number;
-    reponedor: string;
-    fecha_creacion: string;
-    puntos_reposicion: PuntoRutaResponse[];
-    coordenadas_ruta: CoordenadaResponse[];
-    algoritmo_utilizado: AlgoritmoResponse;
-    distancia_total: number;
-    tiempo_estimado_minutos: number;
-    estado_tarea: string;
-}
-
-// Interfaces para reportes
-export interface ReponedorReporte {
-    id_usuario: number;
-    nombre: string;
-    email: string;
-    estado: string;
-}
-
-export interface ListaReponedoresResponse {
-    total: number;
-    reponedores: ReponedorReporte[];
-}
-
-export interface TareaHistorial {
-    id_tarea: number;
-    fecha_creacion: string;
-    fecha_completado?: string;
-    estado: string;
-    total_productos: number;
-    tiempo_completado?: string;
-    puntos_visitados: number;
-}
-
-export interface HistorialReponedorResponse {
-    reponedor: {
-        id: number;
-        nombre: string;
-        email: string;
-    };
-    periodo: {
-        fecha_inicio?: string;
-        fecha_fin?: string;
-    };
-    estadisticas: {
-        total_tareas: number;
-        tareas_completadas: number;
-        tareas_pendientes: number;
-        tiempo_promedio?: string;
-        eficiencia: number;
-    };
-    tareas: TareaHistorial[];
-    paginacion: {
-        total: number;
-        limit: number;
-        offset: number;
-        pagina_actual: number;
-        total_paginas: number;
-    };
-}
-
-export interface EstadisticasGenerales {
-    periodo: {
-        fecha_inicio?: string;
-        fecha_fin?: string;
-    };
-    total_tareas: number;
-    estadisticas_por_estado: Record<string, number>;
-    estadisticas_por_reponedor: Record<string, number>;
-}
-
-export interface ProductoMasRepuesto {
-    producto: {
-        id: number;
-        nombre: string;
-        categoria: string;
-        unidad_tipo: string;
-    };
-    cantidad_total: number;
-    numero_tareas: number;
-    promedio_por_tarea: number;
-    porcentaje_total: number;
-}
-
-export interface ProductosRepuestosResponse {
-    periodo: {
-        fecha_inicio: string;
-        fecha_fin: string;
-    };
-    estadisticas: {
-        total_productos_diferentes: number;
-        cantidad_total_repuesta: number;
-        promedio_por_producto: number;
-    };
-    productos: ProductoMasRepuesto[];
-    categorias: Record<string, {
-        cantidad_total: number;
-        numero_productos: number;
-        porcentaje: number;
-    }>;
-    metadatos: {
-        fecha_generacion: string;
-        total_registros: number;
-        limit_aplicado: number;
-    };
-}
-
-export interface ProductosReportRequest {
-    fecha_inicio: string; // YYYY-MM-DD
-    fecha_fin: string; // YYYY-MM-DD
-    limit?: number;
-}
-
-// Interfaces para dashboard
-export interface DashboardResumen {
-    tareas: {
-        total: number;
-        pendientes: number;
-        en_progreso: number;
-        completadas: number;
-    };
-    top_productos: Array<{
-        nombre: string;
-        cantidad_repuesta: number;
-    }>;
-    actividad_usuarios: Array<{
-        nombre: string;
-        tareas_completadas: number;
-        tiempo_total_minutos: number;
-    }>;
-    periodo: string;
-    fecha_inicio: string;
-    fecha_fin: string;
-}
-
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -284,12 +115,6 @@ export class ApiService {
         return this.token;
     }
 
-    // Método para obtener el ID del usuario actual
-    static getCurrentUserId(): number | null {
-        const userId = localStorage.getItem('userId');
-        return userId ? parseInt(userId) : null;
-    }
-
     // Método para limpiar el token (logout)
     static clearToken(): void {
         this.token = null;
@@ -297,7 +122,6 @@ export class ApiService {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userRole');
         localStorage.removeItem('userName');
-        localStorage.removeItem('userId'); // ← Limpiar también el ID del usuario
     }
 
     // Headers por defecto para las peticiones autenticadas
@@ -340,35 +164,17 @@ export class ApiService {
             // Asegurarse de que el endpoint comienza con la URL base si no es una URL completa
             const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
 
-            console.log('🔍 fetchApi llamada:', {
-                url,
-                method: options.method || 'GET',
-                headers,
-                body: options.body
-            });
-
             const response = await fetch(url, {
                 ...options,
                 headers,
             });
 
-            console.log('📡 Respuesta recibida:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Error en respuesta:', errorText);
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
             }
 
             // Si la respuesta está vacía, retornar null
             const text = await response.text();
-            console.log('📄 Texto de respuesta:', text);
-            
             if (!text) {
                 return null as T;
             }
@@ -423,13 +229,11 @@ export class ApiService {
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userRole', userRole);
             localStorage.setItem('userName', response.user_info.nombre);
-            localStorage.setItem('userId', response.user_info.id); // ← Guardar el ID del usuario
             
             console.log('Login exitoso:', {
                 token: response.access_token,
                 role: userRole,
-                name: response.user_info.nombre,
-                id: response.user_info.id
+                name: response.user_info.nombre
             });
             
             return response;
@@ -575,12 +379,45 @@ export class ApiService {
         }
     }
 
-    // Perfil unificado para todos los roles
+    // Perfil
     static async getProfile(): Promise<Usuario> {
         const response = await this.fetchApi<Usuario>(
             API_ENDPOINTS.profile,
             {
                 method: 'GET'
+            }
+        );
+        return response;
+    }
+
+    static async updateProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            API_ENDPOINTS.profile,
+            {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            }
+        );
+        return response;
+    }
+
+    // Perfil del Supervisor
+    static async getSupervisorProfile(): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            `${API_ENDPOINTS.usuarios}/me`,
+            {
+                method: 'GET'
+            }
+        );
+        return response;
+    }
+
+    static async updateSupervisorProfile(data: { nombre: string; correo: string }): Promise<Usuario> {
+        const response = await this.fetchApi<Usuario>(
+            `${API_ENDPOINTS.usuarios}/me`,
+            {
+                method: 'PUT',
+                body: JSON.stringify(data),
             }
         );
         return response;
@@ -665,19 +502,12 @@ export class ApiService {
         return response.json();
     }
 
-    static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
-        console.log('🎯 [API] asignarProductoAPunto llamado con:', {
-            idProducto,
-            idPunto,
-            endpoint: `/puntos/${idPunto}/asignar-producto`,
-            body: { id_producto: idProducto }
-        });
-        
+    static async asignarProductoAPunto(idProducto: number, idPunto: number, idUsuario: number): Promise<any> {
         return await this.fetchApi(
             `/puntos/${idPunto}/asignar-producto`,
             {
                 method: 'PUT',
-                body: JSON.stringify({ id_producto: idProducto })
+                body: JSON.stringify({ id_producto: idProducto, id_usuario: idUsuario })
             }
         );
     }
@@ -689,21 +519,6 @@ export class ApiService {
         console.log('Desasignando producto del punto con ID:', idPunto);
         await this.fetchApi(`/puntos/${idPunto}/desasignar-producto`, {
             method: 'DELETE',
-        });
-    }
-
-    // Desasignar completamente un punto de reposición (producto y usuario)
-    static async desasignarPuntoCompleto(idPunto: number): Promise<void> {
-        if (!idPunto) {
-            throw new Error('Se requiere un ID de punto válido para desasignar');
-        }
-        console.log('Desasignando completamente el punto con ID:', idPunto);
-        await this.fetchApi('/puntos/desasignar', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id_punto: idPunto }),
         });
     }
 
@@ -819,190 +634,6 @@ export class ApiService {
             console.error('Error en getMapaReponedorVista:', error);
             throw error;
         }
-    }
-
-    // Método para obtener ruta optimizada de una tarea
-    static async obtenerRutaOptimizada(
-        idTarea: number, 
-        algoritmo: 'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico' = 'vecino_mas_cercano'
-    ): Promise<RutaOptimizadaResponse> {
-        return await this.fetchApi<RutaOptimizadaResponse>(
-            `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
-            { method: 'GET' }
-        );
-    }
-
-    // Método para iniciar una tarea (cambiar estado a en_progreso)
-    static async iniciarTarea(idTarea: number): Promise<{ mensaje: string; estado: string }> {
-        return await this.fetchApi<{ mensaje: string; estado: string }>(
-            `/tareas/${idTarea}/iniciar`,
-            { 
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            }
-        );
-    }
-
-    // Método para reiniciar una tarea completada (útil para pruebas)
-    static async reiniciarTarea(idTarea: number): Promise<{ mensaje: string; estado: string }> {
-        return await this.fetchApi<{ mensaje: string; estado: string }>(
-            `/tareas/${idTarea}/reiniciar`,
-            { 
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            }
-        );
-    }
-
-    // ============ MÉTODOS DE REPORTES ============
-    
-    // Obtener lista de todos los reponedores
-    static async getReponedoresReporte(): Promise<ListaReponedoresResponse> {
-        return await this.fetchApi<ListaReponedoresResponse>(
-            `${API_ENDPOINTS.reportes}/reponedores`,
-            { method: 'GET' }
-        );
-    }
-
-    // Obtener historial de tareas de un reponedor específico
-    static async getHistorialReponedor(
-        idReponedor: number,
-        fechaInicio?: string,
-        fechaFin?: string,
-        estado?: string,
-        limit: number = 100,
-        offset: number = 0
-    ): Promise<HistorialReponedorResponse> {
-        const params = new URLSearchParams();
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        if (estado) params.append('estado', estado);
-        params.append('limit', limit.toString());
-        params.append('offset', offset.toString());
-
-        return await this.fetchApi<HistorialReponedorResponse>(
-            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}?${params.toString()}`,
-            { method: 'GET' }
-        );
-    }
-
-    // Descargar reporte de reponedor en Excel o PDF
-    static async descargarReporteReponedor(
-        idReponedor: number,
-        formato: 'excel' | 'pdf',
-        fechaInicio?: string,
-        fechaFin?: string,
-        estado?: string
-    ): Promise<Blob> {
-        const params = new URLSearchParams();
-        params.append('formato', formato);
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        if (estado) params.append('estado', estado);
-
-        const response = await fetch(
-            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}/descargar?${params.toString()}`,
-            {
-                method: 'GET',
-                headers: this.getHeaders()
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`Error al descargar reporte: ${response.statusText}`);
-        }
-
-        return await response.blob();
-    }
-
-    // Obtener estadísticas generales del sistema
-    static async getEstadisticasGenerales(
-        fechaInicio?: string,
-        fechaFin?: string
-    ): Promise<EstadisticasGenerales> {
-        const params = new URLSearchParams();
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-
-        return await this.fetchApi<EstadisticasGenerales>(
-            `${API_ENDPOINTS.reportes}/estadisticas/general?${params.toString()}`,
-            { method: 'GET' }
-        );
-    }
-
-    // Obtener productos más repuestos (JSON)
-    static async getProductosMasRepuestos(request: ProductosReportRequest): Promise<ProductosRepuestosResponse> {
-        return await this.fetchApi<ProductosRepuestosResponse>(
-            `${API_ENDPOINTS.reportes}/productos-repuestos`,
-            {
-                method: 'POST',
-                body: JSON.stringify(request)
-            }
-        );
-    }
-
-    // Descargar reporte de productos más repuestos
-    static async descargarReporteProductos(
-        request: ProductosReportRequest,
-        formato: 'excel' | 'pdf'
-    ): Promise<Blob> {
-        const params = new URLSearchParams();
-        params.append('formato', formato);
-
-        const response = await fetch(
-            `${API_ENDPOINTS.reportes}/productos-repuestos/descargar?${params.toString()}`,
-            {
-                method: 'POST',
-                headers: this.getHeaders(),
-                body: JSON.stringify(request)
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`Error al descargar reporte: ${response.statusText}`);
-        }
-
-        return await response.blob();
-    }
-
-    // Obtener preview de productos más repuestos
-    static async getPreviewProductosRepuestos(
-        fechaInicio: string,
-        fechaFin: string,
-        limite: number = 20
-    ): Promise<ProductosRepuestosResponse> {
-        const params = new URLSearchParams();
-        params.append('fecha_inicio', fechaInicio);
-        params.append('fecha_fin', fechaFin);
-        params.append('limite', limite.toString());
-
-        return await this.fetchApi<ProductosRepuestosResponse>(
-            `${API_ENDPOINTS.reportes}/productos-repuestos/preview?${params.toString()}`,
-            { method: 'GET' }
-        );
-    }
-
-    // ============ MÉTODOS DE DASHBOARD ============
-    
-    // Obtener resumen del dashboard para administrador
-    static async getDashboardResumen(
-        periodo: 'dia' | 'semana' | 'mes' = 'dia',
-        fecha?: string
-    ): Promise<DashboardResumen> {
-        const params = new URLSearchParams();
-        params.append('periodo', periodo);
-        if (fecha) {
-            params.append('fecha', fecha);
-        }
-
-        return await this.fetchApi<DashboardResumen>(
-            `${API_ENDPOINTS.dashboard}/resumen?${params.toString()}`,
-            { method: 'GET' }
-        );
     }
 }
 

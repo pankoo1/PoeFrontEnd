@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
@@ -45,36 +45,50 @@ const MapPage = () => {
     const [desasignaciones, setDesasignaciones] = useState<{[key: string]: boolean}>({});
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+    
+    // Estados para manejar datos del mapa centralizadamente
+    const [mapaData, setMapaData] = useState<{mapa: any, ubicaciones: UbicacionFisica[]} | null>(null);
+    const [isMapLoading, setIsMapLoading] = useState(true);
 
-    useEffect(() => {
-        loadProductos();
-    }, []);
-
-    // Efecto para mantener actualizada la ubicación seleccionada
-    useEffect(() => {
-        if (selectedLocation) {
-            actualizarUbicacionSeleccionada();
+    // Cargar datos del mapa centralizadamente
+    const cargarMapaData = useCallback(async () => {
+        try {
+            setIsMapLoading(true);
+            const data = await ApiService.getMapaReposicion();
+            setMapaData(data);
+            console.log('Datos del mapa cargados:', data);
+        } catch (error) {
+            console.error('Error al cargar el mapa:', error);
+            toast({
+                title: 'Error',
+                description: 'No se pudo cargar el mapa',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsMapLoading(false);
         }
-    }, [selectedLocation?.x, selectedLocation?.y]);
+    }, [toast]);
+
+    useEffect(() => {
+        cargarMapaData();
+        loadProductos();
+    }, [cargarMapaData]);
 
     const actualizarUbicacionSeleccionada = async () => {
         if (!selectedLocation) return;
         
+        // Evitar múltiples llamadas simultáneas
+        if (isLoadingLocation) return;
+        
+        setIsLoadingLocation(true);
         try {
             console.log('Actualizando ubicación seleccionada...');
-            const data = await ApiService.getMapaReposicion();
-            const ubicacionActualizada = data.ubicaciones.find(
-                (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
-            );
+            // Recargar datos del mapa
+            await cargarMapaData();
+            // La actualización de selectedLocation se hará automáticamente
+            // a través del useEffect que escucha cambios en mapaData
             
-            if (ubicacionActualizada) {
-                console.log('Ubicación actualizada:', {
-                    coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
-                    puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
-                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
-                });
-                setSelectedLocation(ubicacionActualizada);
-            }
         } catch (error) {
             console.error('Error al actualizar ubicación:', error);
             toast({
@@ -82,6 +96,8 @@ const MapPage = () => {
                 description: "No se pudo actualizar la visualización. Intenta recargar la página.",
                 variant: "destructive",
             });
+        } finally {
+            setIsLoadingLocation(false);
         }
     };
 
@@ -100,9 +116,48 @@ const MapPage = () => {
     };
 
     const handleObjectClick = async (ubicacion: UbicacionFisica) => {
-        setSelectedLocation(ubicacion);
-        await actualizarUbicacionSeleccionada();
+        console.log('Abriendo diálogo para ubicación:', ubicacion);
+        
+        // Verificar si necesitamos datos más actualizados
+        if (ubicacion.mueble && !ubicacion.mueble.puntos_reposicion) {
+            console.log('Ubicación sin datos completos, recargando...');
+            await cargarMapaData();
+            
+            // Buscar la ubicación actualizada con datos completos
+            const ubicacionActualizada = mapaData?.ubicaciones.find(
+                (u: any) => u.x === ubicacion.x && u.y === ubicacion.y
+            );
+            
+            if (ubicacionActualizada) {
+                setSelectedLocation(ubicacionActualizada);
+            } else {
+                setSelectedLocation(ubicacion);
+            }
+        } else {
+            // Los datos están completos, usar la ubicación tal como viene
+            setSelectedLocation(ubicacion);
+        }
     };
+
+    // Función optimizada para obtener una ubicación específica sin recargar todo el mapa
+    const obtenerUbicacionActualizada = useCallback(async (x: number, y: number) => {
+        if (!mapaData) return null;
+        
+        // Buscar primero en los datos existentes
+        const ubicacionExistente = mapaData.ubicaciones.find(
+            (u: any) => u.x === x && u.y === y
+        );
+        
+        // Si tiene datos completos, retornarlo
+        if (ubicacionExistente?.mueble?.puntos_reposicion) {
+            return ubicacionExistente;
+        }
+        
+        // Si no, hacer una consulta específica (esto podría implementarse en el backend)
+        // Por ahora, recargamos todo
+        await cargarMapaData();
+        return mapaData.ubicaciones.find((u: any) => u.x === x && u.y === y);
+    }, [mapaData, cargarMapaData]);
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, producto: Producto) => {
         e.dataTransfer.setData('producto', JSON.stringify(producto));
@@ -293,8 +348,8 @@ const MapPage = () => {
                 });
             }
 
-            // Actualizar la vista
-            await actualizarUbicacionSeleccionada();
+            // Actualizar la vista recargando los datos del mapa
+            await cargarMapaData();
 
         } catch (error) {
             console.error('Error general al procesar cambios:', error);
@@ -307,6 +362,23 @@ const MapPage = () => {
             setIsLoading(false);
         }
     };
+
+    // useEffect para actualizar selectedLocation cuando mapaData cambie después de confirmar cambios
+    useEffect(() => {
+        if (selectedLocation && mapaData && !isLoading && !isLoadingLocation) {
+            const ubicacionActualizada = mapaData.ubicaciones.find(
+                (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+            );
+            if (ubicacionActualizada) {
+                console.log('🔄 Actualizando selectedLocation con nuevos datos:', {
+                    coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
+                    puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
+                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
+                });
+                setSelectedLocation(ubicacionActualizada);
+            }
+        }
+    }, [mapaData, selectedLocation?.x, selectedLocation?.y, isLoading, isLoadingLocation]);
 
     const handleCancelarTodosLosCambios = () => {
         setAsignaciones({});
@@ -399,10 +471,18 @@ const MapPage = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="h-[72vh] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
-                                <MapViewer
-                                    onObjectClick={handleObjectClick}
-                                    className="w-full h-full"
-                                />
+                                {isMapLoading ? (
+                                    <div className="flex items-center justify-center w-full h-full">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+                                    </div>
+                                ) : (
+                                    <MapViewer
+                                        onObjectClick={handleObjectClick}
+                                        className="w-full h-full"
+                                        ubicaciones={mapaData?.ubicaciones || []}
+                                        mapa={mapaData?.mapa || null}
+                                    />
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -453,9 +533,9 @@ const MapPage = () => {
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={actualizarUbicacionSeleccionada}
-                                                            disabled={isLoading}
+                                                            disabled={isLoadingLocation}
                                                         >
-                                                            {isLoading ? "Actualizando..." : "Recargar Vista"}
+                                                            {isLoadingLocation ? "Actualizando..." : "Recargar Vista"}
                                                         </Button>
                                                     </div>
                                                     <ShelfGrid 

@@ -65,7 +65,7 @@ export const ShelfGrid: React.FC<ShelfGridProps> = React.memo(({
         setProductosAsignados(productosPreAsignados);
     }, [puntosPreAsignados]);
 
-    // Función memoizada para obtener productos en posición
+    // Función memoizada para obtener productos
     const getProductoEnPosicion = useMemo(() => 
         (fila: number, columna: number) => {
             if (muebleActual) {
@@ -167,6 +167,56 @@ export const ShelfGrid: React.FC<ShelfGridProps> = React.memo(({
         } catch (error) {
             console.error('ShelfGrid - Error en drop:', error);
         }
+    };
+
+    const getProductoEnPosicion = (fila: number, columna: number) => {
+        if (muebleActual) {
+            // Convertir coordenadas del grid (base 0) a coordenadas del backend (base 1)
+            const filaBackend = fila + 1;
+            const columnaBackend = columna + 1;
+            
+            // Buscar el punto correspondiente
+            const punto = muebleActual.puntos_reposicion?.find(
+                (p: any) => p.nivel === filaBackend && p.estanteria === columnaBackend
+            );
+            
+            if (punto) {
+                // Verificar si está marcado para desasignación temporal
+                if (desasignacionesTemporales[punto.id_punto]) {
+                    return {
+                        producto: punto.producto || { nombre: 'Producto', unidad_cantidad: 0, unidad_tipo: '' },
+                        fila,
+                        columna,
+                        desasignacionTemporal: true
+                    };
+                }
+                
+                // Verificar asignaciones temporales
+                if (asignacionesTemporales[punto.id_punto]) {
+                    return {
+                        producto: asignacionesTemporales[punto.id_punto],
+                        fila,
+                        columna,
+                        temporal: true
+                    };
+                }
+                
+                // Si hay un producto asignado permanentemente y no está marcado para desasignación
+                if (punto.producto) {
+                    return {
+                        producto: punto.producto,
+                        fila,
+                        columna
+                    };
+                }
+            }
+        }
+        
+        // Verificar productos pre-asignados (del estado local)
+        const productoPreAsignado = productosAsignados.find(p => p.fila === fila && p.columna === columna);
+        if (productoPreAsignado) return productoPreAsignado;
+        
+        return null;
     };
 
     const getCeldaClassName = (fila: number, columna: number) => {
