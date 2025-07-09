@@ -372,26 +372,6 @@ const ReponedorMapPage = () => {
                       modoReponedor={true}
                       rutaOptimizada={mostrandoRuta ? rutaOptimizada : null}
                     />
-                    
-                    {/* Panel de debug mejorado */}
-                    {mostrandoRuta && rutaOptimizada && (
-                      <div className="absolute top-4 left-4 bg-black/80 text-white text-xs p-3 rounded-lg max-w-sm z-50">
-                        <div className="font-bold mb-2">🔍 Debug - Ruta del Endpoint</div>
-                        <div>Tarea ID: {rutaOptimizada.id_tarea}</div>
-                        <div>Reponedor: {rutaOptimizada.reponedor}</div>
-                        <div>Muebles: {rutaOptimizada.muebles_rutas?.length || 0}</div>
-                        <div>Productos: {rutaOptimizada.muebles_rutas?.reduce((total: number, mueble: any) => 
-                          total + (mueble.detalle_tareas?.length || 0), 0) || 0}</div>
-                        <div>Tiempo estimado: {rutaOptimizada.tiempo_estimado_total || 'N/A'} min</div>
-                        <div>Ruta global: {rutaOptimizada.coordenadas_ruta_global?.length || 0} pasos</div>
-                        {rutaOptimizada.warning && (
-                          <div className="mt-2 text-yellow-400">⚠️ {rutaOptimizada.warning}</div>
-                        )}
-                        <div className="mt-2 text-green-400">
-                          ✅ Endpoint: /tareas/{rutaOptimizada.id_tarea}/ruta-optimizada
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

@@ -46,42 +46,90 @@ const MapPage = () => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
+    // Estado para cachear los datos del mapa completo
+    const [mapaCompleto, setMapaCompleto] = useState<any>(null);
+    // Clave para forzar re-render del ShelfGrid cuando sea necesario
+    const [shelfGridKey, setShelfGridKey] = useState(0);
+
     useEffect(() => {
         loadProductos();
+        loadMapaCompleto(); // Cargar el mapa una sola vez al inicio
     }, []);
 
-    // Efecto para mantener actualizada la ubicación seleccionada
-    useEffect(() => {
-        if (selectedLocation) {
-            actualizarUbicacionSeleccionada();
+    // Función para cargar el mapa completo una sola vez
+    const loadMapaCompleto = async () => {
+        try {
+            console.log('Cargando mapa completo una sola vez...');
+            const data = await ApiService.getMapaReposicion();
+            setMapaCompleto(data);
+            console.log('Mapa completo cargado exitosamente');
+        } catch (error) {
+            console.error('Error al cargar mapa completo:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo cargar el mapa. Intenta recargar la página.",
+                variant: "destructive",
+            });
         }
-    }, [selectedLocation?.x, selectedLocation?.y]);
+    };
 
+    // Función optimizada que usa datos cacheados
     const actualizarUbicacionSeleccionada = async () => {
-        if (!selectedLocation) return;
+        if (!selectedLocation || !mapaCompleto) return;
         
         try {
-            console.log('Actualizando ubicación seleccionada...');
-            const data = await ApiService.getMapaReposicion();
-            const ubicacionActualizada = data.ubicaciones.find(
+            console.log('Actualizando ubicación desde cache...');
+            const ubicacionActualizada = mapaCompleto.ubicaciones.find(
                 (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
             );
             
             if (ubicacionActualizada) {
-                console.log('Ubicación actualizada:', {
+                console.log('Ubicación actualizada desde cache:', {
                     coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
                     puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
-                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
+                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0,
+                    puntosDetallados: ubicacionActualizada.mueble?.puntos_reposicion?.map((p: any) => ({
+                        id: p.id_punto,
+                        nivel: p.nivel,
+                        estanteria: p.estanteria,
+                        tieneProducto: !!p.producto,
+                        nombreProducto: p.producto?.nombre || 'Sin producto'
+                    }))
                 });
                 setSelectedLocation(ubicacionActualizada);
+                // Forzar re-render del ShelfGrid
+                setShelfGridKey(prev => prev + 1);
+                console.log('🔄 ShelfGrid key actualizada para forzar re-render:', shelfGridKey + 1);
             }
         } catch (error) {
-            console.error('Error al actualizar ubicación:', error);
-            toast({
-                title: "Error",
-                description: "No se pudo actualizar la visualización. Intenta recargar la página.",
-                variant: "destructive",
-            });
+            console.error('Error al actualizar ubicación desde cache:', error);
+            // En caso de error, intentar recargar desde servidor
+            try {
+                console.log('Recargando mapa desde servidor...');
+                const data = await ApiService.getMapaReposicion();
+                setMapaCompleto(data);
+                const ubicacionActualizada = data.ubicaciones.find(
+                    (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
+                );
+                if (ubicacionActualizada) {
+                    console.log('Ubicación actualizada desde servidor (fallback):', {
+                        coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
+                        puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
+                        totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
+                    });
+                    setSelectedLocation(ubicacionActualizada);
+                    // Forzar re-render del ShelfGrid
+                    setShelfGridKey(prev => prev + 1);
+                    console.log('🔄 ShelfGrid key actualizada (fallback) para forzar re-render:', shelfGridKey + 1);
+                }
+            } catch (reloadError) {
+                console.error('Error al recargar mapa:', reloadError);
+                toast({
+                    title: "Error",
+                    description: "No se pudo actualizar la visualización. Intenta recargar la página.",
+                    variant: "destructive",
+                });
+            }
         }
     };
 
@@ -293,7 +341,12 @@ const MapPage = () => {
                 });
             }
 
-            // Actualizar la vista
+            // Recargar el mapa completo desde el servidor para reflejar los cambios
+            console.log('🔄 Recargando datos del servidor para reflejar cambios...');
+            // Pequeño delay para asegurar que el servidor haya procesado todos los cambios
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await loadMapaCompleto();
+            // Actualizar la ubicación seleccionada con los nuevos datos
             await actualizarUbicacionSeleccionada();
 
         } catch (error) {
@@ -301,6 +354,31 @@ const MapPage = () => {
             toast({
                 title: "Error",
                 description: "Error inesperado al procesar los cambios",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Función para manejar el botón "Recargar Vista"
+    const handleRecargarVista = async () => {
+        setIsLoading(true);
+        try {
+            console.log('Recargando vista completa...');
+            await loadMapaCompleto();
+            await actualizarUbicacionSeleccionada();
+            // Incrementar la clave para forzar re-render
+            setShelfGridKey(prev => prev + 1);
+            toast({
+                title: "Vista actualizada",
+                description: "Los datos se han recargado desde el servidor",
+            });
+        } catch (error) {
+            console.error('Error al recargar vista:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo recargar la vista",
                 variant: "destructive",
             });
         } finally {
@@ -452,13 +530,14 @@ const MapPage = () => {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={actualizarUbicacionSeleccionada}
+                                                            onClick={handleRecargarVista}
                                                             disabled={isLoading}
                                                         >
                                                             {isLoading ? "Actualizando..." : "Recargar Vista"}
                                                         </Button>
                                                     </div>
                                                     <ShelfGrid 
+                                                        key={`shelf-grid-${shelfGridKey}`}
                                                         filas={selectedLocation.mueble.filas || 3} 
                                                         columnas={selectedLocation.mueble.columnas || 4}
                                                         onDrop={handleDrop}

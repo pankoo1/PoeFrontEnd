@@ -31,6 +31,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const [canvasKey, setCanvasKey] = useState(0); // Para forzar re-render de overlays
     const { toast } = useToast();
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationFrameRef = useRef<number>();
     const cellSize = 40;
 
     const cargarMapa = async () => {
@@ -127,48 +128,247 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 }
             }
             
-            // PASO 2: Dibujar la ruta optimizada del endpoint si existe
+            // PASO 2: Dibujar la ruta optimizada del endpoint con mejoras visuales
             if (rutaOptimizada) {
-                console.log('[MapViewer] Dibujando ruta del endpoint:', rutaOptimizada);
-                
                 // NUEVO: Manejo de la estructura de muebles_rutas del endpoint
                 if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
-                    console.log('[MapViewer] Dibujando ruta desde muebles_rutas');
                     
-                    // Primero dibujar la ruta global si existe
-                    if (rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 1) {
-                        ctx.strokeStyle = '#3b82f6'; // azul
-                        ctx.lineWidth = 3;
+                    // DEFINICIÓN UNIFICADA DE PALETA DE COLORES PARA RUTAS Y MUEBLES
+                    const paletaSegmentos = [
+                        { 
+                            inicio: 'hsl(158, 64%, 65%)', 
+                            fin: 'hsl(158, 64%, 45%)', 
+                            conexion: 'hsl(158, 64%, 52%)',
+                            primary: 'hsl(158, 64%, 52%)', 
+                            light: 'hsl(158, 64%, 65%)', 
+                            dark: 'hsl(158, 64%, 40%)' 
+                        }, // Verde corporativo
+                        { 
+                            inicio: 'hsl(213, 94%, 78%)', 
+                            fin: 'hsl(213, 94%, 55%)', 
+                            conexion: 'hsl(213, 94%, 68%)',
+                            primary: 'hsl(213, 94%, 68%)', 
+                            light: 'hsl(213, 94%, 78%)', 
+                            dark: 'hsl(213, 94%, 50%)' 
+                        }, // Azul logística
+                        { 
+                            inicio: 'hsl(43, 96%, 70%)', 
+                            fin: 'hsl(43, 96%, 45%)', 
+                            conexion: 'hsl(43, 96%, 56%)',
+                            primary: 'hsl(43, 96%, 56%)', 
+                            light: 'hsl(43, 96%, 70%)', 
+                            dark: 'hsl(43, 96%, 45%)' 
+                        }, // Naranja energético
+                        { 
+                            inicio: 'hsl(285, 85%, 75%)', 
+                            fin: 'hsl(285, 85%, 45%)', 
+                            conexion: 'hsl(285, 85%, 60%)',
+                            primary: 'hsl(285, 85%, 60%)', 
+                            light: 'hsl(285, 85%, 75%)', 
+                            dark: 'hsl(285, 85%, 45%)' 
+                        }, // Púrpura
+                        { 
+                            inicio: 'hsl(12, 76%, 75%)', 
+                            fin: 'hsl(12, 76%, 45%)', 
+                            conexion: 'hsl(12, 76%, 61%)',
+                            primary: 'hsl(12, 76%, 61%)', 
+                            light: 'hsl(12, 76%, 75%)', 
+                            dark: 'hsl(12, 76%, 45%)' 
+                        }, // Rojo coral
+                        { 
+                            inicio: 'hsl(195, 78%, 65%)', 
+                            fin: 'hsl(195, 78%, 35%)', 
+                            conexion: 'hsl(195, 78%, 49%)',
+                            primary: 'hsl(195, 78%, 49%)', 
+                            light: 'hsl(195, 78%, 65%)', 
+                            dark: 'hsl(195, 78%, 35%)' 
+                        }, // Cian
+                    ];
+                    
+                    // MEJORA 1: Dibujar rutas segmentadas por mueble con gradientes
+                    if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
+                        
+                        let posicionActual = { x: 0, y: 0 }; // Punto de inicio
+                        let puntosConexion: Array<{ x: number, y: number, color: string }> = []; // Para dibujar después
+                        
+                        // PASO 1: Dibujar todas las líneas de ruta primero
+                        rutaOptimizada.muebles_rutas.forEach((mueble: any, index: number) => {
+                            if (mueble.ruta_optimizada_mueble && mueble.ruta_optimizada_mueble.length > 0) {
+                                const rutaMueble = mueble.ruta_optimizada_mueble;
+                                const colorInfo = paletaSegmentos[index % paletaSegmentos.length];
+                                
+                                // Crear gradiente para este segmento
+                                const inicioX = posicionActual.x * cellW + cellW / 2;
+                                const inicioY = posicionActual.y * cellH + cellH / 2;
+                                const ultimoPaso = rutaMueble[rutaMueble.length - 1];
+                                const finX = ultimoPaso.x * cellW + cellW / 2;
+                                const finY = ultimoPaso.y * cellH + cellH / 2;
+                                
+                                const gradienteSegmento = ctx.createLinearGradient(inicioX, inicioY, finX, finY);
+                                gradienteSegmento.addColorStop(0, colorInfo.inicio);
+                                gradienteSegmento.addColorStop(1, colorInfo.fin);
+                                
+                                // Dibujar segmento de ruta hacia este mueble con gradiente
+                                ctx.strokeStyle = gradienteSegmento;
+                                ctx.lineWidth = 4;
+                                ctx.lineCap = 'round';
+                                ctx.lineJoin = 'round';
+                                ctx.setLineDash([]);
+                                
+                                ctx.beginPath();
+                                // Empezar desde la posición actual
+                                ctx.moveTo(inicioX, inicioY);
+                                
+                                // Dibujar el segmento completo
+                                rutaMueble.forEach((paso: any) => {
+                                    ctx.lineTo(paso.x * cellW + cellW / 2, paso.y * cellH + cellH / 2);
+                                });
+                                ctx.stroke();
+                                
+                                // Guardar información del punto de conexión para dibujarlo después
+                                if (rutaMueble.length > 0 && index < rutaOptimizada.muebles_rutas.length - 1) {
+                                    puntosConexion.push({
+                                        x: finX,
+                                        y: finY,
+                                        color: colorInfo.conexion
+                                    });
+                                }
+                                
+                                // Actualizar posición para el siguiente segmento
+                                posicionActual = { x: ultimoPaso.x, y: ultimoPaso.y };
+                            }
+                        });
+                        
+                        // PASO 2: Dibujar puntos de conexión encima de las líneas
+                        puntosConexion.forEach((punto) => {
+                            // Punto de conexión con gradiente sutil
+                            const conexionGradient = ctx.createRadialGradient(punto.x, punto.y, 0, punto.x, punto.y, 10);
+                            conexionGradient.addColorStop(0, 'hsl(0, 84%, 70%)'); // Rojo claro
+                            conexionGradient.addColorStop(0.7, 'hsl(0, 84%, 60%)'); // Rojo medio
+                            conexionGradient.addColorStop(1, 'hsl(0, 84%, 50%)'); // Rojo oscuro
+                            
+                            ctx.fillStyle = conexionGradient;
+                            ctx.beginPath();
+                            ctx.arc(punto.x, punto.y, 10, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // Borde blanco elegante
+                            ctx.strokeStyle = 'hsl(0, 0%, 100%)';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(punto.x, punto.y, 10, 0, Math.PI * 2);
+                            ctx.stroke();
+                        });
+                        
+                        // PASO 3: Punto FINAL de la ruta completa
+                        if (rutaOptimizada.muebles_rutas.length > 0) {
+                            const ultimoMueble = rutaOptimizada.muebles_rutas[rutaOptimizada.muebles_rutas.length - 1];
+                            if (ultimoMueble.ruta_optimizada_mueble && ultimoMueble.ruta_optimizada_mueble.length > 0) {
+                                const ultimaRuta = ultimoMueble.ruta_optimizada_mueble;
+                                const puntoFinal = ultimaRuta[ultimaRuta.length - 1];
+                                const finalX = puntoFinal.x * cellW + cellW / 2;
+                                const finalY = puntoFinal.y * cellH + cellH / 2;
+                                
+                                // Punto FINAL con estilo distintivo (verde éxito)
+                                const finalGradient = ctx.createRadialGradient(finalX, finalY, 0, finalX, finalY, 12);
+                                finalGradient.addColorStop(0, 'hsl(120, 65%, 75%)'); // Verde éxito claro
+                                finalGradient.addColorStop(0.7, 'hsl(120, 65%, 55%)'); // Verde éxito medio
+                                finalGradient.addColorStop(1, 'hsl(120, 65%, 35%)'); // Verde éxito oscuro
+                                
+                                ctx.fillStyle = finalGradient;
+                                ctx.beginPath();
+                                ctx.arc(finalX, finalY, 12, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Borde blanco grueso
+                                ctx.strokeStyle = 'hsl(0, 0%, 100%)';
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                ctx.arc(finalX, finalY, 12, 0, Math.PI * 2);
+                                ctx.stroke();
+                                
+                                // Icono de finalización
+                                ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                                ctx.font = 'bold 14px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText('✓', finalX, finalY);
+                                
+                                // Etiqueta "FIN"
+                                ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
+                                ctx.font = 'bold 10px Arial';
+                                ctx.fillText('FIN', finalX, finalY + 25);
+                            }
+                        }
+                    }
+                    // FALLBACK: Ruta global única si no hay rutas segmentadas
+                    else if (rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 1) {
+                        const coordenadas = rutaOptimizada.coordenadas_ruta_global;
+                        
+                        // Línea principal con gradiente corporativo simple
+                        const routeGradient = ctx.createLinearGradient(
+                            coordenadas[0].x * cellW, coordenadas[0].y * cellH,
+                            coordenadas[coordenadas.length-1].x * cellW, coordenadas[coordenadas.length-1].y * cellH
+                        );
+                        
+                        // Gradiente corporativo simple
+                        routeGradient.addColorStop(0, 'hsl(158, 64%, 52%)');    // Verde corporativo
+                        routeGradient.addColorStop(0.5, 'hsl(213, 94%, 68%)'); // Azul logística
+                        routeGradient.addColorStop(1, 'hsl(43, 96%, 56%)');    // Naranja energético
+                        
+                        ctx.strokeStyle = routeGradient;
+                        ctx.lineWidth = 4;
                         ctx.lineCap = 'round';
                         ctx.lineJoin = 'round';
-                        ctx.globalAlpha = 0.6;
+                        ctx.setLineDash([]);
                         
                         ctx.beginPath();
-                        const primeraCoord = rutaOptimizada.coordenadas_ruta_global[0];
-                        ctx.moveTo(primeraCoord.x * cellW + cellW / 2, primeraCoord.y * cellH + cellH / 2);
-                        
-                        rutaOptimizada.coordenadas_ruta_global.forEach((coord: any, index: number) => {
+                        ctx.moveTo(coordenadas[0].x * cellW + cellW / 2, coordenadas[0].y * cellH + cellH / 2);
+                        coordenadas.forEach((coord: any, index: number) => {
                             if (index > 0) {
                                 ctx.lineTo(coord.x * cellW + cellW / 2, coord.y * cellH + cellH / 2);
                             }
                         });
-                        
                         ctx.stroke();
-                        ctx.globalAlpha = 1.0;
                     }
                     
-                    // Dibujar punto de inicio (verde)
-                    ctx.fillStyle = '#22c55e'; // verde
+                    // MEJORA 2: Punto de inicio simple
+                    const startX = 0 * cellW + cellW / 2;
+                    const startY = 0 * cellH + cellH / 2;
+                    
+                    // Círculo principal con gradiente corporativo
+                    const startGradient = ctx.createRadialGradient(startX-2, startY-2, 0, startX, startY, 12);
+                    startGradient.addColorStop(0, 'hsl(158, 64%, 60%)'); // Verde claro
+                    startGradient.addColorStop(0.7, 'hsl(158, 64%, 52%)'); // Verde corporativo
+                    startGradient.addColorStop(1, 'hsl(158, 64%, 45%)');   // Verde oscuro
+                    
+                    ctx.fillStyle = startGradient;
                     ctx.beginPath();
-                    ctx.arc(0 * cellW + cellW / 2, 0 * cellH + cellH / 2, 8, 0, Math.PI * 2);
+                    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
+                    
+                    // Borde elegante
+                    ctx.strokeStyle = 'hsl(0, 0%, 100%)'; // Blanco
                     ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
                     ctx.stroke();
                     
-                    // Dibujar marcadores para cada mueble en la ruta
+                    // Icono de inicio
+                    ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🏠', startX, startY);
+                    
+                    // Etiqueta "INICIO"
+                    ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText('INICIO', startX, startY + 25);
+                    
+                    // MEJORA 3: Dibujar marcadores de destino con colores sincronizados
                     let numeroMueble = 1;
-                    rutaOptimizada.muebles_rutas.forEach((mueble: any) => {
+                    rutaOptimizada.muebles_rutas.forEach((mueble: any, index: number) => {
                         // Encontrar la ubicación del mueble en el mapa
                         const ubicacionMueble = ubicaciones.find(u => 
                             u.mueble && u.mueble.id_mueble === mueble.id_mueble
@@ -178,31 +378,73 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             const x = ubicacionMueble.x * cellW + cellW / 2;
                             const y = ubicacionMueble.y * cellH + cellH / 2;
                             
-                            // Marcador del mueble (círculo azul con número)
-                            ctx.fillStyle = '#2563eb'; // azul más oscuro
+                            // Usar la misma paleta unificada para marcadores
+                            const colorMueble = paletaSegmentos[index % paletaSegmentos.length];
+                            
+                            // MARCADOR DE DESTINO CON COLORES SINCRONIZADOS
+                            // Base del punto con gradiente del color del segmento
+                            const destGradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+                            destGradient.addColorStop(0, colorMueble.light);
+                            destGradient.addColorStop(0.7, colorMueble.primary);
+                            destGradient.addColorStop(1, colorMueble.dark);
+                            
+                            // Punto principal de destino
+                            ctx.fillStyle = destGradient;
                             ctx.beginPath();
-                            ctx.arc(x, y, 12, 0, Math.PI * 2);
+                            ctx.arc(x, y, 20, 0, Math.PI * 2);
                             ctx.fill();
-                            ctx.strokeStyle = '#ffffff';
-                            ctx.lineWidth = 2;
+                            
+                            // Borde blanco elegante
+                            ctx.strokeStyle = 'hsl(0, 0%, 100%)';
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 20, 0, Math.PI * 2);
                             ctx.stroke();
                             
-                            // Número del mueble
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = 'bold 10px Arial';
+                            // NÚMERO DEL ORDEN más grande y visible
+                            ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                            ctx.font = 'bold 18px Arial';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
                             ctx.fillText(numeroMueble.toString(), x, y);
                             
+                            // BADGE DE PRODUCTOS (esquina superior derecha)
+                            const numProductos = mueble.detalle_tareas?.length || 0;
+                            if (numProductos > 0) {
+                                const badgeX = x + 15;
+                                const badgeY = y - 15;
+                                
+                                // Badge con color accent (naranja energético)
+                                const badgeGradient = ctx.createRadialGradient(badgeX, badgeY, 0, badgeX, badgeY, 10);
+                                badgeGradient.addColorStop(0, 'hsl(43, 96%, 60%)'); // Naranja claro
+                                badgeGradient.addColorStop(1, 'hsl(43, 96%, 50%)'); // Naranja oscuro
+                                
+                                ctx.fillStyle = badgeGradient;
+                                ctx.beginPath();
+                                ctx.arc(badgeX, badgeY, 10, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Borde blanco del badge
+                                ctx.strokeStyle = 'hsl(0, 0%, 100%)';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.arc(badgeX, badgeY, 10, 0, Math.PI * 2);
+                                ctx.stroke();
+                                
+                                // Número de productos
+                                ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                                ctx.font = 'bold 12px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(numProductos.toString(), badgeX, badgeY);
+                            }
+                            
                             numeroMueble++;
                         }
                     });
-                    
-                    console.log(`[MapViewer] Dibujados ${numeroMueble - 1} muebles en la ruta`);
                 } 
                 // BACKWARD COMPATIBILITY: Mantener soporte para estructura antigua
                 else if (rutaOptimizada.detalle_tareas) {
-                    console.log('[MapViewer] Dibujando ruta desde detalle_tareas (compatibilidad)');
                     
                     const puntosReposicion = rutaOptimizada.detalle_tareas || [];
                     
@@ -270,18 +512,25 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             }
                         });
                         
-                        console.log('[MapViewer] Ruta del endpoint (compatibilidad) dibujada exitosamente');
+                        // Ruta de compatibilidad dibujada
                     }
                 }
-            } else {
-                console.log('[MapViewer] No hay ruta del endpoint para dibujar');
             }
             
-            console.log('[MapViewer] Canvas dibujado exitosamente');
+            // Canvas dibujado
         };
         
         // Dibujar inicialmente
         redrawCanvas();
+        
+        // Si hay ruta optimizada, iniciar animación continua
+        if (rutaOptimizada) {
+            const animate = () => {
+                redrawCanvas();
+                animationFrameRef.current = requestAnimationFrame(animate);
+            };
+            animationFrameRef.current = requestAnimationFrame(animate);
+        }
         
         // Pequeño delay para asegurar que el canvas esté listo antes de los overlays
         const timeoutId = setTimeout(() => {
@@ -300,6 +549,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(timeoutId);
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
         };
     }, [mapa, ubicaciones, rutaOptimizada]); // Dependencias del efecto del canvas
 

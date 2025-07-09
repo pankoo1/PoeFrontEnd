@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Producto } from '@/types/producto';
 
 interface CeldaProducto {
@@ -46,7 +46,17 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
 
     // Efecto para cargar productos pre-asignados
     useEffect(() => {
-        console.log('ShelfGrid - Actualizando productos pre-asignados:', puntosPreAsignados);
+        console.log('ShelfGrid - Actualizando productos pre-asignados:', {
+            totalPuntos: puntosPreAsignados.length,
+            puntosConProductos: puntosPreAsignados.filter(p => p.producto !== null).length,
+            detalles: puntosPreAsignados.map(p => ({
+                id: p.id_punto,
+                nivel: p.nivel,
+                estanteria: p.estanteria,
+                tieneProducto: !!p.producto,
+                nombreProducto: p.producto?.nombre || 'Sin producto'
+            }))
+        });
         const productosPreAsignados = puntosPreAsignados
             .filter(punto => punto.producto !== null)
             .map(punto => {
@@ -63,7 +73,17 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                 };
             });
         setProductosAsignados(productosPreAsignados);
+        console.log('ShelfGrid - Productos asignados actualizados:', productosPreAsignados.length);
     }, [puntosPreAsignados]);
+
+    // Efecto para resetear el estado interno cuando cambie el mueble actual
+    useEffect(() => {
+        if (muebleActual) {
+            console.log('ShelfGrid - Mueble actualizado, reseteando estado...');
+            setCeldaActiva(null);
+            // Los productos pre-asignados se actualizarán automáticamente por el efecto anterior
+        }
+    }, [muebleActual]);
 
     // Efecto para monitorear cambios en desasignaciones temporales
     useEffect(() => {
@@ -75,17 +95,17 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
         console.log('ShelfGrid - Asignaciones temporales cambiaron:', asignacionesTemporales);
     }, [asignacionesTemporales]);
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
         e.preventDefault();
         setCeldaActiva({ fila, columna });
-    };
+    }, []);
 
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setCeldaActiva(null);
-    };
+    }, []);
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
+    const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
         e.preventDefault();
         setCeldaActiva(null);
         
@@ -124,9 +144,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
         } catch (error) {
             console.error('ShelfGrid - Error en drop:', error);
         }
-    };
+    }, [onDrop]);
 
-    const getProductoEnPosicion = (fila: number, columna: number) => {
+    const getProductoEnPosicion = useCallback((fila: number, columna: number) => {
         if (muebleActual) {
             // Convertir coordenadas del grid (base 0) a coordenadas del backend (base 1)
             const filaBackend = fila + 1;
@@ -174,9 +194,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
         if (productoPreAsignado) return productoPreAsignado;
         
         return null;
-    };
+    }, [muebleActual, desasignacionesTemporales, asignacionesTemporales, productosAsignados]);
 
-    const getCeldaClassName = (fila: number, columna: number) => {
+    const getCeldaClassName = useCallback((fila: number, columna: number) => {
         const productoInfo = getProductoEnPosicion(fila, columna);
         const esActiva = celdaActiva?.fila === fila && celdaActiva?.columna === columna;
         const esTemporal = productoInfo && 'temporal' in productoInfo && productoInfo.temporal;
@@ -216,9 +236,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
         }
         
         return baseClass;
-    };
+    }, [getProductoEnPosicion, celdaActiva]);
 
-    const handleCellClick = (fila: number, columna: number) => {
+    const handleCellClick = useCallback((fila: number, columna: number) => {
         const productoInfo = getProductoEnPosicion(fila, columna);
         if (productoInfo) {
             const esTemporal = 'temporal' in productoInfo && productoInfo.temporal;
@@ -231,7 +251,68 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             // Siempre notificar al componente padre (maneja temporales y permanentes)
             onClearCell?.({ fila, columna });
         }
-    };
+    }, [getProductoEnPosicion, onClearCell]);
+
+    // Memoizar el contenido del grid para evitar re-renders innecesarios
+    const gridContent = useMemo(() => {
+        return Array.from({ length: filas }, (_, fila) =>
+            Array.from({ length: columnas }, (_, columna) => {
+                const productoInfo = getProductoEnPosicion(fila, columna);
+                const esTemporal = productoInfo && 'temporal' in productoInfo && productoInfo.temporal;
+                const esDesasignacionTemporal = productoInfo && 'desasignacionTemporal' in productoInfo && productoInfo.desasignacionTemporal;
+                
+                return (
+                    <div
+                        key={`${fila}-${columna}`}
+                        className={getCeldaClassName(fila, columna)}
+                        onDragOver={(e) => handleDragOver(e, fila, columna)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, fila, columna)}
+                        onClick={() => handleCellClick(fila, columna)}
+                        title={productoInfo 
+                            ? `${productoInfo.producto.nombre} (${productoInfo.producto.unidad_cantidad} ${productoInfo.producto.unidad_tipo})${esTemporal ? ' - TEMPORAL' : esDesasignacionTemporal ? ' - ELIMINAR' : ''} - Click para eliminar`
+                            : `Posición: Fila ${fila + 1}, Columna ${columna + 1}`
+                        }
+                    >
+                        {productoInfo ? (
+                            <div className="p-1 text-center w-full relative">
+                                {esTemporal && (
+                                    <div className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                        T
+                                    </div>
+                                )}
+                                {esDesasignacionTemporal && (
+                                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                        X
+                                    </div>
+                                )}
+                                <div className={`font-medium text-sm truncate px-1 ${esTemporal ? 'text-yellow-700' : esDesasignacionTemporal ? 'text-red-700 line-through' : ''}`}>
+                                    {productoInfo.producto.nombre}
+                                </div>
+                                <div className={`text-xs ${esTemporal ? 'text-yellow-600' : esDesasignacionTemporal ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                    {productoInfo.producto.unidad_cantidad} {productoInfo.producto.unidad_tipo}
+                                </div>
+                                {esTemporal && (
+                                    <div className="text-xs text-yellow-600 font-semibold">
+                                        PENDIENTE
+                                    </div>
+                                )}
+                                {esDesasignacionTemporal && (
+                                    <div className="text-xs text-red-600 font-semibold">
+                                        ELIMINAR
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground">
+                                {`${fila + 1},${columna + 1}`}
+                            </div>
+                        )}
+                    </div>
+                );
+            })
+        ).flat();
+    }, [filas, columnas, getProductoEnPosicion, getCeldaClassName, handleDragOver, handleDragLeave, handleDrop, handleCellClick]);
 
     return (
         <div className={`border rounded-lg p-4 ${className}`}>
@@ -242,63 +323,7 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                     gridTemplateRows: `repeat(${filas}, minmax(80px, 1fr))`,
                 }}
             >
-                {Array.from({ length: filas }, (_, fila) =>
-                    Array.from({ length: columnas }, (_, columna) => {
-                        const productoInfo = getProductoEnPosicion(fila, columna);
-                        const esTemporal = productoInfo && 'temporal' in productoInfo && productoInfo.temporal;
-                        const esDesasignacionTemporal = productoInfo && 'desasignacionTemporal' in productoInfo && productoInfo.desasignacionTemporal;
-                        
-                        return (
-                            <div
-                                key={`${fila}-${columna}`}
-                                className={getCeldaClassName(fila, columna)}
-                                onDragOver={(e) => handleDragOver(e, fila, columna)}
-                                onDragLeave={handleDragLeave}
-                                onDrop={(e) => handleDrop(e, fila, columna)}
-                                onClick={() => handleCellClick(fila, columna)}
-                                title={productoInfo 
-                                    ? `${productoInfo.producto.nombre} (${productoInfo.producto.unidad_cantidad} ${productoInfo.producto.unidad_tipo})${esTemporal ? ' - TEMPORAL' : esDesasignacionTemporal ? ' - ELIMINAR' : ''} - Click para eliminar`
-                                    : `Posición: Fila ${fila + 1}, Columna ${columna + 1}`
-                                }
-                            >
-                                {productoInfo ? (
-                                    <div className="p-1 text-center w-full relative">
-                                        {esTemporal && (
-                                            <div className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                                T
-                                            </div>
-                                        )}
-                                        {esDesasignacionTemporal && (
-                                            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                                X
-                                            </div>
-                                        )}
-                                        <div className={`font-medium text-sm truncate px-1 ${esTemporal ? 'text-yellow-700' : esDesasignacionTemporal ? 'text-red-700 line-through' : ''}`}>
-                                            {productoInfo.producto.nombre}
-                                        </div>
-                                        <div className={`text-xs ${esTemporal ? 'text-yellow-600' : esDesasignacionTemporal ? 'text-red-600' : 'text-muted-foreground'}`}>
-                                            {productoInfo.producto.unidad_cantidad} {productoInfo.producto.unidad_tipo}
-                                        </div>
-                                        {esTemporal && (
-                                            <div className="text-xs text-yellow-600 font-semibold">
-                                                PENDIENTE
-                                            </div>
-                                        )}
-                                        {esDesasignacionTemporal && (
-                                            <div className="text-xs text-red-600 font-semibold">
-                                                ELIMINAR
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-sm text-muted-foreground">
-                                        {`${fila + 1},${columna + 1}`}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
-                ).flat()}
+                {gridContent}
             </div>
             <div className="mt-4 text-sm text-gray-500 text-center">
                 Dimensiones: {filas} filas × {columnas} columnas

@@ -168,7 +168,7 @@ const ReponedorDashboard = () => {
             </div>
           </div>
 
-          {/* Métricas de rendimiento diario */}
+          {/* Métricas de rendimiento */}
           {loading ? (
             <div className="mb-8 p-6 rounded-xl bg-white/90 backdrop-blur-md">
               <p className="text-center text-muted-foreground">Cargando resumen...</p>
@@ -178,6 +178,7 @@ const ReponedorDashboard = () => {
               <p className="text-center text-destructive">{error}</p>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
                 <div className="p-6 text-center">
@@ -239,6 +240,219 @@ const ReponedorDashboard = () => {
                 </div>
               </div>
             </div>
+            {/* Sección de Estadísticas Generales - Diseño Premium */}
+            {estadisticas && (
+              <div className="mt-12 mb-8">
+                {/* Header de estadísticas con efecto glassmorphism */}
+                <div className="mb-8 p-8 rounded-3xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium glass-effect">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 bg-clip-text text-transparent mb-3">
+                        Estadísticas de Rendimiento
+                      </h3>
+                      <p className="text-slate-600 text-lg">Análisis completo de tu actividad y productividad</p>
+                    </div>
+                    <div className="hidden md:flex items-center space-x-2">
+                      <div className="p-4 bg-gradient-to-br from-primary/20 to-primary/30 rounded-2xl border border-primary/20 shadow-lg">
+                        <BarChart3 className="w-10 h-10 text-primary" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Grid de métricas principales con diseño moderno */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                  {/* Tarjeta Total de Tareas */}
+                  <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 border border-emerald-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="p-4 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl border border-emerald-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                          <CheckCircle className="w-8 h-8 text-emerald-600" />
+                        </div>
+                        <div className="text-emerald-500 text-sm font-semibold tracking-wide uppercase">Total</div>
+                      </div>
+                      <div className="text-4xl font-black text-emerald-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                        {estadisticas.total_tareas}
+                      </div>
+                      <div className="text-slate-600 font-medium mb-4">Tareas Realizadas</div>
+                      <div className="flex items-center justify-center">
+                        <span className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-700 border border-emerald-300/50 rounded-full text-sm font-semibold shadow-sm">
+                          📊 Historial Completo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Productos Repuestos */}
+                  <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-blue-50 via-white to-blue-50 border border-blue-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer" style={{animationDelay: '0.1s'}}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl border border-blue-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                          <Package className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <div className="text-blue-500 text-sm font-semibold tracking-wide uppercase">Productos</div>
+                      </div>
+                      <div className="text-4xl font-black text-blue-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                        {estadisticas.total_productos_repuestos}
+                      </div>
+                      <div className="text-slate-600 font-medium mb-4">Productos Repuestos</div>
+                      <div className="flex items-center justify-center">
+                        <span className="px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 border border-blue-300/50 rounded-full text-sm font-semibold shadow-sm">
+                          ✅ Completados
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Promedio por Tarea */}
+                  <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer" style={{animationDelay: '0.2s'}}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl border border-purple-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                          <BarChart3 className="w-8 h-8 text-purple-600" />
+                        </div>
+                        <div className="text-purple-500 text-sm font-semibold tracking-wide uppercase">Promedio</div>
+                      </div>
+                      <div className="text-4xl font-black text-purple-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                        {estadisticas.promedio_productos_por_tarea}
+                      </div>
+                      <div className="text-slate-600 font-medium mb-4">Productos por Tarea</div>
+                      <div className="flex items-center justify-center">
+                        <span className="px-4 py-2 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 border border-purple-300/50 rounded-full text-sm font-semibold shadow-sm">
+                          ⚡ Eficiencia
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid de análisis detallado */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                  {/* Panel de Distribución por Estado - Rediseñado */}
+                  <div className="p-8 rounded-3xl bg-gradient-to-br from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium glass-effect">
+                    <div className="flex items-center mb-8">
+                      <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl border border-slate-300/30 shadow-lg mr-4">
+                        <BarChart3 className="w-6 h-6 text-slate-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-slate-800">Distribución por Estado</h4>
+                        <p className="text-slate-600 text-sm">Análisis de progreso</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(estadisticas.tareas_por_estado).map(([estado, cantidad], index) => {
+                        const estadoConfig = {
+                          pendiente: { 
+                            bg: 'from-amber-50 to-amber-100', 
+                            border: 'border-amber-200', 
+                            text: 'text-amber-700',
+                            icon: '⏳',
+                            shadow: 'shadow-amber-100'
+                          },
+                          en_progreso: { 
+                            bg: 'from-blue-50 to-blue-100', 
+                            border: 'border-blue-200', 
+                            text: 'text-blue-700',
+                            icon: '🚀',
+                            shadow: 'shadow-blue-100'
+                          }, 
+                          completada: { 
+                            bg: 'from-emerald-50 to-emerald-100', 
+                            border: 'border-emerald-200', 
+                            text: 'text-emerald-700',
+                            icon: '✅',
+                            shadow: 'shadow-emerald-100'
+                          },
+                          cancelada: { 
+                            bg: 'from-red-50 to-red-100', 
+                            border: 'border-red-200', 
+                            text: 'text-red-700',
+                            icon: '❌',
+                            shadow: 'shadow-red-100'
+                          }
+                        };
+                        const config = estadoConfig[estado as keyof typeof estadoConfig] || estadoConfig.pendiente;
+                        
+                        return (
+                          <div 
+                            key={estado} 
+                            className={`p-6 rounded-2xl bg-gradient-to-br ${config.bg} border ${config.border} ${config.shadow} shadow-lg hover:scale-105 hover-premium transition-all duration-300 cursor-default shimmer`}
+                            style={{animationDelay: `${index * 0.1}s`}}
+                          >
+                            <div className="text-center">
+                              <div className="text-2xl mb-2">{config.icon}</div>
+                              <div className={`text-sm font-medium ${config.text} opacity-80 mb-2`}>
+                                {estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' ')}
+                              </div>
+                              <div className={`text-3xl font-black ${config.text} metric-number`}>{cantidad}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Panel de Periodo de Actividad - Rediseñado */}
+                  <div className="p-8 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border border-indigo-200/50 backdrop-blur-xl shadow-premium glass-effect">
+                    <div className="flex items-center mb-8">
+                      <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl border border-indigo-300/30 shadow-lg mr-4">
+                        <Calendar className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-indigo-800">Periodo de Actividad</h4>
+                        <p className="text-indigo-600 text-sm">Rango temporal</p>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/50 shadow-lg hover:shadow-xl hover-premium transition-all duration-300 shimmer">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-emerald-600 font-semibold mb-2 flex items-center">
+                              <span className="mr-2">🎯</span>
+                              Primera Tarea
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-800 metric-number">
+                              {estadisticas.periodo_actividad.fecha_primera_tarea 
+                                ? new Date(estadisticas.periodo_actividad.fecha_primera_tarea).toLocaleDateString('es-ES', { 
+                                    day: 'numeric', 
+                                    month: 'short', 
+                                    year: 'numeric' 
+                                  })
+                                : 'Sin datos'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200/50 shadow-lg hover:shadow-xl hover-premium transition-all duration-300 shimmer">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-blue-600 font-semibold mb-2 flex items-center">
+                              <span className="mr-2">🏁</span>
+                              Última Tarea
+                            </div>
+                            <div className="text-2xl font-bold text-blue-800 metric-number">
+                              {estadisticas.periodo_actividad.fecha_ultima_tarea 
+                                ? new Date(estadisticas.periodo_actividad.fecha_ultima_tarea).toLocaleDateString('es-ES', { 
+                                    day: 'numeric', 
+                                    month: 'short', 
+                                    year: 'numeric' 
+                                  })
+                                : 'Sin datos'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            </>
           )}
 
           {/* Herramientas de trabajo */}
@@ -247,7 +461,7 @@ const ReponedorDashboard = () => {
             <p className="text-muted-foreground">Accede a todas las funcionalidades para gestionar tu trabajo diario</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {menuItems.map((item, index) => (
               <Card 
                 key={index} 
@@ -280,7 +494,7 @@ const ReponedorDashboard = () => {
 
           {/* Sección de Estadísticas Generales - Diseño Premium */}
           {estadisticas && (
-            <div className="mb-8">
+            <div className="mt-12 mb-8">
               {/* Header de estadísticas con efecto glassmorphism */}
               <div className="mb-8 p-8 rounded-3xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium glass-effect">
                 <div className="flex items-center justify-between">
@@ -488,9 +702,7 @@ const ReponedorDashboard = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
+            )}
         </main>
       </div>
     </>

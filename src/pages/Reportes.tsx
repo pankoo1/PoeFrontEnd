@@ -464,22 +464,9 @@ const ReportesPage = () => {
               
               <div className="flex gap-2">
                 <Button 
-                  onClick={generarReporte}
-                  disabled={isGeneratingReport || (tipoReporte === 'rendimiento' && !reponedorSeleccionado)}
-                  className="bg-primary hover:bg-primary/90 text-white"
-                >
-                  {isGeneratingReport ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                  )}
-                  Generar
-                </Button>
-                <Button 
-                  variant="outline" 
                   onClick={exportarDatos}
                   disabled={isLoading}
-                  className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                  className="bg-primary hover:bg-primary/90 text-white"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -680,7 +667,7 @@ const ReportesPage = () => {
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Selecciona un tipo de reporte y haz clic en "Generar" para ver los datos</p>
+                      <p>Selecciona un tipo de reporte y haz clic en "Exportar" para descargar los datos</p>
                     </div>
                   )}
                 </div>

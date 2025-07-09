@@ -265,6 +265,22 @@ export interface DashboardResumen {
     fecha_fin: string;
 }
 
+// Tipo para el resumen semanal de estadísticas
+export interface ResumenSemanalEstadisticas {
+    success: boolean;
+    message: string;
+    data: {
+        total_tareas: number;
+        total_productos_repuestos: number;
+        tareas_por_estado: Record<string, number>;
+        periodo_actividad: {
+            fecha_primera_tarea: string | null;
+            fecha_ultima_tarea: string | null;
+        };
+        promedio_productos_por_tarea: number;
+    };
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     private static token: string | null = null;
@@ -606,7 +622,9 @@ export class ApiService {
     // Método público para obtener el mapa de reposición
     static async getMapaReposicion(idMapa?: number): Promise<any> {
         try {
-            const response = await fetch(`${API_ENDPOINTS.mapa}/reposicion${idMapa ? `/${idMapa}` : ''}`, {
+            // Usar el endpoint correcto que ya incluye los puntos de reposición
+            const endpoint = idMapa ? `?id_mapa=${idMapa}` : '';
+            const response = await fetch(`${API_ENDPOINTS.mapa}/reposicion${endpoint}`, {
                 headers: {
                     'Authorization': `Bearer ${this.getToken()}`
                 }
@@ -617,33 +635,9 @@ export class ApiService {
             }
 
             const data = await response.json();
-            console.log('Respuesta del mapa:', data);
+            console.log('Respuesta del mapa (single request):', data);
 
-            // Para cada mueble, obtener sus puntos
-            if (data.ubicaciones) {
-                const ubicacionesConPuntos = await Promise.all(
-                    data.ubicaciones.map(async (ubicacion: any) => {
-                        if (ubicacion.mueble?.id_mueble) {
-                            try {
-                                const puntosData = await this.getMuebleConPuntos(ubicacion.mueble.id_mueble);
-                                return {
-                                    ...ubicacion,
-                                    mueble: {
-                                        ...ubicacion.mueble,
-                                        puntos_reposicion: puntosData.puntos_reposicion || []
-                                    }
-                                };
-                            } catch (error) {
-                                console.error('Error al obtener puntos para mueble:', ubicacion.mueble.id_mueble);
-                                return ubicacion;
-                            }
-                        }
-                        return ubicacion;
-                    })
-                );
-                data.ubicaciones = ubicacionesConPuntos;
-            }
-
+            // El endpoint ya incluye los puntos de reposición, no necesitamos hacer llamadas adicionales
             return data;
         } catch (error) {
             console.error('Error en getMapaReposicion:', error);
@@ -651,6 +645,10 @@ export class ApiService {
         }
     }
 
+    /**
+     * @deprecated Este método ya no es necesario porque el endpoint /mapa/reposicion 
+     * ya incluye los puntos de reposición directamente. Usar getMapaReposicion() en su lugar.
+     */
     static async getMuebleConPuntos(idMueble: number): Promise<any> {
         const response = await fetch(`${API_ENDPOINTS.productos}/${idMueble}/puntos`, {
             headers: {
@@ -1001,6 +999,14 @@ export class ApiService {
 
         return await this.fetchApi<DashboardResumen>(
             `${API_ENDPOINTS.dashboard}/resumen?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener estadísticas generales del reponedor (resumen semanal)
+    static async getResumenSemanalEstadisticas(): Promise<ResumenSemanalEstadisticas> {
+        return await this.fetchApi<ResumenSemanalEstadisticas>(
+            '/reponedor/resumen-semanal/estadisticas',
             { method: 'GET' }
         );
     }
