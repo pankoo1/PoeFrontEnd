@@ -847,37 +847,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             {pasillo.ubicaciones.filter(u => u.punto?.producto).length}
                         </div>
                     )}
-                    
-                    {/* Tooltip mejorado */}
-                    {isHighlightedPasillo && pasillo.ubicaciones[0].objeto?.nombre && (
-                        <div 
-                            style={{
-                                position: 'absolute',
-                                bottom: '100%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: 'rgba(0,0,0,0.9)',
-                                color: 'white',
-                                padding: '8px 12px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                whiteSpace: 'nowrap',
-                                marginBottom: '4px',
-                                zIndex: 10,
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                            }}
-                        >
-                            {pasillo.ubicaciones[0].objeto.nombre}
-                            <div style={{ fontSize: '10px', opacity: 0.8 }}>
-                                {pasillo.ubicaciones.length} sección(es) - {pasillo.esHorizontal ? 'Horizontal' : 'Vertical'}
-                                {modoSupervisor && (
-                                    <div style={{ color: esPasilloDeSup ? '#22c55e' : '#f59e0b' }}>
-                                        {esPasilloDeSup ? '✓ Asignado a tu supervisión' : '⚠ No asignado'}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+
                 </div>
             );
         });

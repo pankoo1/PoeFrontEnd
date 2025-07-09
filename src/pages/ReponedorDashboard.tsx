@@ -48,16 +48,6 @@ const ReponedorDashboard = () => {
       bgClass: 'bg-secondary/10',
       textClass: 'text-secondary',
       hoverClass: 'bg-secondary text-white'
-    },
-    {
-      title: 'Alertas y Notificaciones',
-      subtitle: 'Información importante',
-      description: 'Notificaciones importantes y desvíos de ruta. Mantente informado en tiempo real.',
-      icon: AlertTriangle,
-      path: '/reponedor-alertas',
-      bgClass: 'bg-destructive/10',
-      textClass: 'text-destructive',
-      hoverClass: 'bg-destructive text-white'
     }
   ];
 
@@ -282,7 +272,7 @@ const ReponedorDashboard = () => {
           {estadisticas && (
             <div className="mb-8">
               {/* Header de estadísticas con efecto glassmorphism */}
-              <div className="mb-8 p-8 rounded-3xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium glass-effect">
+              <div className="mb-8 p-8 rounded-3xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 bg-clip-text text-transparent mb-3">
@@ -301,16 +291,16 @@ const ReponedorDashboard = () => {
               {/* Grid de métricas principales con diseño moderno */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 {/* Tarjeta Total de Tareas */}
-                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 border border-emerald-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 border border-emerald-200/50 shadow-premium hover:shadow-3xl transition-all duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-4 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl border border-emerald-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                      <div className="p-4 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl border border-emerald-300/30 shadow-lg">
                         <CheckCircle className="w-8 h-8 text-emerald-600" />
                       </div>
                       <div className="text-emerald-500 text-sm font-semibold tracking-wide uppercase">Total</div>
                     </div>
-                    <div className="text-4xl font-black text-emerald-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                    <div className="text-4xl font-black text-emerald-800 mb-3">
                       {estadisticas.total_tareas}
                     </div>
                     <div className="text-slate-600 font-medium mb-4">Tareas Realizadas</div>
@@ -323,16 +313,16 @@ const ReponedorDashboard = () => {
                 </div>
 
                 {/* Tarjeta Productos Repuestos */}
-                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-blue-50 via-white to-blue-50 border border-blue-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer" style={{animationDelay: '0.1s'}}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-blue-50 via-white to-blue-50 border border-blue-200/50 shadow-premium hover:shadow-3xl transition-all duration-300" style={{animationDelay: '0.1s'}}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl border border-blue-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                      <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl border border-blue-300/30 shadow-lg">
                         <Package className="w-8 h-8 text-blue-600" />
                       </div>
                       <div className="text-blue-500 text-sm font-semibold tracking-wide uppercase">Productos</div>
                     </div>
-                    <div className="text-4xl font-black text-blue-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                    <div className="text-4xl font-black text-blue-800 mb-3">
                       {estadisticas.total_productos_repuestos}
                     </div>
                     <div className="text-slate-600 font-medium mb-4">Productos Repuestos</div>
@@ -345,16 +335,16 @@ const ReponedorDashboard = () => {
                 </div>
 
                 {/* Tarjeta Promedio por Tarea */}
-                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200/50 shadow-premium hover:shadow-3xl hover-premium transition-all duration-500 stagger-animation shimmer" style={{animationDelay: '0.2s'}}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="group relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200/50 shadow-premium hover:shadow-3xl transition-all duration-300" style={{animationDelay: '0.2s'}}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl border border-purple-300/30 shadow-lg group-hover:scale-110 transition-transform duration-300 icon-breathe">
+                      <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl border border-purple-300/30 shadow-lg">
                         <BarChart3 className="w-8 h-8 text-purple-600" />
                       </div>
                       <div className="text-purple-500 text-sm font-semibold tracking-wide uppercase">Promedio</div>
                     </div>
-                    <div className="text-4xl font-black text-purple-800 mb-3 group-hover:scale-105 transition-transform duration-300 metric-number">
+                    <div className="text-4xl font-black text-purple-800 mb-3">
                       {estadisticas.promedio_productos_por_tarea}
                     </div>
                     <div className="text-slate-600 font-medium mb-4">Productos por Tarea</div>
@@ -370,7 +360,7 @@ const ReponedorDashboard = () => {
               {/* Grid de análisis detallado */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
                 {/* Panel de Distribución por Estado - Rediseñado */}
-                <div className="p-8 rounded-3xl bg-gradient-to-br from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium glass-effect">
+                <div className="p-8 rounded-3xl bg-gradient-to-br from-slate-50 via-white to-slate-50 border border-slate-200/50 backdrop-blur-xl shadow-premium">
                   <div className="flex items-center mb-8">
                     <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl border border-slate-300/30 shadow-lg mr-4">
                       <BarChart3 className="w-6 h-6 text-slate-600" />
@@ -417,7 +407,7 @@ const ReponedorDashboard = () => {
                       return (
                         <div 
                           key={estado} 
-                          className={`p-6 rounded-2xl bg-gradient-to-br ${config.bg} border ${config.border} ${config.shadow} shadow-lg hover:scale-105 hover-premium transition-all duration-300 cursor-default shimmer`}
+                          className={`p-6 rounded-2xl bg-gradient-to-br ${config.bg} border ${config.border} ${config.shadow} shadow-lg hover:scale-105 transition-all duration-300 cursor-default`}
                           style={{animationDelay: `${index * 0.1}s`}}
                         >
                           <div className="text-center">
@@ -425,7 +415,7 @@ const ReponedorDashboard = () => {
                             <div className={`text-sm font-medium ${config.text} opacity-80 mb-2`}>
                               {estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' ')}
                             </div>
-                            <div className={`text-3xl font-black ${config.text} metric-number`}>{cantidad}</div>
+                            <div className={`text-3xl font-black ${config.text}`}>{cantidad}</div>
                           </div>
                         </div>
                       );
@@ -434,7 +424,7 @@ const ReponedorDashboard = () => {
                 </div>
 
                 {/* Panel de Periodo de Actividad - Rediseñado */}
-                <div className="p-8 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border border-indigo-200/50 backdrop-blur-xl shadow-premium glass-effect">
+                <div className="p-8 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border border-indigo-200/50 backdrop-blur-xl shadow-premium">
                   <div className="flex items-center mb-8">
                     <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl border border-indigo-300/30 shadow-lg mr-4">
                       <Calendar className="w-6 h-6 text-indigo-600" />
@@ -445,14 +435,14 @@ const ReponedorDashboard = () => {
                     </div>
                   </div>
                   <div className="space-y-6">
-                    <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/50 shadow-lg hover:shadow-xl hover-premium transition-all duration-300 shimmer">
+                    <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-emerald-600 font-semibold mb-2 flex items-center">
                             <span className="mr-2">🎯</span>
                             Primera Tarea
                           </div>
-                          <div className="text-2xl font-bold text-emerald-800 metric-number">
+                          <div className="text-2xl font-bold text-emerald-800">
                             {estadisticas.periodo_actividad.fecha_primera_tarea 
                               ? new Date(estadisticas.periodo_actividad.fecha_primera_tarea).toLocaleDateString('es-ES', { 
                                   day: 'numeric', 
@@ -465,14 +455,14 @@ const ReponedorDashboard = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200/50 shadow-lg hover:shadow-xl hover-premium transition-all duration-300 shimmer">
+                    <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-blue-600 font-semibold mb-2 flex items-center">
                             <span className="mr-2">🏁</span>
                             Última Tarea
                           </div>
-                          <div className="text-2xl font-bold text-blue-800 metric-number">
+                          <div className="text-2xl font-bold text-blue-800">
                             {estadisticas.periodo_actividad.fecha_ultima_tarea 
                               ? new Date(estadisticas.periodo_actividad.fecha_ultima_tarea).toLocaleDateString('es-ES', { 
                                   day: 'numeric', 

@@ -281,8 +281,94 @@ export interface ResumenSemanalEstadisticas {
     };
 }
 
+// Tipo para el rendimiento de reponedores del supervisor
+export interface RendimientoReponedores {
+    success: boolean;
+    message: string;
+    data: {
+        reponedores: Array<{
+            id: number;
+            nombre: string;
+            correo: string;
+            tareas_totales: number;
+            tareas_completadas: number;
+            tasa_completacion: number;
+            tiempo_promedio_horas: number;
+        }>;
+        filtros_aplicados: {
+            fecha_inicio: string | null;
+            fecha_fin: string | null;
+        };
+    };
+}
+
+// Tipo para las estadísticas de productos del supervisor
+export interface EstadisticasProductos {
+    success: boolean;
+    message: string;
+    data: {
+        productos: Array<{
+            id: number;
+            nombre: string;
+            codigo_unico: string;
+            unidad_tipo: string;
+            total_reposiciones: number;
+            total_cantidad: number;
+            puntos_diferentes: number;
+            cantidad_promedio: number;
+        }>;
+        productos_mas_frecuentes: Array<{
+            id: number;
+            nombre: string;
+            frecuencia_reposicion: number;
+        }>;
+        resumen: {
+            total_productos: number;
+            total_reposiciones: number;
+            total_cantidad: number;
+        };
+        filtros_aplicados: {
+            fecha_inicio: string | null;
+            fecha_fin: string | null;
+        };
+    };
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
+    // Completar múltiples detalles de tarea (para un mueble completo)
+    static async completarDetallesTareaMueble(detalles: Array<{ id_detalle_tarea: number }>): Promise<{
+        completados: number[];
+        errores: Array<{ id_detalle: number; error: string }>;
+    }> {
+        const resultados = {
+            completados: [] as number[],
+            errores: [] as Array<{ id_detalle: number; error: string }>
+        };
+
+        // Procesar cada detalle individualmente
+        for (const detalle of detalles) {
+            try {
+                await this.completarDetalleTarea(detalle.id_detalle_tarea);
+                resultados.completados.push(detalle.id_detalle_tarea);
+            } catch (error: any) {
+                resultados.errores.push({
+                    id_detalle: detalle.id_detalle_tarea,
+                    error: error.message || 'Error desconocido'
+                });
+            }
+        }
+
+        return resultados;
+    }
+
+    // Completar un detalle de tarea específico
+    static async completarDetalleTarea(idDetalle: number): Promise<{ mensaje: string; id_detalle: number; estado: string }> {
+        return await this.fetchApi<{ mensaje: string; id_detalle: number; estado: string }>(
+            `/detalles-tarea/${idDetalle}/completar`,
+            { method: 'PUT' }
+        );
+    }
     private static token: string | null = null;
     static getMapa: any;
 
@@ -1072,38 +1158,24 @@ export class ApiService {
         );
     }
 
-    // Completar un detalle de tarea específico
-    static async completarDetalleTarea(idDetalle: number): Promise<{ mensaje: string; id_detalle: number; estado: string }> {
-        return await this.fetchApi<{ mensaje: string; id_detalle: number; estado: string }>(
-            `/detalles-tarea/${idDetalle}/completar`,
-            { method: 'PUT' }
-        );
+    // Obtener rendimiento de reponedores (para supervisores)
+    static async getRendimientoReponedores(fecha_inicio?: string, fecha_fin?: string): Promise<RendimientoReponedores> {
+        const params = new URLSearchParams();
+        if (fecha_inicio) params.append('fecha_inicio', fecha_inicio);
+        if (fecha_fin) params.append('fecha_fin', fecha_fin);
+        
+        const url = `/admin/estadisticas/supervisor/reponedores-rendimiento${params.toString() ? `?${params.toString()}` : ''}`;
+        return await this.fetchApi<RendimientoReponedores>(url, { method: 'GET' });
     }
 
-    // Completar múltiples detalles de tarea (para un mueble completo)
-    static async completarDetallesTareaMueble(detalles: Array<{ id_detalle_tarea: number }>): Promise<{
-        completados: number[];
-        errores: Array<{ id_detalle: number; error: string }>;
-    }> {
-        const resultados = {
-            completados: [] as number[],
-            errores: [] as Array<{ id_detalle: number; error: string }>
-        };
-
-        // Procesar cada detalle individualmente
-        for (const detalle of detalles) {
-            try {
-                await this.completarDetalleTarea(detalle.id_detalle_tarea);
-                resultados.completados.push(detalle.id_detalle_tarea);
-            } catch (error: any) {
-                resultados.errores.push({
-                    id_detalle: detalle.id_detalle_tarea,
-                    error: error.message || 'Error desconocido'
-                });
-            }
-        }
-
-        return resultados;
+    // Obtener estadísticas de productos (para supervisores)
+    static async getEstadisticasProductosSupervisor(fecha_inicio?: string, fecha_fin?: string): Promise<EstadisticasProductos> {
+        const params = new URLSearchParams();
+        if (fecha_inicio) params.append('fecha_inicio', fecha_inicio);
+        if (fecha_fin) params.append('fecha_fin', fecha_fin);
+        
+        const url = `/admin/estadisticas/supervisor/productos-estadisticas${params.toString() ? `?${params.toString()}` : ''}`;
+        return await this.fetchApi<EstadisticasProductos>(url, { method: 'GET' });
     }
 
     // Métodos para persistir la tarea activa y ruta en localStorage

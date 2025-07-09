@@ -1,14 +1,49 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { User, Users, Calendar, Map, LogOut, Route, Shield, BarChart3 } from 'lucide-react';
+import { User, Users, Calendar, Map, LogOut, Route, Shield, BarChart3, TrendingUp, Package2 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import { ApiService, RendimientoReponedores, EstadisticasProductos } from '@/services/api';
 
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('userName') || 'Supervisor';
+
+  // Estados para las métricas
+  const [rendimientoReponedores, setRendimientoReponedores] = useState<RendimientoReponedores['data'] | null>(null);
+  const [estadisticasProductos, setEstadisticasProductos] = useState<EstadisticasProductos['data'] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Cargar datos de métricas
+  useEffect(() => {
+    const fetchMetricas = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('🔍 Cargando métricas del supervisor...');
+        const [rendimientoRes, estadisticasRes] = await Promise.all([
+          ApiService.getRendimientoReponedores(),
+          ApiService.getEstadisticasProductosSupervisor()
+        ]);
+        
+        console.log('📊 Respuesta rendimiento:', rendimientoRes);
+        console.log('📈 Respuesta estadísticas:', estadisticasRes);
+        
+        setRendimientoReponedores(rendimientoRes.data);
+        setEstadisticasProductos(estadisticasRes.data);
+      } catch (err: any) {
+        console.error('❌ Error cargando métricas:', err);
+        setError(`Error: ${err.message || 'No se pudieron cargar las métricas'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMetricas();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -173,6 +208,131 @@ const SupervisorDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Nuevas métricas de rendimiento */}
+          {loading ? (
+            <div className="mb-8 p-6 rounded-xl bg-white/90 backdrop-blur-md">
+              <p className="text-center text-muted-foreground">Cargando métricas avanzadas...</p>
+            </div>
+          ) : error ? (
+            <div className="mb-8 p-6 rounded-xl bg-destructive/10 border border-destructive/30">
+              <p className="text-center text-destructive">{error}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Card de Rendimiento de Reponedores */}
+              <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-4 rounded-xl bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-300">
+                      <TrendingUp className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Rendimiento del Equipo</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Métricas de desempeño</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {rendimientoReponedores && rendimientoReponedores.reponedores && rendimientoReponedores.reponedores.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+                          <div className="text-2xl font-bold text-blue-600">{rendimientoReponedores.reponedores.length}</div>
+                          <div className="text-sm text-blue-600/70">Reponedores Activos</div>
+                        </div>
+                        <div className="text-center p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+                          <div className="text-2xl font-bold text-green-600">
+                            {rendimientoReponedores.reponedores.length > 0 
+                              ? (rendimientoReponedores.reponedores.reduce((sum, rep) => sum + rep.tasa_completacion, 0) / rendimientoReponedores.reponedores.length).toFixed(1)
+                              : 0
+                            }%
+                          </div>
+                          <div className="text-sm text-green-600/70">Eficiencia Promedio</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+                          <div className="text-lg font-bold text-purple-600">
+                            {rendimientoReponedores.reponedores.reduce((sum, rep) => sum + rep.tareas_totales, 0)}
+                          </div>
+                          <div className="text-xs text-purple-600/70">Tareas Asignadas</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+                          <div className="text-lg font-bold text-orange-600">
+                            {rendimientoReponedores.reponedores.reduce((sum, rep) => sum + rep.tareas_completadas, 0)}
+                          </div>
+                          <div className="text-xs text-orange-600/70">Tareas Completadas</div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground text-center">
+                          Top performer: {
+                            rendimientoReponedores.reponedores.length > 0
+                              ? rendimientoReponedores.reponedores
+                                  .sort((a, b) => b.tasa_completacion - a.tasa_completacion)[0]?.nombre || 'Sin datos'
+                              : 'Sin datos'
+                          }
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-4 text-muted-foreground">
+                      No hay datos de rendimiento disponibles
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Card de Estadísticas de Productos */}
+              <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-4 rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all duration-300">
+                      <Package2 className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Gestión de Productos</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Análisis de reposición</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {estadisticasProductos?.resumen ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200">
+                          <div className="text-2xl font-bold text-emerald-600">{estadisticasProductos.resumen.total_productos || 0}</div>
+                          <div className="text-sm text-emerald-600/70">Productos Gestionados</div>
+                        </div>
+                        <div className="text-center p-4 rounded-lg bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200">
+                          <div className="text-2xl font-bold text-cyan-600">{estadisticasProductos.resumen.total_reposiciones || 0}</div>
+                          <div className="text-sm text-cyan-600/70">Total Reposiciones</div>
+                        </div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+                        <div className="text-lg font-bold text-indigo-600">{estadisticasProductos.resumen.total_cantidad || 0}</div>
+                        <div className="text-xs text-indigo-600/70">Total Cantidad Repuesta</div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground text-center">
+                          Top producto: {
+                            estadisticasProductos.productos_mas_frecuentes && estadisticasProductos.productos_mas_frecuentes.length > 0
+                              ? estadisticasProductos.productos_mas_frecuentes[0].nombre
+                              : 'Sin datos'
+                          }
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-4 text-muted-foreground">
+                      No hay datos de productos disponibles
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Módulos de gestión */}
           <div className="mb-6">
