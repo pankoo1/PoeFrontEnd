@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ClipboardList, Search, Edit, Home, CheckCircle2, Clock, AlertTriangle, UserX } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Search, Home, CheckCircle2, Clock } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
 import Logo from '@/components/Logo';
-import TareaForm from '../components/forms/TareaForm';
+import { ApiService } from '@/services/api';
 
 const AdminTareasPage = () => {
   const navigate = useNavigate();
@@ -20,53 +18,41 @@ const AdminTareasPage = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
-  const [editingTarea, setEditingTarea] = useState(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const [tareas, setTareas] = useState([
-    { id: 1, reponedor: 'Carlos Martínez', producto: 'Leche Entera 1L', area: 'Lácteos', cantidad: 24, prioridad: 'Alta', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 14:00' },
-    { id: 2, reponedor: 'Ana López', producto: 'Manzanas Rojas', area: 'Frutas y Verduras', cantidad: 50, prioridad: 'Media', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 16:00' },
-    { id: 3, reponedor: 'Miguel Santos', producto: 'Pan Integral', area: 'Panadería', cantidad: 30, prioridad: 'Baja', estado: 'Completada', fechaAsignacion: '2024-01-14', fechaLimite: '2024-01-15 10:00' },
-    { id: 4, reponedor: 'Laura Pérez', producto: 'Pollo Entero', area: 'Carnicería', cantidad: 15, prioridad: 'Alta', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 12:00' },
-  ]);
-
-  const cancelarTarea = (id: number) => {
-    setTareas(tareas.map(tarea => {
-      if (tarea.id === id) {
-        return { ...tarea, estado: 'Cancelada' };
-      }
-      return tarea;
-    }));
-    toast({
-      title: "Tarea cancelada",
-      description: "La tarea ha sido cancelada exitosamente",
-    });
-  };
-
-  const editarTarea = (tarea) => {
-    setEditingTarea(tarea);
-    setEditDialogOpen(true);
-  };
-
-  const guardarEdicion = () => {
-    setTareas(tareas.map(tarea => 
-      tarea.id === editingTarea.id ? editingTarea : tarea
-    ));
-    setEditDialogOpen(false);
-    setEditingTarea(null);
-    toast({
-      title: "Tarea actualizada",
-      description: `La tarea de ${editingTarea.producto} ha sido actualizada`,
-    });
-  };
+  const [tareas, setTareas] = useState([]);
+  const [loadingTareas, setLoadingTareas] = useState(true);
+  const [errorTareas, setErrorTareas] = useState<string | null>(null);
 
   const filteredTareas = tareas.filter(tarea => {
-    const matchesSearch = tarea.reponedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.area.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase() === filtroEstado;
+    const matchesSearch = tarea.supervisor_a_cargo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.producto?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesEstado = filtroEstado === 'todos' || tarea.estado?.toLowerCase() === filtroEstado;
     return matchesSearch && matchesEstado;
   });
+
+  // Cargar tareas del backend al montar el componente
+  useEffect(() => {
+    const cargarTareas = async () => {
+      setLoadingTareas(true);
+      setErrorTareas(null);
+      try {
+        const tareasData = await ApiService.getAllTareas();
+        setTareas(tareasData);
+      } catch (error: any) {
+        console.error('Error al cargar tareas:', error);
+        setErrorTareas('No se pudieron cargar las tareas');
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las tareas del sistema",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingTareas(false);
+      }
+    };
+
+    cargarTareas();
+  }, []);
 
   return (
     <>
@@ -134,7 +120,7 @@ const AdminTareasPage = () => {
           </div>
 
           {/* Estadísticas de tareas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
               <div className="p-6 text-center">
                 <div className="flex items-center justify-center mb-4">
@@ -157,7 +143,7 @@ const AdminTareasPage = () => {
                     <CheckCircle2 className="w-8 h-8 text-success" />
                   </div>
                 </div>
-                <div className="metric-value text-success">{tareas.filter(t => t.estado === 'Completada').length}</div>
+                <div className="metric-value text-success">{tareas.filter(t => t.estado?.toLowerCase() === 'completada').length}</div>
                 <div className="metric-label">Completadas</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
@@ -172,25 +158,10 @@ const AdminTareasPage = () => {
                     <Clock className="w-8 h-8 text-warning" />
                   </div>
                 </div>
-                <div className="metric-value text-warning">{tareas.filter(t => t.estado === 'En Progreso').length}</div>
+                <div className="metric-value text-warning">{tareas.filter(t => t.estado?.toLowerCase() === 'en progreso' || t.estado?.toLowerCase() === 'enprogreso').length}</div>
                 <div className="metric-label">En Progreso</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="badge-warning">Activas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-destructive/15 to-destructive/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.3s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-destructive/30 rounded-full group-hover:bg-destructive/40 transition-all duration-300">
-                    <AlertTriangle className="w-8 h-8 text-destructive" />
-                  </div>
-                </div>
-                <div className="metric-value text-destructive">{tareas.filter(t => t.prioridad === 'Alta').length}</div>
-                <div className="metric-label">Alta Prioridad</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-destructive/20 text-destructive border border-destructive/40 px-2 py-1 rounded-md text-xs font-medium">⚠ Urgente</span>
                 </div>
               </div>
             </div>
@@ -209,7 +180,6 @@ const AdminTareasPage = () => {
                     <p className="text-sm text-muted-foreground mt-1">Administra todas las tareas del sistema</p>
                   </div>
                 </div>
-                <TareaForm />
               </div>
             </CardHeader>
             <CardContent>
@@ -217,7 +187,7 @@ const AdminTareasPage = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
-                    placeholder="Buscar tareas por reponedor, producto o área..."
+                    placeholder="Buscar tareas por supervisor a cargo o producto..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 border-2 border-primary/20 focus:border-primary/50 transition-colors"
@@ -241,183 +211,62 @@ const AdminTareasPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Reponedor</TableHead>
+                      <TableHead>Supervisor a Cargo</TableHead>
                       <TableHead>Producto</TableHead>
-                      <TableHead>Área</TableHead>
-                      <TableHead>Cantidad</TableHead>
-                      <TableHead>Prioridad</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Fecha Límite</TableHead>
-                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTareas.map((tarea) => (
-                      <TableRow key={tarea.id} className="hover:bg-primary/5 transition-colors">
-                        <TableCell className="font-medium">{tarea.reponedor}</TableCell>
-                        <TableCell>{tarea.producto}</TableCell>
-                        <TableCell>{tarea.area}</TableCell>
-                        <TableCell>{tarea.cantidad}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="outline"
-                            className={
-                              tarea.prioridad === 'Alta' ? 'bg-destructive/20 text-destructive border-destructive/40' :
-                              tarea.prioridad === 'Media' ? 'bg-warning/20 text-warning border-warning/40' :
-                              'bg-success/20 text-success border-success/40'
-                            }
-                          >
-                            {tarea.prioridad}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="outline"
-                            className={
-                              tarea.estado === 'Completada' ? 'bg-success/20 text-success border-success/40' :
-                              tarea.estado === 'En Progreso' ? 'bg-warning/20 text-warning border-warning/40' :
-                              tarea.estado === 'Cancelada' ? 'bg-destructive/20 text-destructive border-destructive/40' :
-                              'bg-muted/20 text-muted-foreground border-muted/40'
-                            }
-                          >
-                            {tarea.estado}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{tarea.fechaLimite}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => editarTarea(tarea)}
-                              className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                            >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Editar
-                            </Button>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => cancelarTarea(tarea.id)}
-                            >
-                              Cancelar
-                            </Button>
+                    {loadingTareas ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                            <span>Cargando tareas...</span>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : errorTareas ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-destructive">
+                          {errorTareas}
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredTareas.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                          No se encontraron tareas
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredTareas.map((tarea) => (
+                        <TableRow key={tarea.id} className="hover:bg-primary/5 transition-colors">
+                          <TableCell className="font-medium">{tarea.supervisor_a_cargo || 'Sin asignar'}</TableCell>
+                          <TableCell>{tarea.producto || 'Sin producto'}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline"
+                              className={
+                                tarea.estado?.toLowerCase() === 'completada' ? 'bg-success/20 text-success border-success/40' :
+                                tarea.estado?.toLowerCase() === 'en progreso' || tarea.estado?.toLowerCase() === 'enprogreso' ? 'bg-warning/20 text-warning border-warning/40' :
+                                tarea.estado?.toLowerCase() === 'cancelada' ? 'bg-destructive/20 text-destructive border-destructive/40' :
+                                'bg-muted/20 text-muted-foreground border-muted/40'
+                              }
+                            >
+                              {tarea.estado || 'Sin estado'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
             </CardContent>
           </Card>
 
-        {/* Dialog para editar tarea */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Editar Tarea</DialogTitle>
-            </DialogHeader>
-            {editingTarea && (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-reponedor" className="text-right">Reponedor</Label>
-                  <Select value={editingTarea.reponedor} onValueChange={(value) => setEditingTarea({...editingTarea, reponedor: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Carlos Martínez">Carlos Martínez</SelectItem>
-                      <SelectItem value="Ana López">Ana López</SelectItem>
-                      <SelectItem value="Miguel Santos">Miguel Santos</SelectItem>
-                      <SelectItem value="Laura Pérez">Laura Pérez</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-producto" className="text-right">Producto</Label>
-                  <Input
-                    id="edit-producto"
-                    value={editingTarea.producto}
-                    onChange={(e) => setEditingTarea({...editingTarea, producto: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-area" className="text-right">Área</Label>
-                  <Select value={editingTarea.area} onValueChange={(value) => setEditingTarea({...editingTarea, area: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Lácteos">Lácteos</SelectItem>
-                      <SelectItem value="Frutas y Verduras">Frutas y Verduras</SelectItem>
-                      <SelectItem value="Panadería">Panadería</SelectItem>
-                      <SelectItem value="Carnicería">Carnicería</SelectItem>
-                      <SelectItem value="Bebidas">Bebidas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-cantidad" className="text-right">Cantidad</Label>
-                  <Input
-                    id="edit-cantidad"
-                    type="number"
-                    value={editingTarea.cantidad}
-                    onChange={(e) => setEditingTarea({...editingTarea, cantidad: parseInt(e.target.value)})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-prioridad" className="text-right">Prioridad</Label>
-                  <Select value={editingTarea.prioridad} onValueChange={(value) => setEditingTarea({...editingTarea, prioridad: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Alta">Alta</SelectItem>
-                      <SelectItem value="Media">Media</SelectItem>
-                      <SelectItem value="Baja">Baja</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-estado" className="text-right">Estado</Label>
-                  <Select value={editingTarea.estado} onValueChange={(value) => setEditingTarea({...editingTarea, estado: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pendiente">Pendiente</SelectItem>
-                      <SelectItem value="En Progreso">En Progreso</SelectItem>
-                      <SelectItem value="Completada">Completada</SelectItem>
-                      <SelectItem value="Cancelada">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-fecha" className="text-right">Fecha Límite</Label>
-                  <Input
-                    id="edit-fecha"
-                    value={editingTarea.fechaLimite}
-                    onChange={(e) => setEditingTarea({...editingTarea, fechaLimite: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={guardarEdicion}>
-                    Guardar Cambios
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </main>
-    </div>
+        </main>
+      </div>
     </>
   );
 };

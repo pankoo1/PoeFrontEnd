@@ -52,15 +52,24 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [editingProduct, mode]);
 
-  // Cargar supervisores solo en modo create
+  // Cargar supervisores para modo create y edit
   useEffect(() => {
     if (mode === 'create') {
       ApiService.getUsuarios().then(usuarios => {
         const supervisoresFiltrados = usuarios.filter(u => u.rol && u.rol.toLowerCase() === 'supervisor');
         setSupervisores(supervisoresFiltrados.map(s => ({ id_usuario: s.id_usuario, nombre: s.nombre })));
       });
+    } else if (mode === 'edit') {
+      // En modo edición, cargar todos los supervisores disponibles
+      ApiService.getSupervisores().then(supervisores => {
+        setSupervisores(supervisores.map(s => ({ id_usuario: s.id_usuario, nombre: s.nombre })));
+      });
+      // Establecer el supervisor actual del producto
+      if (editingProduct?.id_usuario) {
+        setSupervisorId(parseInt(editingProduct.id_usuario));
+      }
     }
-  }, [mode]);
+  }, [mode, editingProduct]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +87,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
         const updateData: UpdateProductoData = {
           nombre: formData.nombre,
           categoria: formData.categoria,
-          codigo_unico: formData.codigo_unico
+          codigo_unico: formData.codigo_unico,
+          unidad_tipo: formData.unidad_tipo,
+          unidad_cantidad: formData.unidad_cantidad,
+          id_usuario: supervisorId || undefined
         };
         const updatedProduct = await ApiService.updateProducto(editingProduct.id_producto, updateData) as Producto;
         onProductUpdated?.(updatedProduct);
@@ -171,7 +183,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <Select 
                 value={formData.unidad_tipo} 
                 onValueChange={(value) => setFormData({...formData, unidad_tipo: value})}
-                disabled={mode === 'edit'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tipo" />
@@ -196,20 +207,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 value={formData.unidad_cantidad}
                 onChange={(e) => setFormData({...formData, unidad_cantidad: parseInt(e.target.value)})}
                 required
-                disabled={mode === 'edit'}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="codigo_unico">Código de Producto {mode === 'create' ? '(opcional)' : ''}</Label>
+            <Label htmlFor="codigo_unico">Código de Producto</Label>
             <Input
               id="codigo_unico"
               value={formData.codigo_unico}
               onChange={(e) => setFormData({...formData, codigo_unico: e.target.value})}
-              disabled={mode === 'edit'}
             />
           </div>
-          {mode === 'create' && (
+          {(mode === 'create' || mode === 'edit') && (
             <div className="space-y-2">
               <Label htmlFor="supervisor">Supervisor asignado</Label>
               <Select

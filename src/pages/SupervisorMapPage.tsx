@@ -141,6 +141,20 @@ const SupervisorMapPage = () => {
     // Si el objeto no es un mueble o no tiene puntos de reposición, ignorar
     if (!ubicacion.mueble || !ubicacion.mueble.puntos_reposicion) return;
 
+    // DEBUG: Log para analizar la estructura de puntos
+    console.log('SupervisorMapPage - Mueble seleccionado:', {
+      dimensiones: `${ubicacion.mueble.filas}x${ubicacion.mueble.columnas}`,
+      totalPuntos: ubicacion.mueble.puntos_reposicion.length,
+      puntosConProductos: ubicacion.mueble.puntos_reposicion.filter(p => p.producto).length,
+      coordenadasPuntos: ubicacion.mueble.puntos_reposicion.map(p => ({
+        id: p.id_punto,
+        nivel: p.nivel,
+        estanteria: p.estanteria,
+        tieneProducto: !!p.producto,
+        nombreProducto: p.producto?.nombre || 'Sin producto'
+      }))
+    });
+
     // Verificar si hay productos asignados al supervisor en este mueble
     const tienePuntosAsignados = ubicacion.mueble.puntos_reposicion.some(punto => punto.producto !== null);
     if (!tienePuntosAsignados) {
@@ -573,8 +587,24 @@ const SupervisorMapPage = () => {
                     {Array.from({length: selectedLocation?.mueble?.filas || 3}, (_, fila) => (
                       <div key={fila} className="flex space-x-2">
                         {Array.from({length: selectedLocation?.mueble?.columnas || 4}, (_, columna) => {
-                          const puntoIndex = fila * (selectedLocation?.mueble?.columnas || 4) + columna;
-                          const punto = selectedLocation?.mueble?.puntos_reposicion?.[puntoIndex];
+                          // CORREGIDO: Buscar punto por coordenadas reales (nivel y estanteria)
+                          // Convertir coordenadas del grid (base 0) a coordenadas del backend (base 1)
+                          const nivel = fila + 1;
+                          const estanteria = columna + 1;
+                          const punto = selectedLocation?.mueble?.puntos_reposicion?.find(
+                            (p: any) => p.nivel === nivel && p.estanteria === estanteria
+                          );
+                          
+                          // DEBUG: Log para verificar el mapeo correcto (solo para primera fila)
+                          if (fila === 0) {
+                            console.log(`SupervisorMapPage - Grid(${fila},${columna}) -> Backend(${nivel},${estanteria}) -> Punto:`, {
+                              encontrado: !!punto,
+                              id_punto: punto?.id_punto,
+                              tieneProducto: !!punto?.producto,
+                              nombreProducto: punto?.producto?.nombre || 'Sin producto'
+                            });
+                          }
+                          
                           const isSelected = puntosSeleccionados.some(p => p.punto?.id_punto === punto?.id_punto);
                           
                           return (
@@ -603,7 +633,7 @@ const SupervisorMapPage = () => {
                               )}
                               {!punto?.producto && (
                                 <div className="text-xs text-gray-400 text-center pt-2">
-                                  {fila + 1},{columna + 1}
+                                  {nivel},{estanteria}
                                 </div>
                               )}
                             </div>

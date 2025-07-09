@@ -69,13 +69,29 @@ const ProductsPage = () => {
         title: "Producto desactivado",
         description: `${nombre} ha sido marcado como inactivo`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al desactivar producto:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo desactivar el producto",
-        variant: "destructive",
-      });
+      
+      // Manejo específico del error 409 (producto vinculado a tareas activas)
+      if (error.message?.includes('409')) {
+        toast({
+          title: "No se puede eliminar el producto",
+          description: `${nombre} está vinculado a tareas activas de reposición. Complete o cancele las tareas primero.`,
+          variant: "destructive",
+        });
+      } else if (error.message?.includes('403')) {
+        toast({
+          title: "Sin permisos",
+          description: "Solo los administradores pueden eliminar productos",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo desactivar el producto",
+          variant: "destructive",
+        });
+      }
     }
   };
 

@@ -516,6 +516,19 @@ export class ApiService {
         }
     }
 
+    // Método específico para obtener supervisores (solo para administradores)
+    static async getSupervisores(): Promise<Usuario[]> {
+        try {
+            const response = await this.fetchApi<{ total: number; usuarios: Usuario[]; mensaje: string }>(
+                API_ENDPOINTS.supervisores
+            );
+            return response.usuarios || [];
+        } catch (error) {
+            console.error('Error al obtener supervisores:', error);
+            throw error;
+        }
+    }
+
     // Ejemplo de método para obtener productos
     static async getProductos() {
         return await this.fetchApi(API_ENDPOINTS.productos);
@@ -1009,6 +1022,128 @@ export class ApiService {
             '/reponedor/resumen-semanal/estadisticas',
             { method: 'GET' }
         );
+    }
+
+    // Completar un detalle de tarea específico
+    static async completarDetalleTarea(idDetalle: number): Promise<{ mensaje: string; id_detalle: number; estado: string }> {
+        return await this.fetchApi<{ mensaje: string; id_detalle: number; estado: string }>(
+            `/detalles-tarea/${idDetalle}/completar`,
+            { method: 'PUT' }
+        );
+    }
+
+    // Completar múltiples detalles de tarea (para un mueble completo)
+    static async completarDetallesTareaMueble(detalles: Array<{ id_detalle_tarea: number }>): Promise<{
+        completados: number[];
+        errores: Array<{ id_detalle: number; error: string }>;
+    }> {
+        const resultados = {
+            completados: [] as number[],
+            errores: [] as Array<{ id_detalle: number; error: string }>
+        };
+
+        // Procesar cada detalle individualmente
+        for (const detalle of detalles) {
+            try {
+                await this.completarDetalleTarea(detalle.id_detalle_tarea);
+                resultados.completados.push(detalle.id_detalle_tarea);
+            } catch (error: any) {
+                resultados.errores.push({
+                    id_detalle: detalle.id_detalle_tarea,
+                    error: error.message || 'Error desconocido'
+                });
+            }
+        }
+
+        return resultados;
+    }
+
+    // Métodos para persistir la tarea activa y ruta en localStorage
+    static setTareaActiva(idTarea: number): void {
+        localStorage.setItem('tarea_activa', idTarea.toString());
+    }
+
+    static getTareaActiva(): number | null {
+        const idTarea = localStorage.getItem('tarea_activa');
+        return idTarea ? parseInt(idTarea, 10) : null;
+    }
+
+    static clearTareaActiva(): void {
+        localStorage.removeItem('tarea_activa');
+        localStorage.removeItem('ruta_optimizada');
+        localStorage.removeItem('detalles_completados');
+    }
+
+    static setRutaOptimizada(ruta: any): void {
+        localStorage.setItem('ruta_optimizada', JSON.stringify(ruta));
+    }
+
+    static getRutaOptimizada(): any | null {
+        const ruta = localStorage.getItem('ruta_optimizada');
+        return ruta ? JSON.parse(ruta) : null;
+    }
+
+    static setDetallesCompletados(detalles: number[]): void {
+        localStorage.setItem('detalles_completados', JSON.stringify(detalles));
+    }
+
+    static getDetallesCompletados(): number[] {
+        const detalles = localStorage.getItem('detalles_completados');
+        return detalles ? JSON.parse(detalles) : [];
+    }
+
+    // Consultar ruta optimizada por ID de tarea
+    static async getRutaOptimizadaPorTarea(idTarea: number, algoritmo: string = 'vecino_mas_cercano'): Promise<any> {
+        return await this.fetchApi<any>(
+            `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener detalle de una tarea específica
+    static async getDetalleTarea(idTarea: number): Promise<any> {
+        return await this.fetchApi<any>(
+            `/tareas/${idTarea}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener todas las tareas para el administrador
+    static async getAllTareas(): Promise<any[]> {
+        try {
+            // Primero intentamos obtener todas las tareas del reponedor actual para ver la estructura
+            const tareasReponedor = await this.getTareasReponedor();
+            
+            // Transformar los datos para que coincidan con lo que espera el frontend del admin
+            const tareasTransformadas = tareasReponedor.map((tarea: any) => ({
+                id: tarea.id_tarea,
+                supervisor_a_cargo: 'Sin asignar', // Por ahora, esto se puede mejorar cuando tengamos endpoint específico
+                producto: tarea.productos?.[0]?.nombre || 'Sin producto',
+                estado: tarea.estado
+            }));
+
+            return tareasTransformadas;
+        } catch (error) {
+            console.error('Error al obtener tareas:', error);
+            
+            // Fallback: intentar obtener tareas específicas por ID
+            const tareas = [];
+            for (let i = 1; i <= 5; i++) {
+                try {
+                    const tarea = await this.getDetalleTarea(i);
+                    tareas.push({
+                        id: tarea.id_tarea,
+                        supervisor_a_cargo: tarea.supervisor,
+                        producto: tarea.productos?.[0]?.nombre || 'Sin producto',
+                        estado: tarea.estado
+                    });
+                } catch (error) {
+                    // Tarea no encontrada o sin acceso, continuar
+                    continue;
+                }
+            }
+            return tareas;
+        }
     }
 }
 

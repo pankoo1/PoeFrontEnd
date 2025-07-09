@@ -21,4 +21,7 @@ export interface UpdateProductoData {
     nombre?: string;
     categoria?: string;
     codigo_unico?: string;
+    unidad_tipo?: string;
+    unidad_cantidad?: number;
+    id_usuario?: number;
 }

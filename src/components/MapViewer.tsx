@@ -615,6 +615,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         if (!mapa || ubicaciones.length === 0) return [];
 
         const mueblesUbicaciones = ubicaciones.filter(u => u.mueble);
+        console.log('🗺️ MapViewer - Agrupando muebles:', {
+            totalMuebles: mueblesUbicaciones.length,
+            muebles: mueblesUbicaciones.map(m => ({
+                x: m.x,
+                y: m.y,
+                objeto: m.objeto?.nombre,
+                tipo: m.objeto?.tipo
+            }))
+        });
+        
         const pasillos: Array<{
             x: number;
             y: number;
@@ -629,11 +639,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             const key = `${mueble.x}-${mueble.y}`;
             if (procesados.has(key)) return;
 
-            // Buscar muebles contiguos horizontalmente
+            // CORREGIDO: Buscar muebles contiguos horizontalmente DEL MISMO OBJETO
             const pasilloHorizontal = [mueble];
             let x = mueble.x + 1;
             while (x < mapa.ancho) {
-                const siguienteMueble = mueblesUbicaciones.find(u => u.x === x && u.y === mueble.y);
+                const siguienteMueble = mueblesUbicaciones.find(u => 
+                    u.x === x && 
+                    u.y === mueble.y &&
+                    u.objeto?.nombre === mueble.objeto?.nombre && // Verificar mismo nombre
+                    u.objeto?.tipo === mueble.objeto?.tipo && // Verificar mismo tipo
+                    !!u.objeto && !!mueble.objeto // Verificar que ambos objetos existan
+                );
                 if (siguienteMueble) {
                     pasilloHorizontal.push(siguienteMueble);
                     x++;
@@ -642,11 +658,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 }
             }
 
-            // Buscar muebles contiguos verticalmente
+            // CORREGIDO: Buscar muebles contiguos verticalmente DEL MISMO OBJETO
             const pasilloVertical = [mueble];
             let y = mueble.y + 1;
             while (y < mapa.alto) {
-                const siguienteMueble = mueblesUbicaciones.find(u => u.x === mueble.x && u.y === y);
+                const siguienteMueble = mueblesUbicaciones.find(u => 
+                    u.x === mueble.x && 
+                    u.y === y &&
+                    u.objeto?.nombre === mueble.objeto?.nombre && // Verificar mismo nombre
+                    u.objeto?.tipo === mueble.objeto?.tipo && // Verificar mismo tipo
+                    !!u.objeto && !!mueble.objeto // Verificar que ambos objetos existan
+                );
                 if (siguienteMueble) {
                     pasilloVertical.push(siguienteMueble);
                     y++;
@@ -675,6 +697,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 ubicaciones: pasilloFinal,
                 esHorizontal
             });
+        });
+
+        console.log('🗺️ MapViewer - Pasillos agrupados:', {
+            totalPasillos: pasillos.length,
+            pasillos: pasillos.map(p => ({
+                x: p.x,
+                y: p.y,
+                width: p.width,
+                height: p.height,
+                esHorizontal: p.esHorizontal,
+                objeto: p.ubicaciones[0]?.objeto?.nombre,
+                tipo: p.ubicaciones[0]?.objeto?.tipo,
+                totalUbicaciones: p.ubicaciones.length
+            }))
         });
 
         return pasillos;

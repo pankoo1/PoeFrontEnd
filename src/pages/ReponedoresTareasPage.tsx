@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, CheckCircle, Home, CheckCircle2, Clock, ClipboardList, Target, User } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, Home, CheckCircle2, Clock, AlertTriangle, ClipboardList, Target, User } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
@@ -18,23 +18,58 @@ interface Tarea {
   producto: string;
   area: string;
   cantidad: number;
-  estado: string;
-  usuario_a_cargo: string;
+  prioridad: 'Alta' | 'Media' | 'Baja';
+  estado: 'Pendiente' | 'En Progreso' | 'Completada';
+  fechaAsignacion: string;
+  fechaLimite: string;
+  supervisor: string;
 }
 
-const TareasPage = () => {
+const ReponedoresTareasPage = () => {
   const navigate = useNavigate();
   const navigateToDashboard = useNavigateToDashboard();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
 
-  const [tareas, setTareas] = useState<Tarea[]>([]);
+  const [tareas, setTareas] = useState<Tarea[]>([
+    { id: 1, producto: 'Leche Entera 1L', area: 'Lácteos', cantidad: 24, prioridad: 'Alta', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 14:00', supervisor: 'María García' },
+    { id: 2, producto: 'Manzanas Rojas', area: 'Frutas y Verduras', cantidad: 50, prioridad: 'Media', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 16:00', supervisor: 'Juan Pérez' },
+    { id: 3, producto: 'Pan Integral', area: 'Panadería', cantidad: 30, prioridad: 'Baja', estado: 'Completada', fechaAsignacion: '2024-01-14', fechaLimite: '2024-01-15 10:00', supervisor: 'Ana López' },
+    { id: 4, producto: 'Pollo Entero', area: 'Carnicería', cantidad: 15, prioridad: 'Alta', estado: 'En Progreso', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 12:00', supervisor: 'Carlos Ruiz' },
+    { id: 5, producto: 'Yogurt Natural', area: 'Lácteos', cantidad: 40, prioridad: 'Media', estado: 'Pendiente', fechaAsignacion: '2024-01-15', fechaLimite: '2024-01-15 18:00', supervisor: 'María García' },
+  ]);
+
+  const completarTarea = (id: number) => {
+    setTareas(tareas.map(tarea => {
+      if (tarea.id === id) {
+        return { ...tarea, estado: 'Completada' as const };
+      }
+      return tarea;
+    }));
+    toast({
+      title: "Tarea completada",
+      description: "La tarea ha sido marcada como completada",
+    });
+  };
+
+  const iniciarTarea = (id: number) => {
+    setTareas(tareas.map(tarea => {
+      if (tarea.id === id) {
+        return { ...tarea, estado: 'En Progreso' as const };
+      }
+      return tarea;
+    }));
+    toast({
+      title: "Tarea iniciada",
+      description: "La tarea ha sido marcada como en progreso",
+    });
+  };
 
   const filteredTareas = tareas.filter(tarea => {
     const matchesSearch = tarea.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tarea.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.usuario_a_cargo.toLowerCase().includes(searchTerm.toLowerCase());
+                         tarea.supervisor.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filtroEstado === 'todos' || tarea.estado.toLowerCase().replace(' ', '') === filtroEstado;
     return matchesSearch && matchesEstado;
   });
@@ -105,7 +140,7 @@ const TareasPage = () => {
           </div>
 
           {/* Estadísticas de tareas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
               <div className="p-6 text-center">
                 <div className="flex items-center justify-center mb-4">
@@ -128,7 +163,7 @@ const TareasPage = () => {
                     <CheckCircle2 className="w-8 h-8 text-success" />
                   </div>
                 </div>
-                <div className="metric-value text-success">{tareas.filter(t => t.estado.toLowerCase() === 'completada').length}</div>
+                <div className="metric-value text-success">{tareas.filter(t => t.estado === 'Completada').length}</div>
                 <div className="metric-label">Completadas</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
@@ -143,10 +178,25 @@ const TareasPage = () => {
                     <Clock className="w-8 h-8 text-warning" />
                   </div>
                 </div>
-                <div className="metric-value text-warning">{tareas.filter(t => t.estado.toLowerCase() === 'en progreso' || t.estado.toLowerCase() === 'enprogreso').length}</div>
+                <div className="metric-value text-warning">{tareas.filter(t => t.estado === 'En Progreso').length}</div>
                 <div className="metric-label">En Progreso</div>
                 <div className="mt-3 flex items-center justify-center">
                   <span className="badge-warning">Activas</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-destructive/15 to-destructive/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.3s'}}>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 bg-destructive/30 rounded-full group-hover:bg-destructive/40 transition-all duration-300">
+                    <AlertTriangle className="w-8 h-8 text-destructive" />
+                  </div>
+                </div>
+                <div className="metric-value text-destructive">{tareas.filter(t => t.prioridad === 'Alta').length}</div>
+                <div className="metric-label">Alta Prioridad</div>
+                <div className="mt-3 flex items-center justify-center">
+                  <span className="bg-destructive/20 text-destructive border border-destructive/40 px-2 py-1 rounded-md text-xs font-medium">⚠ Urgente</span>
                 </div>
               </div>
             </div>
@@ -172,7 +222,7 @@ const TareasPage = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
-                    placeholder="Buscar tareas por producto, área o usuario a cargo..."
+                    placeholder="Buscar tareas por producto, área o supervisor..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 border-2 border-primary/20 focus:border-primary/50 transition-colors"
@@ -198,8 +248,11 @@ const TareasPage = () => {
                       <TableHead>Producto</TableHead>
                       <TableHead>Área</TableHead>
                       <TableHead>Cantidad</TableHead>
+                      <TableHead>Prioridad</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Usuario a Cargo</TableHead>
+                      <TableHead>Supervisor</TableHead>
+                      <TableHead>Fecha Límite</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -212,8 +265,20 @@ const TareasPage = () => {
                           <Badge 
                             variant="outline"
                             className={
-                              tarea.estado.toLowerCase() === 'completada' ? 'bg-success/20 text-success border-success/40' :
-                              tarea.estado.toLowerCase() === 'en progreso' || tarea.estado.toLowerCase() === 'enprogreso' ? 'bg-warning/20 text-warning border-warning/40' :
+                              tarea.prioridad === 'Alta' ? 'bg-destructive/20 text-destructive border-destructive/40' :
+                              tarea.prioridad === 'Media' ? 'bg-warning/20 text-warning border-warning/40' :
+                              'bg-success/20 text-success border-success/40'
+                            }
+                          >
+                            {tarea.prioridad}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              tarea.estado === 'Completada' ? 'bg-success/20 text-success border-success/40' :
+                              tarea.estado === 'En Progreso' ? 'bg-warning/20 text-warning border-warning/40' :
                               'bg-muted/20 text-muted-foreground border-muted/40'
                             }
                           >
@@ -223,7 +288,40 @@ const TareasPage = () => {
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <User className="w-4 h-4 text-muted-foreground" />
-                            <span>{tarea.usuario_a_cargo}</span>
+                            <span>{tarea.supervisor}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{tarea.fechaLimite}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {tarea.estado === 'Pendiente' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => iniciarTarea(tarea.id)}
+                                className="border-2 border-warning/30 hover:bg-warning/10 hover:border-warning/50 transition-all duration-200"
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                Iniciar
+                              </Button>
+                            )}
+                            {tarea.estado === 'En Progreso' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => completarTarea(tarea.id)}
+                                className="border-2 border-success/30 hover:bg-success/10 hover:border-success/50 transition-all duration-200"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Completar
+                              </Button>
+                            )}
+                            {tarea.estado === 'Completada' && (
+                              <Badge variant="outline" className="bg-success/20 text-success border-success/40">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Finalizada
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -239,4 +337,4 @@ const TareasPage = () => {
   );
 };
 
-export default TareasPage;
+export default ReponedoresTareasPage;
