@@ -19,16 +19,15 @@ import NotFound from './pages/NotFound';
 import SupervisorDashboard from './pages/SupervisorDashboard';
 import SupervisorProfile from './pages/SupervisorProfile';
 import ReponedoresPage from './pages/ReponedoresPage';
-import TareasPage from './pages/TareasPage';
-import RutasPage from './pages/RutasPage';
 import SupervisorMapPage from './pages/SupervisorMapPage';
+import SupervisorTareas from './pages/SupervisorTareas';
 
 // Reponedor Pages
 import ReponedorDashboard from './pages/ReponedorDashboard';
 import ReponedorProfile from './pages/ReponedorProfile';
 import ReponedorTareas from './pages/ReponedorTareas';
 import ReponedorMapPage from './pages/ReponedorMapPage';
-import ReponedorAlertas from './pages/ReponedorAlertas';
+
 import ReponedorSemanal from './pages/ReponedorSemanal';
 import AdminTareasPage from './pages/AdminTareasPage';
 
@@ -98,14 +97,16 @@ function App() {
             } />
             <Route path="/tareas" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
-                <TareasPage />
+                <SupervisorTareas />
               </ProtectedRoute>
             } />
-            <Route path="/rutas" element={
+            <Route path="/supervisor-tareas" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
-                <RutasPage />
+                <SupervisorTareas />
               </ProtectedRoute>
             } />
+
+
             <Route path="/supervisor-map" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
                 <SupervisorMapPage />
@@ -131,11 +132,6 @@ function App() {
             <Route path="/reponedor-map" element={
               <ProtectedRoute allowedRoles={['reponedor']}>
                 <ReponedorMapPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/reponedor-alertas" element={
-              <ProtectedRoute allowedRoles={['reponedor']}>
-                <ReponedorAlertas />
               </ProtectedRoute>
             } />
             <Route path="/reponedor-semanal" element={

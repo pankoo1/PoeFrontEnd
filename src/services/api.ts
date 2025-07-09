@@ -720,10 +720,36 @@ export class ApiService {
 
     // Métodos para tareas
     static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
-        const url = estado 
-            ? `${API_ENDPOINTS.tareas}/supervisor?estado=${estado}`
+        console.log('🔍 ApiService.getTareasSupervisor - Iniciando petición:', {
+            estado,
+            token: !!this.getToken(),
+            API_ENDPOINTS_tareas: API_ENDPOINTS.tareas,
+            API_URL: API_URL
+        });
+        
+        const params = new URLSearchParams();
+        if (estado && estado !== 'todos') {
+            params.append('estado', estado);
+        }
+        
+        const url = params.toString() 
+            ? `${API_ENDPOINTS.tareas}/supervisor?${params.toString()}`
             : `${API_ENDPOINTS.tareas}/supervisor`;
-        return await this.fetchApi<Tarea[]>(url);
+            
+        console.log('🔍 ApiService.getTareasSupervisor - URL construida:', {
+            url,
+            startsWith_http: url.startsWith('http'),
+            API_ENDPOINTS_tareas: API_ENDPOINTS.tareas
+        });
+            
+        try {
+            const result = await this.fetchApi<Tarea[]>(url, { method: 'GET' });
+            console.log('🎯 ApiService.getTareasSupervisor - Respuesta exitosa:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ ApiService.getTareasSupervisor - Error:', error);
+            throw error;
+        }
     }
 
     static async getTareaById(idTarea: number): Promise<Tarea> {
@@ -762,6 +788,28 @@ export class ApiService {
         return await this.fetchApi(`${API_ENDPOINTS.tareas}/${idTarea}/reponedor`, {
             method: 'PUT',
             body: JSON.stringify({ id_reponedor: idReponedor })
+        });
+    }
+
+    // Asignar reponedor a una tarea
+    static async asignarReponedorATarea(idTarea: number, idReponedor: number): Promise<{
+        mensaje: string;
+        tarea: {
+            id: number;
+            estado: string;
+            reponedor: string;
+        };
+    }> {
+        return await this.fetchApi<{
+            mensaje: string;
+            tarea: {
+                id: number;
+                estado: string;
+                reponedor: string;
+            };
+        }>(`${API_ENDPOINTS.tareas}/${idTarea}/asignar-reponedor`, {
+            method: 'PUT',
+            body: JSON.stringify({ id_reponedor: idReponedor }),
         });
     }
 
