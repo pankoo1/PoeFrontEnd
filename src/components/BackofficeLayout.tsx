@@ -6,7 +6,9 @@ import {
   Activity,
   FileText,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  DollarSign,
+  Receipt
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
@@ -76,16 +78,22 @@ const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
             onClick={() => navigate('/backoffice/empresas')} 
           />
           <SidebarItem 
+            icon={FileText} 
+            label="Cotizaciones" 
+            active={isActive('/backoffice/cotizaciones')} 
+            onClick={() => navigate('/backoffice/cotizaciones')} 
+          />
+          <SidebarItem 
+            icon={Receipt} 
+            label="Facturas" 
+            active={isActive('/backoffice/facturas')} 
+            onClick={() => navigate('/backoffice/facturas')} 
+          />
+          <SidebarItem 
             icon={Activity} 
             label="Auditoría" 
             active={isActive('/backoffice/auditoria')} 
             onClick={() => navigate('/backoffice/auditoria')} 
-          />
-          <SidebarItem 
-            icon={FileText} 
-            label="Reportes" 
-            active={false} 
-            onClick={() => toast({ title: "Próximamente", description: "Módulo en desarrollo" })} 
           />
         </nav>
 

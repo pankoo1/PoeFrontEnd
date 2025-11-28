@@ -207,7 +207,7 @@ const BackofficeAuditoria = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-green-700">
-                    {Object.keys(estadisticas.acciones_por_tipo).length}
+                    {Object.keys(estadisticas.acciones_por_tipo || estadisticas.acciones_mas_frecuentes || {}).length}
                   </div>
                 </CardContent>
               </Card>
@@ -223,11 +223,11 @@ const BackofficeAuditoria = () => {
                   <CardTitle className="text-lg">Acciones Más Frecuentes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {Object.entries(estadisticas.acciones_por_tipo)
-                      .sort((a, b) => b[1] - a[1])
+                  <div className="space-y-3">
+                    {Object.entries(estadisticas.acciones_por_tipo || estadisticas.acciones_mas_frecuentes || {})
+                      .sort((a: any, b: any) => b[1] - a[1])
                       .slice(0, 5)
-                      .map(([accion, cantidad]) => (
+                      .map(([accion, cantidad]: [string, any]) => (
                         <div key={accion} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                           <span className="text-sm font-medium text-gray-700 capitalize">{accion}</span>
                           <span className="text-sm font-bold text-gray-900">{cantidad}</span>
@@ -244,7 +244,7 @@ const BackofficeAuditoria = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {estadisticas.entidades_mas_modificadas
+                    {(estadisticas.entidades_mas_modificadas || [])
                       .slice(0, 5)
                       .map((item) => (
                         <div key={item.entidad} className="flex items-center justify-between p-2 bg-gray-50 rounded">

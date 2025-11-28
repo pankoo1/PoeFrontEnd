@@ -20,6 +20,8 @@ import BackofficeDashboard from './pages/BackofficeDashboard';
 import BackofficeEmpresas from './pages/BackofficeEmpresas';
 import BackofficeEmpresaDetalle from './pages/BackofficeEmpresaDetalle';
 import BackofficeAuditoria from './pages/BackofficeAuditoria';
+import BackofficeCotizaciones from './pages/BackofficeCotizaciones';
+import BackofficeFacturas from './pages/BackofficeFacturas';
 
 // Supervisor Pages
 import SupervisorDashboard from './pages/SupervisorDashboard';
@@ -67,6 +69,16 @@ function App() {
             <Route path="/backoffice/auditoria" element={
               <ProtectedRoute allowedRoles={['superadmin']}>
                 <BackofficeAuditoria />
+              </ProtectedRoute>
+            } />
+            <Route path="/backoffice/cotizaciones" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeCotizaciones />
+              </ProtectedRoute>
+            } />
+            <Route path="/backoffice/facturas" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeFacturas />
               </ProtectedRoute>
             } />
             

@@ -430,13 +430,217 @@ export interface LogAuditoria {
 export interface EstadisticasAuditoria {
     total_logs: number;
     logs_ultimas_24h: number;
+    logs_ultima_semana?: number;
+    acciones_por_tipo: Record<string, number>;  // Agregado para compatibilidad
     acciones_mas_frecuentes: Record<string, number>;
     usuarios_mas_activos: Array<{
-        usuario_id: number;
+        id_usuario?: number;
+        usuario_id?: number;
         nombre: string;
         total_acciones: number;
     }>;
-    entidades_mas_modificadas: Record<string, number>;
+    entidades_mas_modificadas: Array<{
+        entidad: string;
+        total_modificaciones: number;
+    }>;
+}
+
+// ============================================================
+// TIPOS PARA COTIZACIONES
+// ============================================================
+
+export interface CotizacionSolicitar {
+    nombre_contacto: string;
+    email_contacto: string;
+    telefono_contacto?: string;
+    nombre_empresa: string;
+    rut_empresa?: string;
+    cantidad_supervisores: number;
+    cantidad_reponedores: number;
+    cantidad_productos?: number;
+    integraciones_requeridas?: string;
+    comentarios?: string;
+}
+
+export interface CotizacionResponse {
+    id_cotizacion: number;
+    nombre_contacto: string;
+    email_contacto: string;
+    telefono_contacto?: string;
+    nombre_empresa: string;
+    empresa_solicitante: string;  // Alias para nombre_empresa
+    rut_empresa?: string;
+    cantidad_supervisores: number;
+    cantidad_usuarios: number;  // Alias para cantidad total de usuarios
+    cantidad_reponedores: number;
+    cantidad_productos: number;
+    cantidad_tareas: number;
+    cantidad_proyectos: number;
+    integraciones_requeridas?: string;
+    comentarios?: string;
+    mensaje?: string;  // Mensaje del cliente
+    estado: string;
+    precio_sugerido: number;
+    precio_mensual: number;  // Alias para precio_sugerido
+    features_sugeridos?: string;
+    plan_id: number;
+    plan_nombre: string;
+    fecha_solicitud: string;
+    fecha_validez: string;
+    fecha_actualizacion: string;
+    notas_internas?: string;
+}
+
+export interface CotizacionListItem {
+    id_cotizacion: number;
+    nombre_empresa: string;
+    empresa_solicitante: string;  // Alias
+    nombre_contacto: string;
+    email_contacto: string;
+    estado: string;
+    precio_sugerido: number;
+    precio_mensual: number;  // Alias
+    plan_nombre: string;
+    fecha_solicitud: string;
+    fecha_validez: string;
+}
+
+export interface CotizacionUpdate {
+    nombre_contacto?: string;
+    email_contacto?: string;
+    telefono_contacto?: string;
+    empresa_solicitante?: string;
+    plan_id?: number;
+    cantidad_usuarios?: number;
+    cantidad_tareas?: number;
+    cantidad_proyectos?: number;
+    precio_mensual?: number;
+    precio_sugerido?: number;
+    features_sugeridos?: string;
+    notas_internas?: string;
+    estado?: string;
+}
+
+export interface CotizacionStats {
+    total_cotizaciones: number;
+    pendientes: number;
+    en_revision: number;
+    aprobadas: number;
+    rechazadas: number;
+    convertidas: number;
+    por_estado: Record<string, number>;
+    tasa_conversion: number;
+    valor_total_pendiente: number;
+    valor_total_aprobado: number;
+}
+
+export interface CotizacionConvertidaResponse {
+    id_empresa: number;
+    id_plan: number;
+    id_usuario_admin: number;
+    mensaje: string;
+}
+
+// ============================================================
+// TIPOS PARA FACTURACIÓN
+// ============================================================
+
+export interface FacturaItem {
+    descripcion: string;
+    cantidad: number;
+    precio_unitario: number;
+    subtotal: number;
+}
+
+export interface FacturaResponse {
+    id_factura: number;
+    id_empresa: number;
+    nombre_empresa?: string;
+    numero_factura: string;
+    concepto: string;
+    fecha_emision: string;
+    fecha_vencimiento: string;
+    estado: string;
+    items: FacturaItem[];
+    subtotal: number;
+    impuestos: number;
+    descuentos: number;
+    iva: number;
+    monto_total: number;
+    total: number;  // Alias para monto_total
+    notas?: string;
+    fecha_pago?: string;
+    metodo_pago?: string;
+    referencia_pago?: string;
+    motivo_anulacion?: string;
+}
+
+export interface FacturaListItem {
+    id_factura: number;
+    id_empresa?: number;
+    nombre_empresa?: string;
+    numero_factura: string;
+    concepto?: string;
+    periodo_facturado?: string;  // El backend devuelve esto en lugar de concepto
+    fecha_emision: string;
+    fecha_vencimiento: string;
+    estado: string;
+    monto_total?: number;
+    total: number;  // Alias
+}
+
+export interface FacturaGenerar {
+    id_empresa: number;
+    periodo_facturado: string;
+    fecha_vencimiento: string;
+    descripcion?: string;
+}
+
+export interface FacturaCreate {
+    id_empresa: number;
+    concepto: string;
+    fecha_emision: string;
+    fecha_vencimiento: string;
+    items: Array<{
+        descripcion: string;
+        cantidad: number;
+        precio_unitario: number;
+    }>;
+    notas?: string;
+}
+
+export interface FacturaUpdate {
+    concepto?: string;
+    fecha_vencimiento?: string;
+    estado?: string;
+    notas?: string;
+}
+
+export interface FacturaRegistrarPago {
+    fecha_pago: string;
+    metodo_pago: string;
+    referencia_pago?: string;
+}
+
+export interface FacturaStats {
+    total_facturas: number;
+    pendientes?: number;
+    facturas_pendientes: number;  // Alias
+    pagadas?: number;
+    facturas_pagadas: number;  // Alias
+    vencidas?: number;
+    facturas_vencidas: number;  // Alias
+    anuladas?: number;
+    facturas_anuladas: number;  // Alias
+    total_facturado?: number;
+    monto_total_facturado?: number;  // Backend devuelve este nombre
+    total_cobrado?: number;
+    monto_total_cobrado?: number;  // Backend devuelve este nombre
+    total_pendiente?: number;
+    monto_pendiente: number;  // Alias
+    monto_vencido: number;
+    tasa_cobranza?: number;
+    ingresos_mes?: number;
 }
 
 // Clase principal para manejar las llamadas a la API
@@ -1398,6 +1602,309 @@ export class ApiService {
     }
 
     // ============ FIN MÉTODOS DE BACKOFFICE ============
+
+    // ============ MÉTODOS DE COTIZACIONES ============
+
+    // 1) Solicitar cotización (público - sin autenticación)
+    static async solicitarCotizacion(data: CotizacionSolicitar): Promise<CotizacionResponse> {
+        return await this.fetchApi<CotizacionResponse>(
+            '/cotizaciones/solicitar',
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            },
+            false // No requiere autenticación
+        );
+    }
+
+    // 2) Listar cotizaciones con filtros (SuperAdmin)
+    static async listarCotizaciones(
+        estado?: string,
+        skip: number = 0,
+        limit: number = 100
+    ): Promise<CotizacionListItem[]> {
+        const params = new URLSearchParams();
+        if (estado) params.append('estado', estado);
+        params.append('skip', skip.toString());
+        params.append('limit', limit.toString());
+
+        return await this.fetchApi<CotizacionListItem[]>(
+            `/cotizaciones/?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 3) Listar cotizaciones pendientes (SuperAdmin)
+    static async listarCotizacionesPendientes(): Promise<CotizacionListItem[]> {
+        return await this.fetchApi<CotizacionListItem[]>(
+            '/cotizaciones/pendientes',
+            { method: 'GET' }
+        );
+    }
+
+    // 4) Obtener estadísticas de cotizaciones (SuperAdmin)
+    static async getCotizacionesEstadisticas(): Promise<CotizacionStats> {
+        return await this.fetchApi<CotizacionStats>(
+            '/cotizaciones/estadisticas',
+            { method: 'GET' }
+        );
+    }
+
+    // 5) Obtener detalle de cotización (SuperAdmin)
+    static async getCotizacion(idCotizacion: number): Promise<CotizacionResponse> {
+        return await this.fetchApi<CotizacionResponse>(
+            `/cotizaciones/${idCotizacion}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 6) Actualizar cotización (SuperAdmin)
+    static async actualizarCotizacion(
+        idCotizacion: number,
+        data: CotizacionUpdate
+    ): Promise<CotizacionResponse> {
+        return await this.fetchApi<CotizacionResponse>(
+            `/cotizaciones/${idCotizacion}`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 7) Cambiar estado de cotización (SuperAdmin)
+    static async cambiarEstadoCotizacion(
+        idCotizacion: number,
+        nuevoEstado: string
+    ): Promise<{ mensaje: string }> {
+        return await this.fetchApi<{ mensaje: string }>(
+            `/cotizaciones/${idCotizacion}/cambiar-estado`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ nuevo_estado: nuevoEstado }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 8) Convertir cotización aprobada en empresa + plan (SuperAdmin)
+    static async convertirCotizacion(idCotizacion: number): Promise<CotizacionConvertidaResponse> {
+        return await this.fetchApi<CotizacionConvertidaResponse>(
+            `/cotizaciones/${idCotizacion}/convertir`,
+            { method: 'POST' }
+        );
+    }
+
+    // ============ FIN MÉTODOS DE COTIZACIONES ============
+
+    // ============ MÉTODOS DE FACTURACIÓN ============
+
+    // 1) Listar mis facturas (Admin de empresa)
+    static async listarMisFacturas(
+        skip: number = 0,
+        limit: number = 100,
+        estado?: string
+    ): Promise<FacturaListItem[]> {
+        const params = new URLSearchParams();
+        params.append('skip', skip.toString());
+        params.append('limit', limit.toString());
+        if (estado) params.append('estado', estado);
+
+        return await this.fetchApi<FacturaListItem[]>(
+            `/facturas/mis-facturas?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 2) Listar todas las facturas (SuperAdmin)
+    static async listarFacturas(
+        skip: number = 0,
+        limit: number = 100,
+        estado?: string
+    ): Promise<FacturaListItem[]> {
+        const params = new URLSearchParams();
+        params.append('skip', skip.toString());
+        params.append('limit', limit.toString());
+        if (estado) params.append('estado', estado);
+
+        return await this.fetchApi<FacturaListItem[]>(
+            `/facturas/?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 3) Listar facturas pendientes (SuperAdmin)
+    static async listarFacturasPendientes(): Promise<FacturaListItem[]> {
+        return await this.fetchApi<FacturaListItem[]>(
+            '/facturas/pendientes',
+            { method: 'GET' }
+        );
+    }
+
+    // 4) Listar facturas vencidas (SuperAdmin)
+    static async listarFacturasVencidas(): Promise<FacturaListItem[]> {
+        return await this.fetchApi<FacturaListItem[]>(
+            '/facturas/vencidas',
+            { method: 'GET' }
+        );
+    }
+
+    // 5) Obtener estadísticas de facturación (SuperAdmin)
+    static async getFacturasStats(idEmpresa?: number): Promise<FacturaStats> {
+        const params = idEmpresa ? `?id_empresa=${idEmpresa}` : '';
+        return await this.fetchApi<FacturaStats>(
+            `/facturas/stats${params}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 6) Obtener detalle de factura (SuperAdmin o Admin de empresa)
+    static async getFactura(idFactura: number): Promise<FacturaResponse> {
+        return await this.fetchApi<FacturaResponse>(
+            `/facturas/${idFactura}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 7) Generar factura automática (SuperAdmin)
+    static async generarFactura(data: FacturaGenerar): Promise<FacturaResponse> {
+        return await this.fetchApi<FacturaResponse>(
+            '/facturas/generar',
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 8) Crear factura manual (SuperAdmin)
+    static async crearFactura(data: FacturaCreate): Promise<FacturaResponse> {
+        return await this.fetchApi<FacturaResponse>(
+            '/facturas/',
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 9) Actualizar factura (SuperAdmin)
+    static async actualizarFactura(
+        idFactura: number,
+        data: FacturaUpdate
+    ): Promise<FacturaResponse> {
+        return await this.fetchApi<FacturaResponse>(
+            `/facturas/${idFactura}`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 10) Registrar pago de factura (SuperAdmin)
+    static async registrarPagoFactura(
+        idFactura: number,
+        data: FacturaRegistrarPago
+    ): Promise<FacturaResponse> {
+        return await this.fetchApi<FacturaResponse>(
+            `/facturas/${idFactura}/registrar-pago`,
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // 11) Marcar factura como vencida (SuperAdmin)
+    static async marcarFacturaVencida(idFactura: number): Promise<{ mensaje: string }> {
+        return await this.fetchApi<{ mensaje: string }>(
+            `/facturas/${idFactura}/marcar-vencida`,
+            { method: 'POST' }
+        );
+    }
+
+    // 12) Anular factura (SuperAdmin)
+    static async anularFactura(
+        idFactura: number,
+        motivo: string
+    ): Promise<{ mensaje: string }> {
+        return await this.fetchApi<{ mensaje: string }>(
+            `/facturas/${idFactura}/anular`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ motivo }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+    }
+
+    // ============ FIN MÉTODOS DE FACTURACIÓN ============
+
+    // ============ MÉTODOS DE AUDITORÍA AVANZADA ============
+
+    // 1) Obtener historial de actividad de un usuario específico
+    static async getAuditoriaUsuario(
+        idUsuario: number,
+        dias: number = 30,
+        limit: number = 50
+    ): Promise<LogAuditoria[]> {
+        return await this.fetchApi<LogAuditoria[]>(
+            `/auditoria/usuario/${idUsuario}?dias=${dias}&limit=${limit}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 2) Listar acciones registradas
+    static async getAuditoriaAcciones(): Promise<string[]> {
+        return await this.fetchApi<string[]>(
+            '/auditoria/acciones',
+            { method: 'GET' }
+        );
+    }
+
+    // 3) Listar tipos de entidad registrados
+    static async getAuditoriaEntidades(): Promise<string[]> {
+        return await this.fetchApi<string[]>(
+            '/auditoria/entidades',
+            { method: 'GET' }
+        );
+    }
+
+    // 4) Obtener actividad reciente (últimos N minutos)
+    static async getAuditoriaActividadReciente(
+        minutos: number = 60,
+        limit: number = 20
+    ): Promise<LogAuditoria[]> {
+        return await this.fetchApi<LogAuditoria[]>(
+            `/auditoria/actividad-reciente?minutos=${minutos}&limit=${limit}`,
+            { method: 'GET' }
+        );
+    }
+
+    // ============ FIN MÉTODOS DE AUDITORÍA AVANZADA ============
 
     // Métodos para persistir la tarea activa y ruta en localStorage
     static setTareaActiva(idTarea: number): void {
