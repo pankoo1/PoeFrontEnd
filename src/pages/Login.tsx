@@ -32,6 +32,9 @@ const Login = () => {
       // Obtener el rol del usuario y redirigir según corresponda
       const userRole = localStorage.getItem('userRole');
       switch(userRole) {
+        case 'superadmin':
+          navigate('/backoffice');
+          break;
         case 'admin':
           navigate('/dashboard');
           break;

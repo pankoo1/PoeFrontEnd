@@ -334,6 +334,111 @@ export interface EstadisticasProductos {
     };
 }
 
+// ============================================================
+// TIPOS PARA BACKOFFICE (SUPERADMIN)
+// ============================================================
+
+export interface EmpresaBackoffice {
+    id_empresa: number;
+    nombre_empresa: string;
+    rut_empresa: string;
+    direccion?: string;
+    ciudad?: string;
+    region?: string;
+    estado: string;
+    email?: string;
+    telefono?: string;
+    fecha_registro?: string;
+    tiene_plan_activo: boolean;
+    nombre_plan?: string;
+    estado_plan?: string;
+    fecha_vencimiento_plan?: string;
+}
+
+export interface MetricasSistema {
+    total_empresas: number;
+    empresas_activas: number;
+    empresas_inactivas: number;
+    empresas_suspendidas: number;
+    empresas_en_prueba: number;
+    total_usuarios: number;
+    usuarios_activos: number;
+    usuarios_por_rol: Record<string, number>;
+    planes_activos: number;
+    planes_vencidos: number;
+    planes_por_vencer_30d: number;
+    facturas_pendientes: number;
+    facturas_pagadas_mes: number;
+    ingresos_mes_actual: number;
+    ingresos_mes_anterior: number;
+    cotizaciones_pendientes: number;
+    cotizaciones_aprobadas: number;
+    cotizaciones_rechazadas: number;
+    actividades_soporte_abiertas: number;
+    actividades_soporte_cerradas: number;
+}
+
+export interface ResumenEmpresa {
+    id_empresa: number;
+    nombre_empresa: string;
+    rut_empresa: string;
+    estado: string;
+    tiene_plan: boolean;
+    plan_activo: boolean;
+    precio_mensual: number | null;
+    fecha_vencimiento: string | null;
+    total_usuarios: number;
+    usuarios_activos: number;
+    ultima_factura_pagada: string | null;
+    facturas_pendientes: number;
+    actividades_pendientes: number;
+    ultima_actividad: string | null;
+}
+
+export interface ConsumoRecursos {
+    id_empresa: number;
+    nombre_empresa: string;
+    supervisores_limite: number;
+    supervisores_uso: number;
+    supervisores_disponibles: number;
+    reponedores_limite: number;
+    reponedores_uso: number;
+    reponedores_disponibles: number;
+    total_usuarios: number;
+    almacenamiento_usado_mb: number | null;
+    api_calls_mes: number | null;
+}
+
+export interface LogAuditoria {
+    id_log: number;
+    usuario_id?: number;
+    usuario_nombre?: string;
+    usuario_rol?: string;
+    empresa_id?: number;
+    empresa_nombre?: string;
+    entidad: string;
+    id_entidad: number;
+    accion: string;
+    valores_anteriores?: Record<string, any>;
+    valores_nuevos?: Record<string, any>;
+    ip_address?: string;
+    user_agent?: string;
+    timestamp: string;
+    descripcion?: string;
+}
+
+export interface EstadisticasAuditoria {
+    total_logs: number;
+    logs_ultimas_24h: number;
+    acciones_mas_frecuentes: Record<string, number>;
+    usuarios_mas_activos: Array<{
+        usuario_id: number;
+        nombre: string;
+        total_acciones: number;
+    }>;
+    entidades_mas_modificadas: Record<string, number>;
+}
+
 // Clase principal para manejar las llamadas a la API
 export class ApiService {
     // Completar múltiples detalles de tarea (para un mueble completo)
@@ -515,6 +620,7 @@ export class ApiService {
 
             // Mapear el rol del backend al formato del frontend
             const rolMapping: { [key: string]: string } = {
+                'SuperAdmin': 'superadmin',
                 'Administrador': 'admin',
                 'Supervisor': 'supervisor',
                 'Reponedor': 'reponedor'
@@ -1177,6 +1283,121 @@ export class ApiService {
         const url = `/admin/estadisticas/supervisor/productos-estadisticas${params.toString() ? `?${params.toString()}` : ''}`;
         return await this.fetchApi<EstadisticasProductos>(url, { method: 'GET' });
     }
+
+    // ============ MÉTODOS DE BACKOFFICE (SUPERADMIN) ============
+    
+    // 1) Obtener métricas del dashboard del sistema
+    static async getBackofficeMetricas(): Promise<MetricasSistema> {
+        return await this.fetchApi<MetricasSistema>(
+            '/backoffice/dashboard/metricas',
+            { method: 'GET' }
+        );
+    }
+
+    // 2) Listar empresas con filtros y paginación
+    static async getBackofficeEmpresas(
+        estado?: string,
+        skip: number = 0,
+        limit: number = 50
+    ): Promise<EmpresaBackoffice[]> {
+        const params = new URLSearchParams();
+        if (estado) params.append('estado', estado);
+        params.append('skip', skip.toString());
+        params.append('limit', limit.toString());
+
+        return await this.fetchApi<EmpresaBackoffice[]>(
+            `/backoffice/empresas?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 3) Obtener resumen de una empresa específica
+    static async getBackofficeResumenEmpresa(idEmpresa: number): Promise<ResumenEmpresa> {
+        return await this.fetchApi<ResumenEmpresa>(
+            `/backoffice/empresas/${idEmpresa}/resumen`,
+            { method: 'GET' }
+        );
+    }
+
+    // 4) Obtener consumo de recursos de una empresa
+    static async getBackofficeConsumoEmpresa(idEmpresa: number): Promise<ConsumoRecursos> {
+        return await this.fetchApi<ConsumoRecursos>(
+            `/backoffice/empresas/${idEmpresa}/consumo`,
+            { method: 'GET' }
+        );
+    }
+
+    // 5) Obtener logs de auditoría con filtros
+    static async getBackofficeAuditoriaLogs(
+        usuario_id?: number,
+        empresa_id?: number,
+        entidad?: string,
+        accion?: string,
+        fecha_desde?: string,
+        fecha_hasta?: string,
+        skip: number = 0,
+        limit: number = 50
+    ): Promise<LogAuditoria[]> {
+        const params = new URLSearchParams();
+        if (usuario_id) params.append('usuario_id', usuario_id.toString());
+        if (empresa_id) params.append('empresa_id', empresa_id.toString());
+        if (entidad) params.append('entidad', entidad);
+        if (accion) params.append('accion', accion);
+        if (fecha_desde) params.append('fecha_desde', fecha_desde);
+        if (fecha_hasta) params.append('fecha_hasta', fecha_hasta);
+        params.append('skip', skip.toString());
+        params.append('limit', limit.toString());
+
+        return await this.fetchApi<LogAuditoria[]>(
+            `/backoffice/auditoria/logs?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 6) Obtener estadísticas de auditoría
+    static async getBackofficeEstadisticasAuditoria(): Promise<EstadisticasAuditoria> {
+        return await this.fetchApi<EstadisticasAuditoria>(
+            '/backoffice/auditoria/estadisticas',
+            { method: 'GET' }
+        );
+    }
+
+    // 7) Obtener historial de cambios de una entidad específica
+    static async getBackofficeHistorialEntidad(
+        entidad: string,
+        idEntidad: number,
+        limit: number = 50
+    ): Promise<LogAuditoria[]> {
+        return await this.fetchApi<LogAuditoria[]>(
+            `/backoffice/auditoria/entidad/${entidad}/${idEntidad}?limit=${limit}`,
+            { method: 'GET' }
+        );
+    }
+
+    // 8) Suspender una empresa
+    static async suspenderEmpresa(
+        idEmpresa: number,
+        motivo: string
+    ): Promise<{ mensaje: string }> {
+        if (!motivo || motivo.length < 10) {
+            throw new Error('El motivo debe tener al menos 10 caracteres');
+        }
+
+        return await this.fetchApi<{ mensaje: string }>(
+            `/backoffice/empresas/${idEmpresa}/suspender?motivo=${encodeURIComponent(motivo)}`,
+            { method: 'POST' }
+        );
+    }
+
+    // 9) Reactivar una empresa suspendida
+    static async reactivarEmpresa(idEmpresa: number): Promise<{ mensaje: string }> {
+        return await this.fetchApi<{ mensaje: string }>(
+            `/backoffice/empresas/${idEmpresa}/reactivar`,
+            { method: 'POST' }
+        );
+    }
+
+    // ============ FIN MÉTODOS DE BACKOFFICE ============
 
     // Métodos para persistir la tarea activa y ruta en localStorage
     static setTareaActiva(idTarea: number): void {

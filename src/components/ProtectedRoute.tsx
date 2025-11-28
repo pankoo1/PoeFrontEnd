@@ -17,7 +17,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
     // Redirigir según el rol
-    if (userRole === 'admin') {
+    if (userRole === 'superadmin') {
+      return <Navigate to="/backoffice" replace />;
+    } else if (userRole === 'admin') {
       return <Navigate to="/dashboard" replace />;
     } else if (userRole === 'supervisor') {
       return <Navigate to="/supervisor-dashboard" replace />;

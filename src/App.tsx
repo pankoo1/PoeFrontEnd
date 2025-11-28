@@ -15,6 +15,12 @@ import MapPage from './pages/MapPage';
 import Reportes from './pages/Reportes';
 import NotFound from './pages/NotFound';
 
+// Backoffice Pages (SuperAdmin)
+import BackofficeDashboard from './pages/BackofficeDashboard';
+import BackofficeEmpresas from './pages/BackofficeEmpresas';
+import BackofficeEmpresaDetalle from './pages/BackofficeEmpresaDetalle';
+import BackofficeAuditoria from './pages/BackofficeAuditoria';
+
 // Supervisor Pages
 import SupervisorDashboard from './pages/SupervisorDashboard';
 import SupervisorProfile from './pages/SupervisorProfile';
@@ -41,6 +47,28 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            
+            {/* Rutas de Backoffice (SuperAdmin) */}
+            <Route path="/backoffice" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/backoffice/empresas" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeEmpresas />
+              </ProtectedRoute>
+            } />
+            <Route path="/backoffice/empresas/:id" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeEmpresaDetalle />
+              </ProtectedRoute>
+            } />
+            <Route path="/backoffice/auditoria" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <BackofficeAuditoria />
+              </ProtectedRoute>
+            } />
             
             {/* Rutas de Administrador */}
             <Route path="/dashboard" element={
