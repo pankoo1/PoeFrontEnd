@@ -63,7 +63,7 @@ const LandingHero = () => {
                 onClick={scrollToContact}
                 className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 text-white text-lg px-8 py-6 group"
               >
-                Solicitar demo gratuita
+                Solicitar cotización gratuita
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
@@ -72,7 +72,7 @@ const LandingHero = () => {
                 onClick={scrollToContact}
                 className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50 text-lg px-8 py-6"
               >
-                Cotizar ahora
+                Ver planes
               </Button>
             </div>
 

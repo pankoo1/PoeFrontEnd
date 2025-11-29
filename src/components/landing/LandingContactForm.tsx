@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
+import { ApiService } from '@/services/api';
 
 interface FormData {
-  nombre: string;
-  apellido: string;
-  email: string;
+  nombreContacto: string;
+  emailContacto: string;
+  telefonoContacto: string;
   nombreEmpresa: string;
-  telefono: string;
-  numeroEmpleados: string;
-  necesitaSoporte: string;
+  rutEmpresa: string;
+  cantidadSupervisores: string;
+  cantidadReponedores: string;
+  cantidadProductos: string;
+  integracionesRequeridas: string;
+  comentarios: string;
   aceptaPoliticas: boolean;
 }
 
@@ -20,13 +25,16 @@ const LandingContactForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    nombre: '',
-    apellido: '',
-    email: '',
+    nombreContacto: '',
+    emailContacto: '',
+    telefonoContacto: '',
     nombreEmpresa: '',
-    telefono: '',
-    numeroEmpleados: '',
-    necesitaSoporte: '',
+    rutEmpresa: '',
+    cantidadSupervisores: '',
+    cantidadReponedores: '',
+    cantidadProductos: '',
+    integracionesRequeridas: '',
+    comentarios: '',
     aceptaPoliticas: false
   });
 
@@ -38,7 +46,7 @@ const LandingContactForm = () => {
     e.preventDefault();
 
     // Validaciones
-    if (!formData.nombre || !formData.apellido || !formData.email || !formData.nombreEmpresa) {
+    if (!formData.nombreContacto || !formData.emailContacto || !formData.nombreEmpresa) {
       toast({
         title: "Campos requeridos",
         description: "Por favor completa todos los campos obligatorios.",
@@ -47,10 +55,19 @@ const LandingContactForm = () => {
       return;
     }
 
-    if (!formData.telefono || formData.telefono.length < 9) {
+    if (!formData.telefonoContacto || formData.telefonoContacto.length < 9) {
       toast({
         title: "Teléfono inválido",
         description: "Por favor ingresa un número de teléfono válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.cantidadSupervisores || !formData.cantidadReponedores) {
+      toast({
+        title: "Información incompleta",
+        description: "Por favor indica la cantidad de supervisores y reponedores.",
         variant: "destructive",
       });
       return;
@@ -68,29 +85,47 @@ const LandingContactForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulación de envío (aquí puedes integrar con tu API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Preparar datos para enviar al backend
+      const cotizacionData = {
+        nombre_contacto: formData.nombreContacto,
+        email_contacto: formData.emailContacto,
+        telefono_contacto: formData.telefonoContacto,
+        nombre_empresa: formData.nombreEmpresa,
+        rut_empresa: formData.rutEmpresa || undefined,
+        cantidad_supervisores: parseInt(formData.cantidadSupervisores),
+        cantidad_reponedores: parseInt(formData.cantidadReponedores),
+        cantidad_productos: formData.cantidadProductos ? parseInt(formData.cantidadProductos) : undefined,
+        integraciones_requeridas: formData.integracionesRequeridas || undefined,
+        comentarios: formData.comentarios || undefined,
+      };
+
+      // Enviar solicitud de cotización al backend
+      const response = await ApiService.solicitarCotizacion(cotizacionData);
 
       toast({
-        title: "¡Solicitud enviada!",
-        description: "Nos pondremos en contacto contigo pronto.",
+        title: "¡Solicitud enviada exitosamente!",
+        description: `Tu cotización #${response.id_cotizacion} ha sido registrada. Nos pondremos en contacto contigo pronto.`,
       });
 
       // Limpiar formulario
       setFormData({
-        nombre: '',
-        apellido: '',
-        email: '',
+        nombreContacto: '',
+        emailContacto: '',
+        telefonoContacto: '',
         nombreEmpresa: '',
-        telefono: '',
-        numeroEmpleados: '',
-        necesitaSoporte: '',
+        rutEmpresa: '',
+        cantidadSupervisores: '',
+        cantidadReponedores: '',
+        cantidadProductos: '',
+        integracionesRequeridas: '',
+        comentarios: '',
         aceptaPoliticas: false
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error al solicitar cotización:', error);
       toast({
-        title: "Error",
-        description: "Hubo un problema al enviar tu solicitud. Intenta nuevamente.",
+        title: "Error al enviar solicitud",
+        description: error.message || "Hubo un problema al enviar tu solicitud. Por favor intenta nuevamente.",
         variant: "destructive",
       });
     } finally {
@@ -105,33 +140,40 @@ const LandingContactForm = () => {
           {/* Información */}
           <div>
             <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              Solicita una demo gratuita y conoce cómo optimizar la reposición en tus supermercados
+              Solicita una cotización personalizada para tu empresa
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Optimiza la gestión de reposición con POERuteo. Ruteo inteligente, seguimiento GPS y control de tareas. 
-              Soluciones para cadenas de supermercados de todos los tamaños.
+              Optimiza la gestión de reposición con POERuteo. Ruteo inteligente, seguimiento GPS en tiempo real 
+              y control completo de tareas. Planes diseñados específicamente para cadenas de supermercados de todos los tamaños.
             </p>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Ruteo optimizado</h3>
-                  <p className="text-gray-600">Rutas inteligentes con geolocalización GPS</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">Implementación rápida</h3>
+                  <p className="text-gray-600">Sistema en funcionamiento en menos de 48 horas</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Gestión de tareas en tiempo real</h3>
-                  <p className="text-gray-600">App móvil para reponedores con todas las funcionalidades</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">Planes escalables</h3>
+                  <p className="text-gray-600">Desde pequeños equipos hasta grandes cadenas nacionales</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Control y supervisión completa</h3>
-                  <p className="text-gray-600">Dashboard con métricas y analíticas en tiempo real</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">Soporte dedicado</h3>
+                  <p className="text-gray-600">Equipo técnico disponible para resolver cualquier consulta</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Sin costos ocultos</h3>
+                  <p className="text-gray-600">Cotización transparente basada en tus necesidades reales</p>
                 </div>
               </div>
             </div>
@@ -139,34 +181,20 @@ const LandingContactForm = () => {
 
           {/* Formulario */}
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-8 rounded-2xl shadow-xl">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Solicita una cotización</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => handleInputChange('nombre', e.target.value)}
-                    placeholder="Tu nombre"
-                    required
-                    className="bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Apellido <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="text"
-                    value={formData.apellido}
-                    onChange={(e) => handleInputChange('apellido', e.target.value)}
-                    placeholder="Tu apellido"
-                    required
-                    className="bg-white"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre completo <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.nombreContacto}
+                  onChange={(e) => handleInputChange('nombreContacto', e.target.value)}
+                  placeholder="Tu nombre completo"
+                  required
+                  className="bg-white"
+                />
               </div>
 
               <div>
@@ -175,9 +203,23 @@ const LandingContactForm = () => {
                 </label>
                 <Input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  value={formData.emailContacto}
+                  onChange={(e) => handleInputChange('emailContacto', e.target.value)}
                   placeholder="correo@empresa.com"
+                  required
+                  className="bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono de contacto <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="tel"
+                  value={formData.telefonoContacto}
+                  onChange={(e) => handleInputChange('telefonoContacto', e.target.value)}
+                  placeholder="+56 9 1234 5678"
                   required
                   className="bg-white"
                 />
@@ -199,79 +241,109 @@ const LandingContactForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de teléfono <span className="text-red-500">*</span>
+                  RUT de la empresa (opcional)
                 </label>
-                <div className="flex gap-2">
-                  <Select defaultValue="chile">
-                    <SelectTrigger className="w-28 bg-white">
-                      <SelectValue />
+                <Input
+                  type="text"
+                  value={formData.rutEmpresa}
+                  onChange={(e) => handleInputChange('rutEmpresa', e.target.value)}
+                  placeholder="12.345.678-9"
+                  className="bg-white"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cantidad de supervisores <span className="text-red-500">*</span>
+                  </label>
+                  <Select 
+                    value={formData.cantidadSupervisores}
+                    onValueChange={(value) => handleInputChange('cantidadSupervisores', value)}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecciona" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="chile">Chile</SelectItem>
-                      <SelectItem value="argentina">Argentina</SelectItem>
-                      <SelectItem value="peru">Perú</SelectItem>
+                      <SelectItem value="1">1 supervisor</SelectItem>
+                      <SelectItem value="2">2 supervisores</SelectItem>
+                      <SelectItem value="3">3 supervisores</SelectItem>
+                      <SelectItem value="5">5 supervisores</SelectItem>
+                      <SelectItem value="10">10 supervisores</SelectItem>
+                      <SelectItem value="20">20+ supervisores</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
-                    type="tel"
-                    value={formData.telefono}
-                    onChange={(e) => handleInputChange('telefono', e.target.value)}
-                    placeholder="+56 9 1234 5678"
-                    required
-                    className="flex-1 bg-white"
-                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cantidad de reponedores <span className="text-red-500">*</span>
+                  </label>
+                  <Select 
+                    value={formData.cantidadReponedores}
+                    onValueChange={(value) => handleInputChange('cantidadReponedores', value)}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecciona" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">1-5 reponedores</SelectItem>
+                      <SelectItem value="10">6-10 reponedores</SelectItem>
+                      <SelectItem value="25">11-25 reponedores</SelectItem>
+                      <SelectItem value="50">26-50 reponedores</SelectItem>
+                      <SelectItem value="100">51-100 reponedores</SelectItem>
+                      <SelectItem value="200">101-200 reponedores</SelectItem>
+                      <SelectItem value="500">Más de 200 reponedores</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de reponedores <span className="text-red-500">*</span>
+                  Cantidad aproximada de productos (opcional)
                 </label>
                 <Select 
-                  value={formData.numeroEmpleados}
-                  onValueChange={(value) => handleInputChange('numeroEmpleados', value)}
+                  value={formData.cantidadProductos}
+                  onValueChange={(value) => handleInputChange('cantidadProductos', value)}
                 >
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Selecciona" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1-10">1-10 reponedores</SelectItem>
-                    <SelectItem value="11-50">11-50 reponedores</SelectItem>
-                    <SelectItem value="51-200">51-200 reponedores</SelectItem>
-                    <SelectItem value="201-500">201-500 reponedores</SelectItem>
-                    <SelectItem value="500+">Más de 500 reponedores</SelectItem>
+                    <SelectItem value="100">Menos de 100</SelectItem>
+                    <SelectItem value="500">100-500</SelectItem>
+                    <SelectItem value="1000">500-1000</SelectItem>
+                    <SelectItem value="5000">1000-5000</SelectItem>
+                    <SelectItem value="10000">Más de 5000</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ¿Usas POERuteo y necesitas Soporte? <span className="text-red-500">*</span>
+                  Integraciones requeridas (opcional)
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="soporte"
-                      value="si"
-                      checked={formData.necesitaSoporte === 'si'}
-                      onChange={(e) => handleInputChange('necesitaSoporte', e.target.value)}
-                      className="w-4 h-4 text-purple-600"
-                    />
-                    <span className="text-gray-700">Sí</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="soporte"
-                      value="no"
-                      checked={formData.necesitaSoporte === 'no'}
-                      onChange={(e) => handleInputChange('necesitaSoporte', e.target.value)}
-                      className="w-4 h-4 text-purple-600"
-                    />
-                    <span className="text-gray-700">No</span>
-                  </label>
-                </div>
+                <Input
+                  type="text"
+                  value={formData.integracionesRequeridas}
+                  onChange={(e) => handleInputChange('integracionesRequeridas', e.target.value)}
+                  placeholder="ERP, WMS, etc."
+                  className="bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comentarios adicionales (opcional)
+                </label>
+                <Textarea
+                  value={formData.comentarios}
+                  onChange={(e) => handleInputChange('comentarios', e.target.value)}
+                  placeholder="Cuéntanos más sobre tus necesidades..."
+                  rows={4}
+                  className="bg-white"
+                />
               </div>
 
               <div className="flex items-start gap-2">
@@ -294,7 +366,14 @@ const LandingContactForm = () => {
                 disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 text-white py-6 text-lg font-semibold"
               >
-                {isSubmitting ? 'Enviando...' : 'Solicitar demo gratuita'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Enviando solicitud...
+                  </>
+                ) : (
+                  'Solicitar cotización gratuita'
+                )}
               </Button>
             </form>
           </div>
