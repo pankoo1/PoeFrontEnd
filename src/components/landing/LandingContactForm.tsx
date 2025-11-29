@@ -85,13 +85,12 @@ const LandingContactForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Preparar datos para enviar al backend
+      // Preparar datos para enviar al backend según schema CotizacionCreate
       const cotizacionData = {
         nombre_contacto: formData.nombreContacto,
-        email_contacto: formData.emailContacto,
-        telefono_contacto: formData.telefonoContacto,
-        nombre_empresa: formData.nombreEmpresa,
-        rut_empresa: formData.rutEmpresa || undefined,
+        empresa: formData.nombreEmpresa,  // Backend espera 'empresa'
+        email: formData.emailContacto,    // Backend espera 'email'
+        telefono: formData.telefonoContacto || undefined,
         cantidad_supervisores: parseInt(formData.cantidadSupervisores),
         cantidad_reponedores: parseInt(formData.cantidadReponedores),
         cantidad_productos: formData.cantidadProductos ? parseInt(formData.cantidadProductos) : undefined,

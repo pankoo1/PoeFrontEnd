@@ -79,9 +79,9 @@ const BackofficeCotizaciones: React.FC = () => {
   const abrirEdicion = (cotizacion: CotizacionResponse) => {
     setEditData({
       nombre_contacto: cotizacion.nombre_contacto,
-      email_contacto: cotizacion.email_contacto,
-      telefono_contacto: cotizacion.telefono_contacto,
-      empresa_solicitante: cotizacion.empresa_solicitante,
+      email_contacto: cotizacion.email,
+      telefono_contacto: cotizacion.telefono,
+      empresa_solicitante: cotizacion.empresa,
       plan_id: cotizacion.plan_id,
       cantidad_usuarios: cotizacion.cantidad_usuarios,
       cantidad_tareas: cotizacion.cantidad_tareas,
@@ -157,7 +157,7 @@ const BackofficeCotizaciones: React.FC = () => {
   const cotizacionesFiltradas = cotizaciones.filter((c) => {
     const textoBusqueda = busqueda.toLowerCase();
     return (
-      (c.empresa_solicitante?.toLowerCase() || '').includes(textoBusqueda) ||
+      (c.empresa?.toLowerCase() || '').includes(textoBusqueda) ||
       c.email_contacto.toLowerCase().includes(textoBusqueda) ||
       c.nombre_contacto.toLowerCase().includes(textoBusqueda)
     );
@@ -298,7 +298,7 @@ const BackofficeCotizaciones: React.FC = () => {
                 {cotizacionesFiltradas.map((cotizacion) => (
                   <tr key={cotizacion.id_cotizacion} className="border-b hover:bg-muted/50">
                     <td className="p-2 font-mono text-sm">{cotizacion.id_cotizacion}</td>
-                    <td className="p-2 font-medium">{cotizacion.empresa_solicitante}</td>
+                    <td className="p-2 font-medium">{cotizacion.empresa}</td>
                     <td className="p-2">{cotizacion.nombre_contacto}</td>
                     <td className="p-2 text-sm text-muted-foreground">{cotizacion.email_contacto}</td>
                     <td className="p-2">
@@ -365,7 +365,7 @@ const BackofficeCotizaciones: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Empresa solicitante</Label>
-                  <p className="font-medium">{selectedCotizacion.empresa_solicitante}</p>
+                  <p className="font-medium">{selectedCotizacion.empresa}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Nombre de contacto</Label>

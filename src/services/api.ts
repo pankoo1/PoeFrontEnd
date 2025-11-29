@@ -451,10 +451,10 @@ export interface EstadisticasAuditoria {
 
 export interface CotizacionSolicitar {
     nombre_contacto: string;
-    email_contacto: string;
-    telefono_contacto?: string;
-    nombre_empresa: string;
-    rut_empresa?: string;
+    empresa: string;
+    email: string;
+    telefono?: string;
+    cargo?: string;
     cantidad_supervisores: number;
     cantidad_reponedores: number;
     cantidad_productos?: number;
@@ -465,44 +465,42 @@ export interface CotizacionSolicitar {
 export interface CotizacionResponse {
     id_cotizacion: number;
     nombre_contacto: string;
-    email_contacto: string;
-    telefono_contacto?: string;
-    nombre_empresa: string;
-    empresa_solicitante: string;  // Alias para nombre_empresa
-    rut_empresa?: string;
+    empresa: string;
+    email: string;
+    telefono?: string;
+    cargo?: string;
     cantidad_supervisores: number;
-    cantidad_usuarios: number;  // Alias para cantidad total de usuarios
     cantidad_reponedores: number;
-    cantidad_productos: number;
-    cantidad_tareas: number;
-    cantidad_proyectos: number;
+    cantidad_productos?: number;
     integraciones_requeridas?: string;
     comentarios?: string;
-    mensaje?: string;  // Mensaje del cliente
+    precio_sugerido?: number;
+    precio_final?: number;
+    features_sugeridos?: any;
     estado: string;
-    precio_sugerido: number;
-    precio_mensual: number;  // Alias para precio_sugerido
-    features_sugeridos?: string;
-    plan_id: number;
-    plan_nombre: string;
-    fecha_solicitud: string;
-    fecha_validez: string;
-    fecha_actualizacion: string;
     notas_internas?: string;
+    fecha_validez?: string;
+    id_empresa_creada?: number;
+    id_plan_creado?: number;
+    fecha_conversion?: string;
+    fecha_creacion: string;
+    fecha_actualizacion: string;
+    atendido_por?: number;
 }
 
 export interface CotizacionListItem {
     id_cotizacion: number;
-    nombre_empresa: string;
-    empresa_solicitante: string;  // Alias
     nombre_contacto: string;
-    email_contacto: string;
+    empresa: string;
+    email: string;
+    cantidad_supervisores: number;
+    cantidad_reponedores: number;
+    cantidad_productos?: number;
     estado: string;
-    precio_sugerido: number;
-    precio_mensual: number;  // Alias
-    plan_nombre: string;
-    fecha_solicitud: string;
-    fecha_validez: string;
+    precio_sugerido?: number;
+    precio_final?: number;
+    fecha_creacion: string;
+    fecha_actualizacion: string;
 }
 
 export interface CotizacionUpdate {
