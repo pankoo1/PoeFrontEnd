@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Users from '../pages/Users';
-import * as api from '../services/api';
+import Users from '@/pages/admin/Users';
+import * as api from '@/services/api';
 import React from 'react';
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { Toaster } from '../components/ui/toaster';
+import { Toaster } from '@/components/ui/toaster';
 import { within } from '@testing-library/react';
 
 // Mock de ApiService

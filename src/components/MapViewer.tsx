@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
-import { MapaService } from '@/services/mapaService';
+import { MapaService } from '@/services/map.service';
 import { useToast } from '@/hooks/use-toast';
 
 interface MapViewerProps {

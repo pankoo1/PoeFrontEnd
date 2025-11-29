@@ -1,43 +1,46 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/shared/ProtectedRoute';
 import { ReponedoresProvider } from './contexts/ReponedoresContext';
 
-// Pages
-import Index from './pages/Index';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import Users from './pages/Users';
-import Products from './pages/Products';
-import MapPage from './pages/MapPage';
-import Reportes from './pages/Reportes';
-import NotFound from './pages/NotFound';
+// Landing & Auth Pages
+import Index from './pages/landing/Index';
+import Login from './pages/auth/Login';
+
+// Common Pages
+import NotFound from './pages/common/NotFound';
+import Profile from './pages/common/Profile';
+
+// Admin Pages
+import Dashboard from './pages/admin/Dashboard';
+import Users from './pages/admin/Users';
+import Products from './pages/admin/Products';
+import AdminTareasPage from './pages/admin/AdminTareasPage';
+import MapPage from './pages/admin/MapPage';
+import Reportes from './pages/admin/Reportes';
 
 // Backoffice Pages (SuperAdmin)
-import BackofficeDashboard from './pages/BackofficeDashboard';
-import BackofficeEmpresas from './pages/BackofficeEmpresas';
-import BackofficeEmpresaDetalle from './pages/BackofficeEmpresaDetalle';
-import BackofficeAuditoria from './pages/BackofficeAuditoria';
-import BackofficeCotizaciones from './pages/BackofficeCotizaciones';
-import BackofficeFacturas from './pages/BackofficeFacturas';
+import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
+import BackofficeEmpresas from './pages/backoffice/BackofficeEmpresas';
+import BackofficeEmpresaDetalle from './pages/backoffice/BackofficeEmpresaDetalle';
+import BackofficeAuditoria from './pages/backoffice/BackofficeAuditoria';
+import BackofficeCotizaciones from './pages/backoffice/BackofficeCotizaciones';
+import BackofficeFacturas from './pages/backoffice/BackofficeFacturas';
 
 // Supervisor Pages
-import SupervisorDashboard from './pages/SupervisorDashboard';
-import SupervisorProfile from './pages/SupervisorProfile';
-import ReponedoresPage from './pages/ReponedoresPage';
-import SupervisorMapPage from './pages/SupervisorMapPage';
-import SupervisorTareas from './pages/SupervisorTareas';
+import SupervisorDashboard from './pages/supervisor/SupervisorDashboard';
+import SupervisorProfile from './pages/supervisor/SupervisorProfile';
+import ReponedoresPage from './pages/supervisor/ReponedoresPage';
+import SupervisorMapPage from './pages/supervisor/SupervisorMapPage';
+import SupervisorTareas from './pages/supervisor/SupervisorTareas';
 
 // Reponedor Pages
-import ReponedorDashboard from './pages/ReponedorDashboard';
-import ReponedorProfile from './pages/ReponedorProfile';
-import ReponedorTareas from './pages/ReponedorTareas';
-import ReponedorMapPage from './pages/ReponedorMapPage';
-
-import ReponedorSemanal from './pages/ReponedorSemanal';
-import AdminTareasPage from './pages/AdminTareasPage';
+import ReponedorDashboard from './pages/reponedor/ReponedorDashboard';
+import ReponedorProfile from './pages/reponedor/ReponedorProfile';
+import ReponedorTareas from './pages/reponedor/ReponedorTareas';
+import ReponedorMapPage from './pages/reponedor/ReponedorMapPage';
+import ReponedorSemanal from './pages/reponedor/ReponedorSemanal';
 
 import './App.css';
 

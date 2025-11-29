@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import MapPage from '../pages/MapPage';
+import MapPage from '@/pages/admin/MapPage';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { Toaster } from '../components/ui/toaster';
-import { ApiService } from '../services/api';
+import { Toaster } from '@/components/ui/toaster';
+import { ApiService } from '@/services/api';
 
 // Mock de react-router-dom
 const mockNavigate = vi.fn();

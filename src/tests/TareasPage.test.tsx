@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
-import TareasPage from '@/pages/TareasPage';
+import TareasPage from '@/pages/admin/TareasPage';
 import { ApiService } from '@/services/api';
 
 // Mock de react-router-dom

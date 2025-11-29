@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
-import ReponedorMapPage from '@/pages/ReponedorMapPage';
+import ReponedorMapPage from '@/pages/reponedor/ReponedorMapPage';
 
 // Mock de react-router-dom
 const mockNavigate = vi.fn();

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
-import SupervisorDashboard from '../pages/SupervisorDashboard';
+import SupervisorDashboard from '@/pages/supervisor/SupervisorDashboard';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';

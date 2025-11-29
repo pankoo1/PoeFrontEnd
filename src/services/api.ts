@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, API_URL } from '../config/api';
+import { API_ENDPOINTS, API_URL } from '@/config/api';
 
 // Tipos
 export interface LoginCredentials {

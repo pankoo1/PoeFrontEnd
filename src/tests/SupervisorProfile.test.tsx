@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import SupervisorProfile from '../pages/SupervisorProfile';
+import SupervisorProfile from '@/pages/supervisor/SupervisorProfile';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { Toaster } from '../components/ui/toaster';
-import * as api from '../services/api';
+import { Toaster } from '@/components/ui/toaster';
+import * as api from '@/services/api';
 
 vi.mock('../services/api');
 

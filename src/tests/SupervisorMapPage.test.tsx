@@ -1,12 +1,12 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import SupervisorMapPage from '../pages/SupervisorMapPage';
+import SupervisorMapPage from '@/pages/supervisor/SupervisorMapPage';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { Toaster } from '../components/ui/toaster';
-import { MapaService } from '../services/mapaService';
-import * as api from '../services/api';
+import { Toaster } from '@/components/ui/toaster';
+import { MapaService } from '@/services/map.service';
+import * as api from '@/services/api';
 
 // Mock para JSDOM - Agregar hasPointerCapture para evitar errores con Radix UI
 Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
@@ -37,7 +37,7 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-vi.mock('../services/mapaService');
+vi.mock('../services/map.service');
 vi.mock('../services/api');
 
 const mockMapa = {
