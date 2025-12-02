@@ -34,6 +34,7 @@ import SupervisorProfile from './pages/supervisor/SupervisorProfile';
 import ReponedoresPage from './pages/supervisor/ReponedoresPage';
 import SupervisorMapPage from './pages/supervisor/SupervisorMapPage';
 import SupervisorTareas from './pages/supervisor/SupervisorTareas';
+import Predicciones from './pages/supervisor/Predicciones';
 
 // Reponedor Pages
 import ReponedorDashboard from './pages/reponedor/ReponedorDashboard';
@@ -163,6 +164,11 @@ function App() {
             <Route path="/supervisor-map" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
                 <SupervisorMapPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/predicciones" element={
+              <ProtectedRoute allowedRoles={['supervisor', 'administrador']}>
+                <Predicciones />
               </ProtectedRoute>
             } />
             

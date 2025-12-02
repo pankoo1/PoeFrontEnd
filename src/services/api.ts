@@ -96,6 +96,82 @@ export interface Reponedor {
     estado: string;
 }
 
+// ============================================
+// INTERFACES PARA PREDICCIONES ML
+// ============================================
+
+export enum EstadoPrediccion {
+    PENDIENTE = 'pendiente',
+    APLICADO = 'aplicado',
+    RECHAZADO = 'rechazado'
+}
+
+export interface PrediccionRequest {
+    mes: number;          // 1-12
+    anio: number;         // >= año actual
+    incluir_semanas: boolean;
+    notas?: string;
+}
+
+export interface CategoriaPrediction {
+    categoria: string;
+    ubicacion_mueble: number;
+    reposiciones: number;
+    total_unidades: number;
+    dias_predichos: number[];
+}
+
+export interface SemanaPrediction {
+    semana: number;       // 1-5
+    fecha_inicio: string;
+    fecha_fin: string;
+    total_unidades: number;
+    categorias: Record<string, number>;
+}
+
+export interface ResumenPrediccion {
+    total_reposiciones: number;
+    total_unidades: number;
+    categorias_activas: string[];
+    promedio_diario: number;
+}
+
+export interface PrediccionResponse {
+    id_prediccion: number;
+    id_empresa: number;
+    mes: number;
+    anio: number;
+    version_modelo: string;
+    fecha_generacion: string;
+    estado: EstadoPrediccion;
+    resumen: ResumenPrediccion;
+    por_categoria: CategoriaPrediction[];
+    por_semana?: SemanaPrediction[];
+    features_utilizados?: Record<string, any>;
+    notas?: string;
+}
+
+export interface PrediccionHistorialItem {
+    id_prediccion: number;
+    mes: number;
+    anio: number;
+    fecha_generacion: string;
+    estado: EstadoPrediccion;
+    total_unidades: number;
+    total_reposiciones: number;
+    version_modelo: string;
+}
+
+export interface PrediccionHistorialResponse {
+    total: number;
+    predicciones: PrediccionHistorialItem[];
+}
+
+export interface ActualizarEstadoRequest {
+    estado: EstadoPrediccion;
+    notas?: string;
+}
+
 // Interfaces para ruta optimizada
 export interface CoordenadaResponse {
     x: number;
@@ -2115,6 +2191,56 @@ export class ApiService {
         }
         
         return await response.blob();
+    }
+
+    // ============================================
+    // MÉTODOS PARA PREDICCIONES ML
+    // ============================================
+
+    // Generar predicción de reposiciones
+    static async generarPrediccion(request: PrediccionRequest): Promise<PrediccionResponse> {
+        return await this.fetchApi<PrediccionResponse>('/predicciones/generar', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+    }
+
+    // Obtener historial de predicciones
+    static async obtenerHistorialPredicciones(
+        skip: number = 0,
+        limit: number = 20
+    ): Promise<PrediccionHistorialResponse> {
+        const params = new URLSearchParams({
+            skip: skip.toString(),
+            limit: limit.toString()
+        });
+        
+        return await this.fetchApi<PrediccionHistorialResponse>(
+            `/predicciones/historial?${params.toString()}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener detalle de una predicción específica
+    static async obtenerPrediccion(idPrediccion: number): Promise<PrediccionResponse> {
+        return await this.fetchApi<PrediccionResponse>(
+            `/predicciones/${idPrediccion}`,
+            { method: 'GET' }
+        );
+    }
+
+    // Actualizar estado de una predicción
+    static async actualizarEstadoPrediccion(
+        idPrediccion: number,
+        request: ActualizarEstadoRequest
+    ): Promise<PrediccionResponse> {
+        return await this.fetchApi<PrediccionResponse>(
+            `/predicciones/${idPrediccion}/estado`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify(request)
+            }
+        );
     }
 }
 
