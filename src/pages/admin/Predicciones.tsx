@@ -18,7 +18,7 @@ import {
   BarChart3,
   AlertCircle
 } from 'lucide-react';
-import SupervisorLayout from '@/components/layout/SupervisorLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
 import {
   ApiService,
   PrediccionRequest,
@@ -181,7 +181,7 @@ const Predicciones = () => {
   };
 
   return (
-    <SupervisorLayout>
+    <AdminLayout>
       {/* Header */}
       <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
         <div>
@@ -472,7 +472,7 @@ const Predicciones = () => {
           </Card>
         )}
       </div>
-    </SupervisorLayout>
+    </AdminLayout>
   );
 };
 

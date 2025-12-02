@@ -19,6 +19,7 @@ import Products from './pages/admin/Products';
 import TasksPage from './pages/admin/Tasks';
 import MapPage from './pages/admin/Map';
 import ReportsPage from './pages/admin/Reports';
+import Predicciones from './pages/admin/Predicciones';
 
 // Backoffice Pages (SuperAdmin)
 import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
@@ -34,7 +35,6 @@ import SupervisorProfile from './pages/supervisor/SupervisorProfile';
 import ReponedoresPage from './pages/supervisor/ReponedoresPage';
 import SupervisorMapPage from './pages/supervisor/SupervisorMapPage';
 import SupervisorTareas from './pages/supervisor/SupervisorTareas';
-import Predicciones from './pages/supervisor/Predicciones';
 
 // Reponedor Pages
 import ReponedorDashboard from './pages/reponedor/ReponedorDashboard';
@@ -132,6 +132,11 @@ function App() {
                 <TasksPage />
               </ProtectedRoute>
             } />
+            <Route path="/predicciones" element={
+              <ProtectedRoute allowedRoles={['administrador']}>
+                <Predicciones />
+              </ProtectedRoute>
+            } />
             
             {/* Rutas de Supervisor */}
             <Route path="/supervisor-dashboard" element={
@@ -164,11 +169,6 @@ function App() {
             <Route path="/supervisor-map" element={
               <ProtectedRoute allowedRoles={['supervisor']}>
                 <SupervisorMapPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/predicciones" element={
-              <ProtectedRoute allowedRoles={['supervisor', 'administrador']}>
-                <Predicciones />
               </ProtectedRoute>
             } />
             

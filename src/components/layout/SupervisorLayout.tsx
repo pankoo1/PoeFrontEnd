@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Map, Users, LogOut, User, Brain } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Map, Users, LogOut, User } from 'lucide-react';
 
 interface SupervisorLayoutProps {
   children: React.ReactNode;
@@ -41,7 +41,6 @@ const SupervisorLayout: React.FC<SupervisorLayoutProps> = ({ children }) => {
     { icon: <ListTodo size={20} />, label: 'Gestión de Tareas', path: '/supervisor-tareas' },
     { icon: <Users size={20} />, label: 'Reponedores', path: '/reponedores' },
     { icon: <Map size={20} />, label: 'Mapa', path: '/supervisor-map' },
-    { icon: <Brain size={20} />, label: 'Predicciones ML', path: '/predicciones' },
   ];
 
   const handleLogout = () => {
