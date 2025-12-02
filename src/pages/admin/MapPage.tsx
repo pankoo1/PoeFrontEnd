@@ -1,53 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, Search, Save, Trash2, UserX, Home } from 'lucide-react';
-import { MapViewer } from '@/components/MapViewer';
-import { UbicacionFisica } from '@/types/mapa';
-import { Producto } from '@/types/producto';
-import { ShelfGrid } from '@/components/ui/shelf-grid';
-import { Input } from "@/components/ui/input";
-import Logo from '@/components/shared/Logo';
-import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ApiService } from '@/services/api';
-import { useToast } from "@/hooks/use-toast";
-
-interface ProductosResponse {
-    productos: Producto[];
-    mensaje?: string;
-}
+import { AdminLayout } from '@/layouts/AdminLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Save, 
+  Plus, 
+  Trash2, 
+  Map as MapIcon, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2,
+  Grid3x3
+} from 'lucide-react';
+import { MapCanvas } from '@/components/mapa/MapCanvas';
+import { ObjectPalette } from '@/components/mapa/ObjectPalette';
+import { CreateFurnitureModal } from '@/components/mapa/CreateFurnitureModal';
+import { MapaService } from '@/services/mapa.service';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { 
+  Mapa, 
+  ObjetoMapa, 
+  VistaGraficaMapa, 
+  UbicacionObjeto,
+  EditorState,
+  DraggedObject,
+  ObjetoNuevo
+} from '@/types/mapa.types';
 
 const MapPage = () => {
-    const navigate = useNavigate();
-    const navigateToDashboard = useNavigateToDashboard();
-    const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
-    const [productos, setProductos] = useState<Producto[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [asignaciones, setAsignaciones] = useState<{[key: string]: Producto}>({});
-    const [desasignaciones, setDesasignaciones] = useState<{[key: string]: boolean}>({});
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  
+  // Estados principales
+  const [editorState, setEditorState] = useState<EditorState>({
+    mapa: null,
+    objetosDisponibles: [],
+    ubicaciones: [],
+    draggedObject: null,
+    selectedObjectId: null,
+    highlightedCells: [],
+    hasUnsavedChanges: false
+  });
 
-    // Estado para cachear los datos del mapa completo
-    const [mapaCompleto, setMapaCompleto] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showNewMapDialog, setShowNewMapDialog] = useState(false);
+  
+  // Form para crear nuevo mapa
+  const [newMapForm, setNewMapForm] = useState({
+    nombre: '',
+    filas: '',
+    columnas: ''
+  });
     // Clave para forzar re-render del ShelfGrid cuando sea necesario
     const [shelfGridKey, setShelfGridKey] = useState(0);
 

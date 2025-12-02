@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, CheckCircle, MapPin, Play, Home, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Package, CheckCircle, MapPin, Play, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService, Tarea } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Logo from '@/components/shared/Logo';
+import ReponedorLayout from '@/components/layout/ReponedorLayout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,8 +67,11 @@ const ReponedorTareas = () => {
       // Primero iniciar la tarea (cambiar estado a en_progreso)
       await ApiService.iniciarTarea(idTarea);
       
-      // Luego generar la ruta optimizada
-      const rutaOptimizada = await ApiService.obtenerRutaOptimizada(idTarea, 'vecino_mas_cercano');
+      // Luego generar la ruta optimizada usando el nuevo endpoint POST
+      await ApiService.generarRutaOptimizada(idTarea, 'vecino_mas_cercano');
+      
+      // Obtener la ruta visual para navegar al mapa
+      const rutaOptimizada = await ApiService.obtenerRutaVisual(idTarea);
       
       toast({
         title: "¡Tarea iniciada!",
@@ -146,164 +149,54 @@ const ReponedorTareas = () => {
       }
     });
 
+  const userName = localStorage.getItem('userName') || 'Reponedor';
+
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Mis Tareas
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Gestiona tus tareas de reposición diarias
-                </p>
-              </div>
+    <ReponedorLayout>
+      {/* HEADER */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 shadow-sm z-10">
+        <h2 className="text-2xl font-bold text-slate-800">
+          Mis Tareas
+        </h2>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={cargarTareas}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Actualizar
+          </button>
+          <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+            <div className="text-right hidden md:block">
+              <p className="text-sm font-bold text-slate-700">{userName}</p>
+              <p className="text-xs text-slate-500">Reponedor</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
+              {userName.charAt(0).toUpperCase()}
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="container mx-auto px-6 py-8">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-success/40 rounded-xl">
-                <Package className="w-8 h-8 text-success" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Panel de Tareas</h2>
-                <p className="text-muted-foreground">Administra tu trabajo diario y marca el progreso de tus tareas</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Métricas de tareas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-primary/30 rounded-full group-hover:bg-primary/40 transition-all duration-300">
-                    <Package className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-                <div className="metric-value text-primary">{tareas.length}</div>
-                <div className="metric-label">Total Tareas</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-primary">Asignadas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/15 to-success/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.1s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-success/30 rounded-full group-hover:bg-success/40 transition-all duration-300">
-                    <CheckCircle className="w-8 h-8 text-success" />
-                  </div>
-                </div>
-                <div className="metric-value text-success">{tareas.filter(t => t.estado?.toLowerCase() === 'completada').length}</div>
-                <div className="metric-label">Completadas</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-info/15 to-info/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.2s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-info/30 rounded-full group-hover:bg-info/40 transition-all duration-300">
-                    <Clock className="w-8 h-8 text-info" />
-                  </div>
-                </div>
-                <div className="metric-value text-info">{tareas.filter(t => t.estado?.toLowerCase() === 'en_progreso').length}</div>
-                <div className="metric-label">En Progreso</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-info/20 text-info border border-info/40 px-2 py-1 rounded-md text-xs font-medium">⏳ Activas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-warning/25 to-warning/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.3s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-warning/40 rounded-full group-hover:bg-warning/50 transition-all duration-300">
-                    <AlertTriangle className="w-8 h-8 text-warning" />
-                  </div>
-                </div>
-                <div className="metric-value text-warning">{tareas.filter(t => t.estado?.toLowerCase() === 'pendiente').length}</div>
-                <div className="metric-label">Pendientes</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-warning">Por iniciar</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50">
 
           {/* Card principal de tareas */}
-          <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
+          <Card className="border-slate-100 shadow-sm bg-white">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-success/30 rounded-xl">
-                    <Package className="w-6 h-6 text-success" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">Tareas Asignadas</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Gestiona tu trabajo diario</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={cargarTareas}
-                  className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Actualizar
-                </Button>
+                <CardTitle className="text-lg font-bold text-slate-800">Tareas Asignadas</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               {/* Filtros y ordenamiento */}
               <div className="mb-6 flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">Filtrar por estado:</label>
+                  <label className="block text-sm font-medium mb-2 text-slate-700">Filtrar por estado:</label>
                   <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                    <SelectTrigger className="border-2 border-primary/20 focus:border-primary/50">
+                    <SelectTrigger className="border-slate-200">
                       <SelectValue placeholder="Todos los estados" />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,9 +209,9 @@ const ReponedorTareas = () => {
                   </Select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">Ordenar por fecha:</label>
+                  <label className="block text-sm font-medium mb-2 text-slate-700">Ordenar por fecha:</label>
                   <Select value={orden} onValueChange={(value: 'asc' | 'desc') => setOrden(value)}>
-                    <SelectTrigger className="border-2 border-primary/20 focus:border-primary/50">
+                    <SelectTrigger className="border-slate-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -507,9 +400,8 @@ const ReponedorTareas = () => {
               )}
             </CardContent>
           </Card>
-        </main>
       </div>
-    </>
+    </ReponedorLayout>
   );
 };
 

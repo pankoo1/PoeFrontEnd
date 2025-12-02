@@ -7,12 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Eye, Trash2, Home, UserPlus, Search, CheckCircle2, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import { Users, Eye, Trash2, UserPlus, Search, CheckCircle2, Clock, AlertTriangle, UserCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import Logo from '@/components/shared/Logo';
 import UserForm from '@/components/forms/UserForm';
 import { ApiService, Usuario } from '@/services/api';
+import SupervisorLayout from '@/components/layout/SupervisorLayout';
 
 const ReponedoresPage = () => {
   const navigate = useNavigate();
@@ -99,186 +99,74 @@ const ReponedoresPage = () => {
   });
 
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Gestión de Reponedores
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Administra tu equipo de reponedores asignados
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-            </div>
-          </div>
-        </header>
+    <SupervisorLayout>
+      {/* Header */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Reponedores</h1>
+          <p className="text-sm text-slate-600">Administra tu equipo de reponedores</p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Nuevo Reponedor
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Registrar Nuevo Reponedor</DialogTitle>
+            </DialogHeader>
+            <UserForm onUserAdded={handleReponedorAdded} />
+          </DialogContent>
+        </Dialog>
+      </header>
 
-        <main className="container mx-auto px-6 py-8">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-success/40 rounded-xl">
-                <Users className="w-8 h-8 text-success" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Equipo de Reponedores</h2>
-                <p className="text-muted-foreground">Gestiona y supervisa a los reponedores bajo tu responsabilidad</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Estadísticas de reponedores */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-primary/30 rounded-full group-hover:bg-primary/40 transition-all duration-300">
-                    <Users className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-                <div className="metric-value text-primary">{reponedores.length}</div>
-                <div className="metric-label">Total Reponedores</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-primary">Asignados</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/15 to-success/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.1s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-success/30 rounded-full group-hover:bg-success/40 transition-all duration-300">
-                    <CheckCircle2 className="w-8 h-8 text-success" />
-                  </div>
-                </div>
-                <div className="metric-value text-success">{reponedores.filter(r => r.estado === 'activo').length}</div>
-                <div className="metric-label">Activos</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Disponibles</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-warning/25 to-warning/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.2s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-warning/40 rounded-full group-hover:bg-warning/50 transition-all duration-300">
-                    <Clock className="w-8 h-8 text-warning" />
-                  </div>
-                </div>
-                <div className="metric-value text-warning">{reponedores.filter(r => r.estado === 'inactivo').length}</div>
-                <div className="metric-label">Inactivos</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-warning">Pausados</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-info/15 to-info/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.3s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-info/30 rounded-full group-hover:bg-info/40 transition-all duration-300">
-                    <UserCheck className="w-8 h-8 text-info" />
-                  </div>
-                </div>
-                <div className="metric-value text-info">{Math.round((reponedores.filter(r => r.estado === 'activo').length / reponedores.length) * 100) || 0}%</div>
-                <div className="metric-label">Tasa de Actividad</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-info/20 text-info border border-info/40 px-2 py-1 rounded-md text-xs font-medium">📊 Rendimiento</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card principal de reponedores */}
-          <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-success/30 rounded-xl">
-                    <Users className="w-6 h-6 text-success" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">Reponedores a Cargo</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Gestiona tu equipo de trabajo</p>
-                  </div>
-                </div>
-                <UserForm 
-                  onUserAdded={handleReponedorAdded}
-                  isSupervisor={true}
-                  buttonLabel="Nuevo Reponedor"
+      {/* Content */}
+      <div className="p-6">
+        {/* Filtros */}
+        <Card className="mb-6 border-slate-100 shadow-sm bg-white">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar reponedores..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-slate-200"
                 />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 flex gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Buscar reponedores por nombre o email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-2 border-primary/20 focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                  <SelectTrigger className="w-48 border-2 border-primary/20 focus:border-primary/50">
-                    <SelectValue placeholder="Filtrar por estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos los estados</SelectItem>
-                    <SelectItem value="activo">Activo</SelectItem>
-                    <SelectItem value="inactivo">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger className="border-slate-200">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="activo">Activo</SelectItem>
+                  <SelectItem value="inactivo">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
+        {/* Tabla de reponedores */}
+        <Card className="border-slate-100 shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="text-lg">Lista de Reponedores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="flex justify-center mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <p className="text-slate-600">Cargando reponedores...</p>
+              </div>
+            ) : (
               <div className="overflow-x-auto">
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="flex justify-center mb-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                    <p className="text-muted-foreground">Cargando reponedores...</p>
-                  </div>
-                ) : (
-                  <Table>
+                <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nombre</TableHead>
@@ -335,8 +223,8 @@ const ReponedoresPage = () => {
                       ))}
                     </TableBody>
                   </Table>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -434,9 +322,8 @@ const ReponedoresPage = () => {
               )}
             </DialogContent>
           </Dialog>
-        </main>
-      </div>
-    </>
+        </div>
+      </SupervisorLayout>
   );
 };
 

@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, MapPin, AlertCircle, CheckCircle, Home, Route, Navigation } from 'lucide-react';
+import { Map, MapPin, AlertCircle, CheckCircle, Route, Navigation, RefreshCw } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/map.service';
 import { ApiService, Tarea } from '@/services/api';
+import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { Mapa, UbicacionFisica } from '@/types/mapa';
-import Logo from '@/components/shared/Logo';
+import ReponedorLayout from '@/components/layout/ReponedorLayout';
 import {
   Dialog,
   DialogContent,
@@ -259,8 +260,47 @@ const ReponedorMapPage = () => {
         throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
       }
       
-      // Hacer llamada al endpoint del backend
-      const response = await fetch(`http://localhost:8000/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`, {
+      // PASO 1: Generar la ruta usando POST
+      console.log('[Frontend] Paso 1: Generando ruta optimizada (POST)...');
+      const generateResponse = await fetch(`${API_URL}/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!generateResponse.ok) {
+        const errorText = await generateResponse.text();
+        
+        // Intentar parsear el error JSON del backend
+        let errorMessage = 'Error al generar la ruta';
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.detail) {
+            // Mensajes específicos según el error
+            if (errorJson.detail.includes('no tiene detalles')) {
+              errorMessage = 'Esta tarea no tiene productos asignados. Por favor, contacta al supervisor para que agregue productos a la tarea.';
+            } else if (errorJson.detail.includes('no encontrada')) {
+              errorMessage = 'La tarea no fue encontrada.';
+            } else if (errorJson.detail.includes('mapa activo')) {
+              errorMessage = 'No hay un mapa configurado para tu empresa. Contacta al administrador.';
+            } else {
+              errorMessage = errorJson.detail;
+            }
+          }
+        } catch {
+          errorMessage = `Error ${generateResponse.status}: ${errorText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log('[Frontend] Ruta generada exitosamente');
+
+      // PASO 2: Obtener la ruta visual usando GET
+      console.log('[Frontend] Paso 2: Obteniendo ruta visual (GET)...');
+      const response = await fetch(`${API_URL}/${idTarea}/ruta-visual`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -272,51 +312,57 @@ const ReponedorMapPage = () => {
         const errorText = await response.text();
         let errorMessage = `Error ${response.status}: ${errorText}`;
         
-        // Manejo específico para errores de algoritmo
-        if (errorText.includes('no válido') || errorText.includes('Algoritmos disponibles')) {
-          errorMessage = `Algoritmo no válido. Algoritmos disponibles: ${ALGORITMOS_VALIDOS.join(', ')}`;
+        if (errorText.includes('no encontrada') || response.status === 404) {
+          errorMessage = 'No se ha generado una ruta para esta tarea. Por favor, genera la ruta primero.';
         }
         
         throw new Error(errorMessage);
       }
 
       const rutaData = await response.json();
-      console.log('[Frontend] Ruta recibida del backend:', rutaData);
+      console.log('[Frontend] Ruta visual recibida del backend:', rutaData);
+      console.log('[Frontend] Puntos de visita:', rutaData.puntos_visita);
 
-      // Validar la estructura de la respuesta
-      if (rutaData.error) {
-        throw new Error(rutaData.error);
+      // Validar la estructura de la respuesta (nueva estructura)
+      if (!rutaData.id_ruta || !rutaData.coordenadas_ruta || !rutaData.puntos_visita) {
+        throw new Error('La respuesta de la ruta no tiene el formato esperado');
       }
 
-      // Verificar el estado de la tarea
-      if (rutaData.estado_tarea && rutaData.estado_tarea.toLowerCase() === 'completada') {
-        throw new Error('Esta tarea ya está completada y no se puede generar una nueva ruta.');
-      }
-
-      if (rutaData.warning) {
-        toast({
-          title: "⚠️ Advertencia",
-          description: rutaData.warning,
-          variant: "destructive",
-        });
-      }
+      // Adaptar la estructura para compatibilidad con el componente existente
+      // Calcular estadísticas desde puntos_visita
+      const mueblesUnicos = new Set(rutaData.puntos_visita.map((p: any) => p.nombre_mueble));
+      console.log('[Frontend] Muebles únicos encontrados:', mueblesUnicos);
+      const totalProductos = rutaData.puntos_visita.length;
+      
+      const rutaAdaptada = {
+        id_ruta: rutaData.id_ruta,
+        id_tarea: idTarea, // Agregar id_tarea que faltaba
+        distancia_total: rutaData.distancia_total,
+        tiempo_estimado_minutos: rutaData.tiempo_estimado_min,
+        tiempo_estimado_total: Math.round(rutaData.tiempo_estimado_min), // Para compatibilidad
+        coordenadas_ruta_global: rutaData.coordenadas_ruta.map((c: any) => ({ x: c.x, y: c.y })),
+        puntos_visita: rutaData.puntos_visita,
+        // Estadísticas calculadas
+        total_muebles: mueblesUnicos.size,
+        total_productos: totalProductos
+      };
 
       // Guardar la ruta en el estado
-      setRutaOptimizada(rutaData);
+      setRutaOptimizada(rutaAdaptada);
       setMostrandoRuta(true);
 
       // Persistir datos en localStorage
       ApiService.setTareaActiva(idTarea);
-      ApiService.setRutaOptimizada(rutaData);
+      ApiService.setRutaOptimizada(rutaAdaptada);
 
-      // Mensaje de éxito más detallado
-      const muebles = rutaData.muebles_rutas?.length || 0;
-      const productos = rutaData.muebles_rutas?.reduce((total: number, mueble: any) => 
-        total + (mueble.detalle_tareas?.length || 0), 0) || 0;
+      // Mensaje de éxito con información de la nueva estructura
+      const numPuntos = rutaData.puntos_visita.length;
+      const distancia = Math.round(rutaData.distancia_total);
+      const tiempo = rutaData.tiempo_estimado_min.toFixed(1);
 
       toast({
-        title: "✅ Ruta optimizada generada",
-        description: `Ruta para ${muebles} muebles y ${productos} productos`,
+        title: "✅ Ruta optimizada cargada",
+        description: `${numPuntos} puntos de reposición | ${distancia} pasos | ~${tiempo} min`,
       });
 
     } catch (error: any) {
@@ -475,83 +521,35 @@ const ReponedorMapPage = () => {
   };
 
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Mapa y Rutas
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Navegación optimizada para tus tareas
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/reponedor-dashboard')}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-            </div>
+    <ReponedorLayout>
+      {/* HEADER */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 shadow-sm z-10">
+        <h2 className="text-2xl font-bold text-slate-800">
+          Mapa y Rutas
+        </h2>
+        
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden md:block">
+            <p className="text-sm font-bold text-slate-700">{localStorage.getItem('userName') || 'Reponedor'}</p>
+            <p className="text-xs text-slate-500">Reponedor</p>
           </div>
-        </header>
-
-        <main className="container mx-auto px-6 py-8">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-accent/40 rounded-xl">
-                <Map className="w-8 h-8 text-accent" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Sistema de Navegación</h2>
-                <p className="text-muted-foreground">Encuentra el camino más eficiente hacia tus puntos de reposición</p>
-              </div>
-            </div>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
+            {(localStorage.getItem('userName') || 'R').charAt(0).toUpperCase()}
           </div>
+        </div>
+      </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
+      {/* SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50">
+
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
             {/* Mapa */}
-            <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md overflow-hidden">
-              <CardHeader className="flex-shrink-0 bg-gradient-to-r from-accent/10 to-accent/20">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-xl bg-accent/20 text-accent border border-accent/20">
-                    <Map className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">Mapa Interactivo</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Visualiza tu ruta de trabajo</p>
-                  </div>
-                </div>
+            <Card className="border-slate-100 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="flex-shrink-0">
+                <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Map className="w-5 h-5 text-blue-600" />
+                  Mapa Interactivo
+                </CardTitle>
               </CardHeader>
             <CardContent className="p-6">
               <div className="w-full h-[750px] bg-muted rounded-lg relative">
@@ -627,19 +625,12 @@ const ReponedorMapPage = () => {
                       <span className="font-medium">{rutaOptimizada.id_tarea || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Reponedor:</span>
-                      <span className="font-medium">{rutaOptimizada.reponedor || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-blue-700">Muebles:</span>
-                      <span className="font-medium">{rutaOptimizada.muebles_rutas?.length || 0}</span>
+                      <span className="font-medium">{rutaOptimizada.total_muebles || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-700">Productos:</span>
-                      <span className="font-medium">
-                        {rutaOptimizada.muebles_rutas?.reduce((total: number, mueble: any) => 
-                          total + (mueble.detalle_tareas?.length || 0), 0) || 0}
-                      </span>
+                      <span className="font-medium">{rutaOptimizada.total_productos || 0}</span>
                     </div>
                     {rutaOptimizada.tiempo_estimado_total && (
                       <div className="flex justify-between">
@@ -934,9 +925,8 @@ const ReponedorMapPage = () => {
             )}
           </DialogContent>
         </Dialog>
-      </main>
       </div>
-    </>
+    </ReponedorLayout>
   );
 };
 

@@ -16,9 +16,9 @@ import Profile from './pages/common/Profile';
 import Dashboard from './pages/admin/Dashboard';
 import Users from './pages/admin/Users';
 import Products from './pages/admin/Products';
-import AdminTareasPage from './pages/admin/AdminTareasPage';
-import MapPage from './pages/admin/MapPage';
-import Reportes from './pages/admin/Reportes';
+import TasksPage from './pages/admin/Tasks';
+import MapPage from './pages/admin/Map';
+import ReportsPage from './pages/admin/Reports';
 
 // Backoffice Pages (SuperAdmin)
 import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
@@ -113,12 +113,22 @@ function App() {
             } />
             <Route path="/reportes" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <Reportes />
+                <ReportsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ReportsPage />
               </ProtectedRoute>
             } />
             <Route path="/admin-tareas" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminTareasPage />
+                <TasksPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/tasks" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <TasksPage />
               </ProtectedRoute>
             } />
             

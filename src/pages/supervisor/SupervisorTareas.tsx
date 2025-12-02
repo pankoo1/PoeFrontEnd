@@ -7,16 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Edit, Home, CheckCircle2, Clock, AlertTriangle, ClipboardList, Target, User, Loader2, RefreshCw } from 'lucide-react';
+import { Search, Edit, CheckCircle2, Clock, AlertTriangle, ClipboardList, Target, User, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import Logo from '@/components/shared/Logo';
 import { ApiService, Tarea } from '@/services/api';
 import { API_ENDPOINTS, API_URL } from '@/config/api';
+import SupervisorLayout from '@/components/layout/SupervisorLayout';
 
 const SupervisorTareas = () => {
-  console.log('🚀 COMPONENTE SUPERVISOR TAREAS SE ESTÁ EJECUTANDO!');
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,14 +28,6 @@ const SupervisorTareas = () => {
   const [asignarDialogOpen, setAsignarDialogOpen] = useState(false);
   const [tareaAAsignar, setTareaAAsignar] = useState<Tarea | null>(null);
   const [reponedorSeleccionado, setReponedorSeleccionado] = useState<string>('');
-
-  console.log('🎭 SupervisorTareas - Componente montado/renderizado:', {
-    filtroEstado,
-    loading,
-    tareasLength: tareas.length,
-    token: !!ApiService.getToken(),
-    userInfo: ApiService.getToken() ? 'present' : 'missing'
-  });
 
   // Verificar autenticación al montar
   useEffect(() => {
@@ -223,14 +213,35 @@ const SupervisorTareas = () => {
     }
   };
 
-  // Función para obtener el resumen de productos de una tarea
+  const filteredTareas = tareas.filter(tarea => {
+    const matchesSearch = (tarea.reponedor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tarea.productos.some(p => (p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesSearch;
+  });
+
+  const mapearEstado = (estado: string) => {
+    const estadosMap: { [key: string]: string } = {
+      'pendiente': 'Pendiente',
+      'en progreso': 'En Progreso', 
+      'completada': 'Completada',
+      'cancelada': 'Cancelada',
+      'sin asignar': 'Sin Asignar'
+    };
+    return estadosMap[estado] || estado;
+  };
+
+  const getPrioridad = (estado: string) => {
+    if (estado === 'pendiente') return 'Alta';
+    if (estado === 'en progreso') return 'Media';
+    return 'Baja';
+  };
+
   const getResumenProductos = (productos: Tarea['productos']) => {
     if (productos.length === 0) return 'Sin productos';
     if (productos.length === 1) return productos[0].nombre || 'Producto';
     return `${productos.length} productos`;
   };
 
-  // Función para obtener las ubicaciones únicas
   const getUbicacionesResumen = (productos: Tarea['productos']) => {
     const ubicacionesUnicas = productos
       .map(p => p.ubicacion)
@@ -246,324 +257,184 @@ const SupervisorTareas = () => {
     return `${ubicacionesUnicas.length} ubicaciones`;
   };
 
-  const filteredTareas = tareas.filter(tarea => {
-    const matchesSearch = (tarea.reponedor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tarea.productos.some(p => (p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesSearch;
-  });
-
-  // Mapear estados del backend al formato del componente
-  const mapearEstado = (estado: string) => {
-    const estadosMap: { [key: string]: string } = {
-      'pendiente': 'Pendiente',
-      'en progreso': 'En Progreso', 
-      'completada': 'Completada',
-      'cancelada': 'Cancelada',
-      'sin asignar': 'Sin Asignar'
-    };
-    return estadosMap[estado] || estado;
-  };
-
-  // Mapear prioridad basada en el estado (provisional)
-  const getPrioridad = (estado: string) => {
-    if (estado === 'pendiente') return 'Alta';
-    if (estado === 'en progreso') return 'Media';
-    return 'Baja';
-  };
-
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
+    <SupervisorLayout>
+      {/* Header */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Tareas</h1>
+          <p className="text-sm text-slate-600">Supervisa y administra las tareas de tu equipo</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => cargarTareas(filtroEstado)}
+          disabled={loading}
+          className="border-slate-200 hover:bg-slate-50"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Recargar
+        </Button>
+      </header>
+
+      {/* Content */}
+      <div className="p-6">
+        {/* Banner informativo */}
+        <Card className="mb-6 border-blue-100 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <ClipboardList className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Gestión de Tareas (Supervisor)
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Supervisa y administra las tareas de tu equipo de reponedores
+                <h2 className="text-lg font-bold text-slate-800">Panel de Supervisión de Tareas</h2>
+                <p className="text-sm text-slate-600">Supervisa el progreso y gestiona las tareas asignadas a tu equipo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Filtros y búsqueda */}
+        <Card className="mb-6 border-slate-100 shadow-sm bg-white">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Input
+                  placeholder="Buscar por reponedor o producto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border-slate-200"
+                />
+              </div>
+              <div>
+                <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                  <SelectTrigger className="border-slate-200">
+                    <SelectValue placeholder="Filtrar por estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="en progreso">En Progreso</SelectItem>
+                    <SelectItem value="completada">Completada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabla de tareas */}
+        <Card className="border-slate-100 shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="text-lg">Lista de Tareas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-2" />
+                <span className="text-slate-600">Cargando tareas...</span>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-12 text-red-600">
+                <AlertTriangle className="w-6 h-6 mr-2" />
+                <span>{error}</span>
+              </div>
+            ) : filteredTareas.length === 0 ? (
+              <div className="text-center py-12">
+                <ClipboardList className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-600 mb-2">No hay tareas</h3>
+                <p className="text-slate-500">
+                  {searchTerm ? 'No se encontraron tareas que coincidan con la búsqueda' : 'No hay tareas asignadas en este momento'}
                 </p>
               </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-            </div>
-          </div>
-        </header>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Reponedor</TableHead>
+                      <TableHead>Productos</TableHead>
+                      <TableHead>Ubicaciones</TableHead>
+                      <TableHead>Cantidad Total</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Fecha Creación</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTareas.map((tarea) => (
+                      <TableRow key={tarea.id_tarea} className="hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span>{tarea.reponedor || 'Sin asignar'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-xs">
+                            <div className="font-medium">{getResumenProductos(tarea.productos)}</div>
+                            {tarea.productos.length > 1 && (
+                              <div className="text-xs text-muted-foreground">
+                                {tarea.productos.slice(0, 2).map(p => p.nombre).join(', ')}
+                                {tarea.productos.length > 2 && '...'}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">{getUbicacionesResumen(tarea.productos)}</div>
+                        </TableCell>
+                        <TableCell>
+                          {tarea.productos.reduce((total, p) => total + p.cantidad, 0)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            style={{ 
+                              backgroundColor: `${tarea.color_estado}20`,
+                              color: tarea.color_estado,
+                              borderColor: `${tarea.color_estado}40`
+                            }}
+                          >
+                            {mapearEstado(tarea.estado)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(tarea.fecha_creacion).toLocaleDateString('es-ES')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => editarTarea(tarea)}
+                              className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Ver
+                            </Button>
+                            {(!tarea.reponedor || tarea.reponedor === 'Sin asignar') && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => abrirAsignarReponedor(tarea)}
+                                className="border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 text-blue-600"
+                              >
+                                <User className="w-3 h-3 mr-1" />
+                                Asignar
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <main className="container mx-auto px-6 py-8">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-warning/40 rounded-xl">
-                <ClipboardList className="w-8 h-8 text-warning" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Panel de Supervisión de Tareas</h2>
-                <p className="text-muted-foreground">Supervisa el progreso y gestiona las tareas asignadas a tu equipo</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Estadísticas de tareas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-primary/10 to-primary/25 backdrop-blur-sm bg-white/75 group">
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-primary/30 rounded-full group-hover:bg-primary/40 transition-all duration-300">
-                    <ClipboardList className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-                <div className="metric-value text-primary">{tareas.length}</div>
-                <div className="metric-label">Total Tareas</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-primary">Supervisadas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-success/15 to-success/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.1s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-success/30 rounded-full group-hover:bg-success/40 transition-all duration-300">
-                    <CheckCircle2 className="w-8 h-8 text-success" />
-                  </div>
-                </div>
-                <div className="metric-value text-success">{tareas.filter(t => t.estado === 'completada').length}</div>
-                <div className="metric-label">Completadas</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-success/20 text-success border border-success/40 px-2 py-1 rounded-md text-xs font-medium">✓ Finalizadas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-supermarket fade-in hover-lift bg-gradient-to-br from-warning/25 to-warning/35 backdrop-blur-sm bg-white/85 group" style={{animationDelay: '0.2s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-warning/40 rounded-full group-hover:bg-warning/50 transition-all duration-300">
-                    <Clock className="w-8 h-8 text-warning" />
-                  </div>
-                </div>
-                <div className="metric-value text-warning">{tareas.filter(t => t.estado === 'en progreso').length}</div>
-                <div className="metric-label">En Progreso</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="badge-warning">Activas</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card-logistics fade-in hover-lift bg-gradient-to-br from-destructive/15 to-destructive/25 backdrop-blur-sm bg-white/75 group" style={{animationDelay: '0.3s'}}>
-              <div className="p-6 text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 bg-destructive/30 rounded-full group-hover:bg-destructive/40 transition-all duration-300">
-                    <AlertTriangle className="w-8 h-8 text-destructive" />
-                  </div>
-                </div>
-                <div className="metric-value text-destructive">{tareas.filter(t => t.estado === 'pendiente').length}</div>
-                <div className="metric-label">Pendientes</div>
-                <div className="mt-3 flex items-center justify-center">
-                  <span className="bg-destructive/20 text-destructive border border-destructive/40 px-2 py-1 rounded-md text-xs font-medium">⚠ Urgente</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card principal de tareas */}
-          <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-warning/30 rounded-xl">
-                    <Target className="w-6 h-6 text-warning" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">Tareas de Reposición</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Gestiona las tareas asignadas a tu equipo</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    onClick={() => cargarTareas(filtroEstado)}
-                    disabled={loading}
-                    className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                    )}
-                    Actualizar
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary mr-2" />
-                  <span className="text-muted-foreground">Cargando tareas...</span>
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center py-12 text-destructive">
-                  <AlertTriangle className="w-6 h-6 mr-2" />
-                  <span>{error}</span>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-6 flex gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                      <Input
-                        placeholder="Buscar tareas por reponedor o producto..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 border-2 border-primary/20 focus:border-primary/50 transition-colors"
-                      />
-                    </div>
-                    <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                      <SelectTrigger className="w-48 border-2 border-primary/20 focus:border-primary/50">
-                        <SelectValue placeholder="Filtrar por estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos los estados</SelectItem>
-                        <SelectItem value="pendiente">Pendiente</SelectItem>
-                        <SelectItem value="en progreso">En Progreso</SelectItem>
-                        <SelectItem value="completada">Completada</SelectItem>
-                        <SelectItem value="cancelada">Cancelada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {filteredTareas.length === 0 ? (
-                    <div className="text-center py-12">
-                      <ClipboardList className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-muted-foreground mb-2">No hay tareas</h3>
-                      <p className="text-muted-foreground">
-                        {searchTerm ? 'No se encontraron tareas que coincidan con la búsqueda' : 'No tienes tareas asignadas en este momento'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Reponedor</TableHead>
-                            <TableHead>Productos</TableHead>
-                            <TableHead>Ubicaciones</TableHead>
-                            <TableHead>Cantidad Total</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Fecha Creación</TableHead>
-                            <TableHead>Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredTareas.map((tarea) => (
-                            <TableRow key={tarea.id_tarea} className="hover:bg-primary/5 transition-colors">
-                              <TableCell className="font-medium">
-                                <div className="flex items-center space-x-2">
-                                  <User className="w-4 h-4 text-muted-foreground" />
-                                  <span>{tarea.reponedor || 'Sin asignar'}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="max-w-xs">
-                                  <div className="font-medium">{getResumenProductos(tarea.productos)}</div>
-                                  {tarea.productos.length > 1 && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {tarea.productos.slice(0, 2).map(p => p.nombre).join(', ')}
-                                      {tarea.productos.length > 2 && '...'}
-                                    </div>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-sm">{getUbicacionesResumen(tarea.productos)}</div>
-                              </TableCell>
-                              <TableCell>
-                                {tarea.productos.reduce((total, p) => total + p.cantidad, 0)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge 
-                                  variant="outline"
-                                  style={{ 
-                                    backgroundColor: `${tarea.color_estado}20`,
-                                    color: tarea.color_estado,
-                                    borderColor: `${tarea.color_estado}40`
-                                  }}
-                                >
-                                  {mapearEstado(tarea.estado)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {new Date(tarea.fecha_creacion).toLocaleDateString('es-ES')}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex space-x-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => editarTarea(tarea)}
-                                    className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                                  >
-                                    <Edit className="w-3 h-3 mr-1" />
-                                    Ver
-                                  </Button>
-                                  {(!tarea.reponedor || tarea.reponedor === 'Sin asignar') && (
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => abrirAsignarReponedor(tarea)}
-                                      className="border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 text-blue-600"
-                                    >
-                                      <User className="w-3 h-3 mr-1" />
-                                      Asignar
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Dialog para ver detalles de tarea */}
+        {/* Dialog para ver detalles de tarea */}
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
@@ -702,9 +573,8 @@ const SupervisorTareas = () => {
               )}
             </DialogContent>
           </Dialog>
-        </main>
-      </div>
-    </>
+        </div>
+      </SupervisorLayout>
   );
 };
 

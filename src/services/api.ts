@@ -102,6 +102,33 @@ export interface CoordenadaResponse {
     y: number;
 }
 
+// Interface para coordenadas con secuencia (ruta-visual)
+export interface CoordenadaSecuenciaResponse {
+    secuencia: number;
+    x: number;
+    y: number;
+}
+
+// Interface para puntos de visita (ruta-visual)
+export interface PuntoVisitaResponse {
+    orden: number;
+    x_acceso: number;
+    y_acceso: number;
+    nombre_producto: string;
+    nombre_mueble: string;
+    estanteria: number;
+    nivel: number;
+}
+
+// Interface para la respuesta del endpoint /ruta-visual (NUEVO)
+export interface RutaVisualResponse {
+    id_ruta: number;
+    tiempo_estimado_min: number;
+    distancia_total: number;
+    coordenadas_ruta: CoordenadaSecuenciaResponse[];
+    puntos_visita: PuntoVisitaResponse[];
+}
+
 export interface MuebleRutaResponse {
     id_mueble: number;
     nombre_objeto: string;
@@ -129,6 +156,7 @@ export interface AlgoritmoResponse {
     descripcion: string;
 }
 
+// Interface para respuesta legacy de ruta-optimizada (mantener compatibilidad)
 export interface RutaOptimizadaResponse {
     id_tarea: number;
     reponedor: string;
@@ -139,6 +167,9 @@ export interface RutaOptimizadaResponse {
     distancia_total: number;
     tiempo_estimado_minutos: number;
     estado_tarea: string;
+    // Campos opcionales para compatibilidad con estructura híbrida
+    muebles_rutas?: any[];
+    coordenadas_ruta_global?: CoordenadaResponse[];
 }
 
 // Interfaces para reportes
@@ -1274,13 +1305,32 @@ export class ApiService {
         }
     }
 
-    // Método para obtener ruta optimizada de una tarea
+    // Método para generar ruta optimizada (POST - NUEVO)
+    static async generarRutaOptimizada(
+        idTarea: number, 
+        algoritmo: 'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico' = 'vecino_mas_cercano'
+    ): Promise<any> {
+        return await this.fetchApi<any>(
+            `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
+            { method: 'POST' }
+        );
+    }
+
+    // Método para obtener ruta visual moderna (GET - RECOMENDADO)
+    static async obtenerRutaVisual(idTarea: number): Promise<RutaVisualResponse> {
+        return await this.fetchApi<RutaVisualResponse>(
+            `/tareas/${idTarea}/ruta-visual`,
+            { method: 'GET' }
+        );
+    }
+
+    // Método legacy para obtener ruta optimizada (GET - COMPATIBILIDAD)
     static async obtenerRutaOptimizada(
         idTarea: number, 
         algoritmo: 'vecino_mas_cercano' | 'fuerza_bruta' | 'genetico' = 'vecino_mas_cercano'
     ): Promise<RutaOptimizadaResponse> {
         return await this.fetchApi<RutaOptimizadaResponse>(
-            `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
+            `/tareas/${idTarea}/ruta-optimizada-visual`,
             { method: 'GET' }
         );
     }
@@ -1938,11 +1988,11 @@ export class ApiService {
         return detalles ? JSON.parse(detalles) : [];
     }
 
-    // Consultar ruta optimizada por ID de tarea
+    // Consultar ruta optimizada por ID de tarea (ACTUALIZADO para usar POST)
     static async getRutaOptimizadaPorTarea(idTarea: number, algoritmo: string = 'vecino_mas_cercano'): Promise<any> {
         return await this.fetchApi<any>(
             `/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`,
-            { method: 'GET' }
+            { method: 'POST' }
         );
     }
 
@@ -1990,6 +2040,81 @@ export class ApiService {
             }
             return tareas;
         }
+    }
+
+    // ==================== REPORTES ====================
+    
+    // Listar todos los reponedores
+    static async getReponedores(): Promise<any[]> {
+        return await this.fetchApi<any>(
+            `/reportes/reponedores`,
+            { method: 'GET' }
+        );
+    }
+
+    // Obtener historial de un reponedor
+    static async getHistorialReponedor(
+        idReponedor: number,
+        fechaInicio?: string,
+        fechaFin?: string,
+        estado?: string
+    ): Promise<any> {
+        let url = `/reportes/reponedor/${idReponedor}`;
+        const params = new URLSearchParams();
+        
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        if (estado) params.append('estado', estado);
+        
+        if (params.toString()) url += `?${params.toString()}`;
+        
+        return await this.fetchApi<any>(url, { method: 'GET' });
+    }
+
+    // Obtener estadísticas generales
+    static async getEstadisticasGenerales(
+        fechaInicio?: string,
+        fechaFin?: string
+    ): Promise<any> {
+        let url = `/reportes/estadisticas/general`;
+        const params = new URLSearchParams();
+        
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        
+        if (params.toString()) url += `?${params.toString()}`;
+        
+        return await this.fetchApi<any>(url, { method: 'GET' });
+    }
+
+    // Descargar reporte de reponedor
+    static async descargarReporteReponedor(
+        idReponedor: number,
+        formato: 'excel' | 'pdf' = 'excel',
+        fechaInicio?: string,
+        fechaFin?: string
+    ): Promise<Blob> {
+        let url = `/reportes/reponedor/${idReponedor}/descargar`;
+        const params = new URLSearchParams({ formato });
+        
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        
+        url += `?${params.toString()}`;
+        
+        const token = this.getToken();
+        const response = await fetch(`${API_URL}${url}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al descargar el reporte');
+        }
+        
+        return await response.blob();
     }
 }
 

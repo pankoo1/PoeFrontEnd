@@ -34,6 +34,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const animationFrameRef = useRef<number>();
     const cellSize = 40;
 
+
     const cargarMapa = async () => {
         try {
             setIsLoading(true);
@@ -130,65 +131,62 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             
             // PASO 2: Dibujar la ruta optimizada del endpoint con mejoras visuales
             if (rutaOptimizada) {
+                // DEFINICIÓN UNIFICADA DE PALETA DE COLORES PARA RUTAS Y MUEBLES
+                const paletaSegmentos = [
+                    { 
+                        inicio: 'hsl(158, 64%, 65%)', 
+                        fin: 'hsl(158, 64%, 45%)', 
+                        conexion: 'hsl(158, 64%, 52%)',
+                        primary: 'hsl(158, 64%, 52%)', 
+                        light: 'hsl(158, 64%, 65%)', 
+                        dark: 'hsl(158, 64%, 40%)' 
+                    }, // Verde corporativo
+                    { 
+                        inicio: 'hsl(213, 94%, 78%)', 
+                        fin: 'hsl(213, 94%, 55%)', 
+                        conexion: 'hsl(213, 94%, 68%)',
+                        primary: 'hsl(213, 94%, 68%)', 
+                        light: 'hsl(213, 94%, 78%)', 
+                        dark: 'hsl(213, 94%, 50%)' 
+                    }, // Azul logística
+                    { 
+                        inicio: 'hsl(43, 96%, 70%)', 
+                        fin: 'hsl(43, 96%, 45%)', 
+                        conexion: 'hsl(43, 96%, 56%)',
+                        primary: 'hsl(43, 96%, 56%)', 
+                        light: 'hsl(43, 96%, 70%)', 
+                        dark: 'hsl(43, 96%, 45%)' 
+                    }, // Naranja energético
+                    { 
+                        inicio: 'hsl(285, 85%, 75%)', 
+                        fin: 'hsl(285, 85%, 45%)', 
+                        conexion: 'hsl(285, 85%, 60%)',
+                        primary: 'hsl(285, 85%, 60%)', 
+                        light: 'hsl(285, 85%, 75%)', 
+                        dark: 'hsl(285, 85%, 45%)' 
+                    }, // Púrpura
+                    { 
+                        inicio: 'hsl(12, 76%, 75%)', 
+                        fin: 'hsl(12, 76%, 45%)', 
+                        conexion: 'hsl(12, 76%, 61%)',
+                        primary: 'hsl(12, 76%, 61%)', 
+                        light: 'hsl(12, 76%, 75%)', 
+                        dark: 'hsl(12, 76%, 45%)' 
+                    }, // Rojo coral
+                    { 
+                        inicio: 'hsl(195, 78%, 65%)', 
+                        fin: 'hsl(195, 78%, 35%)', 
+                        conexion: 'hsl(195, 78%, 49%)',
+                        primary: 'hsl(195, 78%, 49%)', 
+                        light: 'hsl(195, 78%, 65%)', 
+                        dark: 'hsl(195, 78%, 35%)' 
+                    }, // Cian
+                ];
+                
                 // NUEVO: Manejo de la estructura de muebles_rutas del endpoint
+                // MEJORA 1: Dibujar rutas segmentadas por mueble con gradientes
                 if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
-                    
-                    // DEFINICIÓN UNIFICADA DE PALETA DE COLORES PARA RUTAS Y MUEBLES
-                    const paletaSegmentos = [
-                        { 
-                            inicio: 'hsl(158, 64%, 65%)', 
-                            fin: 'hsl(158, 64%, 45%)', 
-                            conexion: 'hsl(158, 64%, 52%)',
-                            primary: 'hsl(158, 64%, 52%)', 
-                            light: 'hsl(158, 64%, 65%)', 
-                            dark: 'hsl(158, 64%, 40%)' 
-                        }, // Verde corporativo
-                        { 
-                            inicio: 'hsl(213, 94%, 78%)', 
-                            fin: 'hsl(213, 94%, 55%)', 
-                            conexion: 'hsl(213, 94%, 68%)',
-                            primary: 'hsl(213, 94%, 68%)', 
-                            light: 'hsl(213, 94%, 78%)', 
-                            dark: 'hsl(213, 94%, 50%)' 
-                        }, // Azul logística
-                        { 
-                            inicio: 'hsl(43, 96%, 70%)', 
-                            fin: 'hsl(43, 96%, 45%)', 
-                            conexion: 'hsl(43, 96%, 56%)',
-                            primary: 'hsl(43, 96%, 56%)', 
-                            light: 'hsl(43, 96%, 70%)', 
-                            dark: 'hsl(43, 96%, 45%)' 
-                        }, // Naranja energético
-                        { 
-                            inicio: 'hsl(285, 85%, 75%)', 
-                            fin: 'hsl(285, 85%, 45%)', 
-                            conexion: 'hsl(285, 85%, 60%)',
-                            primary: 'hsl(285, 85%, 60%)', 
-                            light: 'hsl(285, 85%, 75%)', 
-                            dark: 'hsl(285, 85%, 45%)' 
-                        }, // Púrpura
-                        { 
-                            inicio: 'hsl(12, 76%, 75%)', 
-                            fin: 'hsl(12, 76%, 45%)', 
-                            conexion: 'hsl(12, 76%, 61%)',
-                            primary: 'hsl(12, 76%, 61%)', 
-                            light: 'hsl(12, 76%, 75%)', 
-                            dark: 'hsl(12, 76%, 45%)' 
-                        }, // Rojo coral
-                        { 
-                            inicio: 'hsl(195, 78%, 65%)', 
-                            fin: 'hsl(195, 78%, 35%)', 
-                            conexion: 'hsl(195, 78%, 49%)',
-                            primary: 'hsl(195, 78%, 49%)', 
-                            light: 'hsl(195, 78%, 65%)', 
-                            dark: 'hsl(195, 78%, 35%)' 
-                        }, // Cian
-                    ];
-                    
-                    // MEJORA 1: Dibujar rutas segmentadas por mueble con gradientes
-                    if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
-                        
-                        let posicionActual = { x: 0, y: 0 }; // Punto de inicio
+                    let posicionActual = { x: 0, y: 0 }; // Punto de inicio
                         let puntosConexion: Array<{ x: number, y: number, color: string }> = []; // Para dibujar después
                         
                         // PASO 1: Dibujar todas las líneas de ruta primero
@@ -300,10 +298,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                 ctx.fillText('FIN', finalX, finalY + 25);
                             }
                         }
-                    }
-                    // FALLBACK: Ruta global única si no hay rutas segmentadas
-                    else if (rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 1) {
-                        const coordenadas = rutaOptimizada.coordenadas_ruta_global;
+                }
+                // FALLBACK: Ruta global única si no hay rutas segmentadas
+                else if (rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 1) {
+                    const coordenadas = rutaOptimizada.coordenadas_ruta_global;
                         
                         // Línea principal con gradiente corporativo simple
                         const routeGradient = ctx.createLinearGradient(
@@ -330,7 +328,6 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             }
                         });
                         ctx.stroke();
-                    }
                     
                     // MEJORA 2: Punto de inicio simple
                     const startX = 0 * cellW + cellW / 2;
@@ -365,8 +362,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                     ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
                     ctx.font = 'bold 10px Arial';
                     ctx.fillText('INICIO', startX, startY + 25);
+                }
                     
-                    // MEJORA 3: Dibujar marcadores de destino con colores sincronizados
+                    // MEJORA 3: Dibujar marcadores de destino (solo si hay muebles_rutas)
+                    if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
                     let numeroMueble = 1;
                     rutaOptimizada.muebles_rutas.forEach((mueble: any, index: number) => {
                         // Encontrar la ubicación del mueble en el mapa
@@ -442,7 +441,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             numeroMueble++;
                         }
                     });
-                } 
+                }
+                
                 // BACKWARD COMPATIBILITY: Mantener soporte para estructura antigua
                 else if (rutaOptimizada.detalle_tareas) {
                     

@@ -199,6 +199,7 @@ const ProductsPage = () => {
             </div>
 
             <div className="border border-slate-100 rounded-lg overflow-hidden">
+            <div className="border border-slate-100 rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">

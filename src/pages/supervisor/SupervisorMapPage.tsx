@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map, AlertCircle, Trash2, Home, MapPin, Target, RefreshCw } from 'lucide-react';
+import { Map, AlertCircle, Trash2, MapPin, Target, RefreshCw } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/map.service';
 import { ApiService } from '@/services/api';
@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ShelfGrid } from '@/components/ui/shelf-grid';
-import Logo from '@/components/shared/Logo';
+import SupervisorLayout from '@/components/layout/SupervisorLayout';
 
 interface PuntoSeleccionado extends UbicacionFisica {
   cantidad: number;
@@ -289,107 +289,40 @@ const SupervisorMapPage = () => {
   };
 
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Mapa de Supervisión
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Visualiza y gestiona las ubicaciones del supermercado
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => recargarDatos()}
-                className="border-2 border-success/30 hover:bg-success/10 hover:border-success/50 transition-all duration-200"
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Recargar
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/supervisor-dashboard')}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-            </div>
-          </div>
-        </header>
+    <SupervisorLayout>
+      {/* Header */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Mapa de Supervisión</h1>
+          <p className="text-sm text-slate-600">Visualiza y gestiona las ubicaciones del supermercado</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => recargarDatos()}
+          disabled={loading}
+          className="border-slate-200 hover:bg-slate-50"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Recargar
+        </Button>
+      </header>
 
-        <main className="container mx-auto px-6 py-8 flex-1 flex flex-col">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-warning/40 rounded-xl">
-                  <MapPin className="w-8 h-8 text-warning" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Vista de Supervisión</h2>
-                  <p className="text-muted-foreground">Supervisa ubicaciones y crea tareas para tu equipo de reponedores</p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <span>Estado:</span>
-                  {ApiService.getToken() ? (
-                    <span className="text-success">✓ Autenticado</span>
-                  ) : (
-                    <span className="text-destructive">✗ Sin autenticación</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6 h-full">
-            {/* Mapa */}
-            <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md flex-1 flex flex-col overflow-hidden">
-              <CardHeader className="flex-shrink-0 pb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-warning/30 rounded-xl">
-                    <Map className="w-6 h-6 text-warning" />
-                  </div>
+      {/* Content */}
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
+          {/* Mapa */}
+          <Card className="border-slate-100 shadow-sm bg-white">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Map className="w-5 h-5 text-blue-600" />
                   <div>
-                    <CardTitle className="text-2xl">Visualización de Rutas y Ubicaciones</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Haz clic en las ubicaciones para gestionar productos</p>
+                    <CardTitle className="text-lg">Mapa del Supermercado</CardTitle>
+                    <p className="text-sm text-slate-600">Haz clic en las ubicaciones para gestionar productos</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 p-6">
-                <div className="w-full h-[700px] bg-gradient-to-br from-muted/20 to-muted/40 rounded-2xl relative border-2 border-primary/20">
+              <CardContent>
+                <div className="w-full h-[700px] bg-slate-50 rounded-lg relative border border-slate-200">
                   {loading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-2xl">
                       <div className="text-center">
@@ -455,19 +388,17 @@ const SupervisorMapPage = () => {
             </Card>
 
             {/* Panel lateral */}
-            <Card className="card-logistics hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md flex flex-col">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-primary/30 rounded-xl">
-                    <Target className="w-6 h-6 text-primary" />
-                  </div>
+            <Card className="border-slate-100 shadow-sm bg-white">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
                   <div>
-                    <CardTitle>Puntos Seleccionados</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Crea tareas para reponedores</p>
+                    <CardTitle className="text-lg">Puntos Seleccionados</CardTitle>
+                    <p className="text-sm text-slate-600">Crea tareas para reponedores</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent>
                 <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
                   {puntosSeleccionados.length === 0 ? (
                     <div className="text-center py-8">
@@ -539,7 +470,7 @@ const SupervisorMapPage = () => {
                     <Button 
                       onClick={crearTarea} 
                       disabled={creandoTarea}
-                      className="w-full bg-gradient-to-r from-success to-success/80 hover:from-success/90 hover:to-success/70 transition-all duration-200"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       {creandoTarea ? 'Creando...' : 'Crear Tarea'}
                     </Button>
@@ -558,9 +489,8 @@ const SupervisorMapPage = () => {
               </CardContent>
             </Card>
           </div>
-        </main>
 
-        {/* Dialog para mostrar estantería */}
+          {/* Dialog para mostrar estantería */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -706,7 +636,7 @@ const SupervisorMapPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </>
+    </SupervisorLayout>
   );
 };
 
