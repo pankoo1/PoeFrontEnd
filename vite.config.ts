@@ -62,6 +62,12 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+      },
+      '/predicciones': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => `/api/v1${path}`
       }
     }
   },

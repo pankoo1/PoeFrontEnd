@@ -2199,7 +2199,7 @@ export class ApiService {
 
     // Generar predicción de reposiciones
     static async generarPrediccion(request: PrediccionRequest): Promise<PrediccionResponse> {
-        return await this.fetchApi<PrediccionResponse>('/predicciones/generar', {
+        return await this.fetchApi<PrediccionResponse>('/api/v1/predicciones/generar', {
             method: 'POST',
             body: JSON.stringify(request)
         });
@@ -2216,7 +2216,7 @@ export class ApiService {
         });
         
         return await this.fetchApi<PrediccionHistorialResponse>(
-            `/predicciones/historial?${params.toString()}`,
+            `/api/v1/predicciones/historial?${params.toString()}`,
             { method: 'GET' }
         );
     }
@@ -2224,7 +2224,7 @@ export class ApiService {
     // Obtener detalle de una predicción específica
     static async obtenerPrediccion(idPrediccion: number): Promise<PrediccionResponse> {
         return await this.fetchApi<PrediccionResponse>(
-            `/predicciones/${idPrediccion}`,
+            `/api/v1/predicciones/${idPrediccion}`,
             { method: 'GET' }
         );
     }
@@ -2235,7 +2235,7 @@ export class ApiService {
         request: ActualizarEstadoRequest
     ): Promise<PrediccionResponse> {
         return await this.fetchApi<PrediccionResponse>(
-            `/predicciones/${idPrediccion}/estado`,
+            `/api/v1/predicciones/${idPrediccion}/estado`,
             {
                 method: 'PATCH',
                 body: JSON.stringify(request)
