@@ -133,7 +133,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/predicciones" element={
-              <ProtectedRoute allowedRoles={['administrador']}>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <Predicciones />
               </ProtectedRoute>
             } />

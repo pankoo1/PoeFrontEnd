@@ -36,7 +36,12 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       },
-      '/supervisor': {
+      '/supervisor/vista': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/reponedor/vista': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
@@ -47,11 +52,6 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
-      },
-      '/dashboard': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
       },
       '/muebles': {
         target: 'http://localhost:8000',

@@ -86,7 +86,7 @@ const ReponedorTareas = () => {
       );
 
       // Navegar al mapa con la ruta optimizada
-      navigate(`/reponedor-mapa?tarea=${idTarea}&mostrar_ruta=true`, {
+      navigate(`/reponedor-map?tarea=${idTarea}&mostrar_ruta=true`, {
         state: { rutaOptimizada }
       });
       
@@ -327,7 +327,7 @@ const ReponedorTareas = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/reponedor-mapa?tarea=${tarea.id_tarea}&mostrar_ruta=true`)}
+                                onClick={() => navigate(`/reponedor-map?tarea=${tarea.id_tarea}&mostrar_ruta=true`)}
                                 className="border-2 border-accent/30 hover:bg-accent/10 hover:border-accent/50 transition-all duration-200 text-accent"
                               >
                                 <MapPin className="w-4 h-4 mr-2" />

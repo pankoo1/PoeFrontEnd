@@ -55,14 +55,14 @@ export const ObjectPalette: React.FC<ObjectPaletteProps> = ({
   const salidas = filteredObjetos.filter(o => o.tipo === 'salida');
 
   return (
-    <Card className="border-slate-200 shadow-sm h-full flex flex-col">
-      <CardHeader className="border-b border-slate-100 pb-4">
+    <Card className="border-slate-200 shadow-sm flex flex-col max-h-[800px] bg-white">
+      <CardHeader className="border-b border-slate-100 pb-4 flex-shrink-0 bg-white">
         <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
           <Package className="w-5 h-5" />
           Paleta de Objetos
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 flex-1 overflow-auto">
+      <CardContent className="p-4 flex-1 overflow-y-auto overflow-x-hidden bg-white">
         {/* Barra de búsqueda */}
         <div className="mb-4">
           <div className="relative">
@@ -124,9 +124,9 @@ export const ObjectPalette: React.FC<ObjectPaletteProps> = ({
                     </div>
                     <div className={`
                       px-2 py-1 rounded text-xs font-medium
-                      ${obj.es_caminable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                      ${obj.es_caminable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}
                     `}>
-                      {obj.es_caminable ? 'Caminable' : 'Bloqueado'}
+                      {obj.es_caminable ? 'Caminable' : 'Obstáculo'}
                     </div>
                   </div>
                 </div>

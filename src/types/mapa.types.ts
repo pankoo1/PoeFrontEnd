@@ -22,6 +22,7 @@ export interface ObjetoMapa {
   nombre: string;
   tipo: 'mueble' | 'muro' | 'salida' | 'suelo';
   es_caminable: boolean;
+  id_tipo?: number; // ID del tipo de objeto en el backend
   ancho?: number;
   alto?: number;
   filas?: number;
@@ -41,17 +42,36 @@ export interface ObjetoNuevo {
 export interface UbicacionObjeto {
   x: number;
   y: number;
-  id_objeto_real?: number;
+  id_objeto?: number; // Para uso interno del frontend
+  id_objeto_real?: number; // Para el backend: objetos existentes
+  ref_objeto_temp_id?: string; // Para el backend: objetos nuevos
   id_temporal?: string;
   nombre_objeto?: string;
   tipo_objeto?: string;
   ancho?: number;
   alto?: number;
+  rotacion?: number;
 }
 
 export interface GuardarLayoutRequest {
-  objetos_nuevos?: ObjetoNuevo[];
-  ubicaciones: UbicacionObjeto[];
+  objetos_nuevos: ObjetoNuevoBackend[];
+  ubicaciones: UbicacionBackend[];
+}
+
+export interface ObjetoNuevoBackend {
+  temp_id: string;
+  nombre: string;
+  id_tipo: number;
+  filas?: number;
+  columnas?: number;
+  direccion?: string;
+}
+
+export interface UbicacionBackend {
+  x: number;
+  y: number;
+  ref_objeto_temp_id?: string;
+  id_objeto_real?: number;
 }
 
 export interface CeldaMapa {

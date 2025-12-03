@@ -5,6 +5,7 @@ import type {
   CrearMapaRequest, 
   ObjetoMapa, 
   VistaGraficaMapa, 
+  UbicacionObjeto,
   GuardarLayoutRequest,
   RutaVisual,
   GenerarRutaRequest 
@@ -36,7 +37,11 @@ const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || `Error ${response.status}: ${response.statusText}`);
+    // Mejorar el manejo de errores para mostrar detalles completos
+    const errorMessage = typeof error.detail === 'string' 
+      ? error.detail 
+      : JSON.stringify(error.detail || error);
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -58,10 +63,20 @@ export class MapaService {
    * Obtener catálogo de objetos (paleta) para el editor
    */
   static async obtenerPaleta(): Promise<ObjetoMapa[]> {
-    const response = await fetchApi(`/mapa/objetos`, {
+    const response = await fetchApi(`/objetos`, {
       method: 'GET',
     });
-    return response;
+    // Mapear la respuesta del backend al formato esperado por el frontend
+    return response.map((obj: any) => ({
+      id_objeto: obj.id_objeto,
+      nombre: obj.nombre,
+      tipo: obj.tipo.nombre.toLowerCase(), // 'mueble', 'muro', 'salida', etc.
+      es_caminable: obj.tipo.caminable ?? false,
+      id_tipo: obj.tipo.id, // Guardar el id_tipo para uso posterior
+      ancho: 1, // Por defecto
+      alto: 1,
+      id_empresa: 0
+    }));
   }
 
   /**
@@ -69,7 +84,7 @@ export class MapaService {
    * Transforma la respuesta del backend en el formato que MapCanvas necesita
    */
   static async obtenerVistaGrafica(idMapa: number): Promise<{ vistaGrafica: VistaGraficaMapa; ubicaciones: UbicacionObjeto[] }> {
-    const response = await fetchApi(`/mapa/vista-grafica?id_mapa=${idMapa}`, {
+    const response = await fetchApi(`/vista-grafica?id_mapa=${idMapa}`, {
       method: 'GET',
     });
 
@@ -107,6 +122,7 @@ export class MapaService {
       .map((obj: any) => ({
         x: obj.x,
         y: obj.y,
+        id_objeto: obj.objeto.id, // Para matching con objetosDisponibles
         id_objeto_real: obj.objeto.id,
         nombre_objeto: obj.objeto.nombre,
         tipo_objeto: obj.objeto.tipo.nombre_tipo.toLowerCase(), // 'mueble', 'muro', 'salida'
@@ -129,7 +145,7 @@ export class MapaService {
   }
 
   /**
-   * Listar todos los mapas de la empresa
+   * Listar todos los mapas de la empresa (solo activos por ahora)
    */
   static async listarMapas(): Promise<Mapa[]> {
     const response = await fetchApi(`/todos`, {
@@ -141,8 +157,48 @@ export class MapaService {
       nombre: mapa.nombre,
       ancho: mapa.ancho,
       alto: mapa.alto,
-      id_empresa: 0, // El backend no lo devuelve pero no lo necesitamos
+      activo: mapa.activo, // ✅ Usar el valor del backend
+      id_empresa: 0,
     }));
+  }
+
+  /**
+   * Activar un mapa específico (desactiva automáticamente los demás)
+   */
+  static async activarMapa(idMapa: number): Promise<Mapa> {
+    const response = await fetchApi(`/${idMapa}/activar`, {
+      method: 'PUT',
+    });
+    return {
+      id_mapa: response.id,
+      nombre: response.nombre,
+      ancho: response.ancho,
+      alto: response.alto,
+      activo: response.activo, // ✅ Usar el valor del backend
+      id_empresa: 0,
+    };
+  }
+
+  /**
+   * Obtener el mapa activo actual
+   */
+  static async obtenerMapaActivo(): Promise<Mapa | null> {
+    try {
+      const response = await fetchApi(`/activo`, {
+        method: 'GET',
+      });
+      if (!response || !response.id) return null;
+      return {
+        id_mapa: response.id,
+        nombre: response.nombre,
+        ancho: response.ancho,
+        alto: response.alto,
+        activo: true,
+        id_empresa: 0,
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -199,6 +255,37 @@ export class MapaService {
    */
   static async obtenerRutaOptimizadaVisual(idTarea: number): Promise<any> {
     const response = await fetchApi(`${BASE_URL}/tareas/${idTarea}/ruta-optimizada-visual`, {
+      method: 'GET',
+    });
+    return response;
+  }
+
+  /**
+   * Asignar un producto a un punto de reposición
+   */
+  static async asignarProductoAPunto(idPunto: number, idProducto: number): Promise<any> {
+    const response = await fetchApi(`/puntos/${idPunto}/asignar-producto`, {
+      method: 'PUT',
+      body: JSON.stringify({ id_producto: idProducto }),
+    });
+    return response;
+  }
+
+  /**
+   * Desasignar producto de un punto de reposición
+   */
+  static async desasignarProductoDePunto(idPunto: number): Promise<void> {
+    await fetchApi(`/puntos/${idPunto}/desasignar-producto`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Obtener vista de reposición con puntos completos
+   */
+  static async obtenerVistaReposicion(idMapa?: number): Promise<any> {
+    const url = idMapa ? `/reposicion?id_mapa=${idMapa}` : `/reposicion`;
+    const response = await fetchApi(url, {
       method: 'GET',
     });
     return response;

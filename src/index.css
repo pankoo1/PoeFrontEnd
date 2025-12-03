@@ -108,6 +108,23 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Mejorar rendimiento de scroll y eliminar bugs visuales */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Evitar parpadeo en elementos con scroll */
+  [class*="overflow-"] {
+    -webkit-overflow-scrolling: touch;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 }
 
 /* === ESTILOS PERSONALIZADOS SUPERMERCADO/LOGÍSTICA === */

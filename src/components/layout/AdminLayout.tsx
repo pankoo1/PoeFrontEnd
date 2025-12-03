@@ -56,9 +56,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900 flex flex-col shadow-xl">
+      <aside className="w-72 bg-slate-900 flex flex-col shadow-2xl flex-shrink-0 z-10 border-r border-slate-800" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
         {/* Header */}
         <div className="p-6 border-b border-slate-800">
           <h1 className="text-2xl font-bold text-white">Panel Administrador</h1>
@@ -102,8 +102,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8">
-        {children}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 relative">
+        <div className="p-8 min-h-full">
+          {children}
+        </div>
       </main>
     </div>
   );
