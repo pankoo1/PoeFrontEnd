@@ -29,9 +29,9 @@ import {
 import { MapCanvas } from '@/components/mapa/MapCanvas';
 import { ObjectPalette } from '@/components/mapa/ObjectPalette';
 import { CreateFurnitureModal } from '@/components/mapa/CreateFurnitureModal';
-import { ShelfModal } from '@/components/mapa/ShelfModal';
-import { ProductSearchModal } from '@/components/mapa/ProductSearchModal';
+import { MuebleAssignmentModal } from '@/components/mapa/MuebleAssignmentModal';
 import { MapaService } from '@/services/mapa.service';
+import { MuebleService } from '@/services/mueble.service';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { 
@@ -88,10 +88,8 @@ const MapPage = () => {
   const [editorMode, setEditorMode] = useState<'edit' | 'assign'>('edit');
   
   // Estados para asignación de productos
-  const [showShelfModal, setShowShelfModal] = useState(false);
-  const [showProductModal, setShowProductModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedMueble, setSelectedMueble] = useState<any>(null);
-  const [selectedPunto, setSelectedPunto] = useState<any>(null);
   
   // Form para crear nuevo mapa
   const [newMapForm, setNewMapForm] = useState({
@@ -137,8 +135,16 @@ const MapPage = () => {
       // Cargar vista gráfica del mapa (incluye celdas y ubicaciones)
       const { vistaGrafica, ubicaciones } = await MapaService.obtenerVistaGrafica(idMapa);
       
-      // Cargar paleta de objetos
-      const paleta = await MapaService.obtenerPaleta();
+      // Cargar paleta de objetos filtrada por mapa
+      const paleta = await MapaService.obtenerObjetosPorMapa(idMapa);
+
+      console.log('🔍 Debug datos cargados:', {
+        ubicaciones: ubicaciones,
+        paleta: paleta,
+        muebleEnUbicaciones: ubicaciones.filter(u => u.tipo_objeto === 'mueble'),
+        muebleEnPaleta: paleta.filter(p => p.tipo === 'mueble'),
+        todosTiposPaleta: paleta.map(p => ({ nombre: p.nombre, tipo: p.tipo, id_tipo: p.id_tipo }))
+      });
 
       setEditorState(prev => ({
         ...prev,
@@ -234,12 +240,51 @@ const MapPage = () => {
     }));
   };
 
-  const handleCellClick = (x: number, y: number) => {
+  const handleRemoveObject = (x: number, y: number) => {
+    const objetoAEliminar = editorState.ubicaciones.find(u => u.x === x && u.y === y);
+    if (objetoAEliminar) {
+      setEditorState(prev => ({
+        ...prev,
+        ubicaciones: prev.ubicaciones.filter(u => !(u.x === x && u.y === y)),
+        hasUnsavedChanges: true
+      }));
+      
+      // Encontrar el nombre del objeto para el toast
+      const objeto = editorState.objetosDisponibles.find(
+        obj => obj.id_objeto === objetoAEliminar.id_objeto
+      );
+      const nombreObjeto = objeto?.nombre || objetoAEliminar.nombre_objeto || 'Objeto';
+      
+      toast({
+        title: 'Objeto eliminado',
+        description: `${nombreObjeto} ha sido eliminado del mapa`,
+      });
+    }
+  };
+
+  const handleCellClick = (x: number, y: number, event?: { ctrlKey?: boolean }) => {
     if (!editorState.mapa) return;
+
+    // En modo edición, Ctrl+Click elimina objetos
+    if (editorMode === 'edit' && event?.ctrlKey) {
+      handleRemoveObject(x, y);
+      return;
+    }
 
     // MODO EDICIÓN: Colocar objetos
     if (editorMode === 'edit' && editorState.draggedObject) {
       const objeto = editorState.draggedObject.objeto;
+      
+      // Verificar si ya hay un objeto en esa posición
+      const ubicacionExistente = editorState.ubicaciones.find(u => u.x === x && u.y === y);
+      if (ubicacionExistente) {
+        toast({
+          title: 'Posición ocupada',
+          description: 'Ya hay un objeto en esta posición. Usa Ctrl+Click para eliminarlo primero.',
+          variant: 'destructive'
+        });
+        return;
+      }
       
       // Verificar si es ObjetoMapa o ObjetoNuevo
       const id_objeto = 'id_objeto' in objeto ? objeto.id_objeto : Date.now();
@@ -263,15 +308,9 @@ const MapPage = () => {
     if (editorMode === 'assign') {
       const ubicacionClickeada = editorState.ubicaciones.find(u => u.x === x && u.y === y);
       
-      console.log('🔍 Click en modo asignación:', { 
-        x, 
-        y, 
-        ubicacionClickeada,
-        todasUbicaciones: editorState.ubicaciones,
-        objetosDisponibles: editorState.objetosDisponibles
-      });
-      
       if (ubicacionClickeada) {
+        console.log('🔍 Debug ubicación clickeada:', ubicacionClickeada);
+        
         // Buscar el objeto por id_objeto o por nombre si no coincide
         let objetoEnCelda = editorState.objetosDisponibles.find(
           obj => obj.id_objeto === ubicacionClickeada.id_objeto
@@ -284,25 +323,24 @@ const MapPage = () => {
           );
         }
         
-        console.log('✅ Objeto encontrado:', objetoEnCelda);
+        console.log('🔍 Debug objeto encontrado en paleta:', objetoEnCelda);
+        console.log('🔍 Debug todos los objetos disponibles:', editorState.objetosDisponibles);
         
         // Si es un mueble, abrir modal de puntos (comparación case-insensitive)
         const tipoObjeto = objetoEnCelda?.tipo?.toLowerCase();
+        const tipoUbicacion = ubicacionClickeada.tipo_objeto?.toLowerCase();
+        
+        console.log('🔍 Debug tipos:', { tipoObjeto, tipoUbicacion });
+        
         if (objetoEnCelda && tipoObjeto === 'mueble') {
-          console.log('🪑 Es un mueble, abriendo modal...');
           handleMuebleClick(objetoEnCelda);
         } else if (objetoEnCelda) {
-          console.log('❌ No es un mueble, tipo:', tipoObjeto);
           toast({
             title: 'Objeto no válido',
-            description: 'Solo puedes asignar productos a muebles',
+            description: `Solo puedes asignar productos a muebles. Tipo detectado: "${tipoObjeto}"`,
             variant: 'destructive'
           });
-        } else {
-          console.warn('⚠️ No se encontró objeto en la ubicación clickeada');
         }
-      } else {
-        console.log('ℹ️ No hay objeto en esta celda');
       }
     }
   };
@@ -324,7 +362,7 @@ const MapPage = () => {
           columnas: ubicacionMueble.mueble.columnas,
           puntos: ubicacionMueble.mueble.puntos_reposicion || []
         });
-        setShowShelfModal(true);
+        setShowAssignmentModal(true);
       } else {
         toast({
           title: 'Mueble sin puntos',
@@ -337,52 +375,6 @@ const MapPage = () => {
       toast({
         title: 'Error',
         description: 'Error al cargar el mueble',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleSelectPunto = (punto: any) => {
-    setSelectedPunto(punto);
-    setShowShelfModal(false);
-    
-    // Si el punto ya tiene producto, mostrar opción de desasignar
-    if (punto.producto) {
-      // Por ahora solo permitir asignar a puntos vacíos
-      toast({
-        title: 'Punto ocupado',
-        description: 'Este punto ya tiene un producto asignado',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Abrir modal de búsqueda de productos
-    setShowProductModal(true);
-  };
-
-  const handleSelectProduct = async (producto: any) => {
-    if (!selectedPunto) return;
-
-    try {
-      await MapaService.asignarProductoAPunto(selectedPunto.id_punto, producto.id_producto);
-      
-      toast({
-        title: 'Producto asignado',
-        description: `${producto.nombre} se ha asignado correctamente al punto N${selectedPunto.nivel} E${selectedPunto.estanteria}`
-      });
-
-      // Recargar el mapa para reflejar los cambios
-      if (editorState.mapa) {
-        await loadMapa(editorState.mapa.id_mapa);
-      }
-
-      setSelectedPunto(null);
-      setShowProductModal(false);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'No se pudo asignar el producto',
         variant: 'destructive'
       });
     }
@@ -449,7 +441,7 @@ const MapPage = () => {
         objetos_nuevos: objetosNuevos.map(obj => ({
           temp_id: String(obj.id_objeto), // Convertir a string
           nombre: obj.nombre,
-          id_tipo: obj.id_tipo || 2, // 2 = mueble por defecto
+          id_tipo: obj.id_tipo, // Usar el id_tipo correcto del objeto
           filas: obj.filas || 3,
           columnas: obj.columnas || 3,
           direccion: 'T'
@@ -493,18 +485,30 @@ const MapPage = () => {
 
   const handleCreateFurniture = async (objeto: ObjetoNuevo) => {
     try {
-      // Crear mueble temporal en el frontend con timestamp como ID
-      const nuevoObjeto: ObjetoMapa = {
-        id_objeto: Date.now(), // ID temporal (timestamp)
-        tipo: objeto.tipo,
+      // ✅ Crear mueble directamente en el backend
+      const muebleCreado = await MuebleService.crearMuebleCompleto({
         nombre: objeto.nombre,
+        filas: objeto.filas,
+        columnas: objeto.columnas,
+        direccion: 'T' // Top por defecto
+      });
+
+      // Obtener el id_tipo correcto para muebles desde la paleta actual
+      const muebleEnPaleta = editorState.objetosDisponibles.find(obj => obj.tipo === 'mueble');
+      const id_tipo_mueble = muebleEnPaleta?.id_tipo || 3; // Fallback a 3 si no se encuentra
+
+      // ✅ Agregar el mueble con ID real del backend a la paleta
+      const nuevoObjeto: ObjetoMapa = {
+        id_objeto: muebleCreado.id_objeto, // ID real del backend
+        tipo: 'mueble',
+        nombre: muebleCreado.nombre,
         filas: objeto.filas,
         columnas: objeto.columnas,
         ancho: objeto.ancho,
         alto: objeto.alto,
-        es_caminable: false, // Los muebles no son caminables por defecto
-        id_tipo: 2, // Tipo mueble
-        id_empresa: 0 // Temporal - se asigna correctamente en backend
+        es_caminable: false, // Los muebles no son caminables
+        id_tipo: id_tipo_mueble,
+        id_empresa: 0
       };
 
       setEditorState(prev => ({
@@ -513,13 +517,14 @@ const MapPage = () => {
       }));
 
       toast({
-        title: 'Mueble creado',
-        description: `El mueble "${objeto.nombre}" se agregará a la paleta. Recuerda guardar el mapa para persistirlo.`
+        title: 'Mueble creado exitosamente',
+        description: `El mueble "${objeto.nombre}" se ha creado en el servidor y está listo para usar.`,
+        variant: 'default'
       });
     } catch (err) {
       toast({
-        title: 'Error',
-        description: err instanceof Error ? err.message : 'Error al crear el mueble',
+        title: 'Error al crear mueble',
+        description: err instanceof Error ? err.message : 'Error al crear el mueble en el servidor',
         variant: 'destructive'
       });
       throw err;
@@ -601,6 +606,68 @@ const MapPage = () => {
     }
   };
 
+  const handleEliminarMapa = async () => {
+    if (!mapaSeleccionadoId) return;
+
+    // Validaciones previas
+    const mapaActual = mapasDisponibles.find(m => m.id_mapa === mapaSeleccionadoId);
+    
+    if (mapaActual?.activo) {
+      toast({
+        title: 'No se puede eliminar',
+        description: 'No puedes eliminar el mapa activo. Activa otro mapa primero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (mapasDisponibles.length === 1) {
+      toast({
+        title: 'No se puede eliminar',
+        description: 'No puedes eliminar el único mapa del sistema.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `¿Estás seguro de eliminar el mapa "${mapaActual?.nombre}"?\n\n` +
+      'Esta acción no se puede deshacer y se eliminarán todos los objetos y ubicaciones asociadas.'
+    );
+    
+    if (!confirmar) return;
+
+    try {
+      setLoading(true);
+      await MapaService.eliminarMapa(mapaSeleccionadoId);
+
+      // Recargar lista de mapas
+      const mapasActualizados = await MapaService.listarMapas();
+      setMapasDisponibles(mapasActualizados);
+
+      // Cargar el primer mapa disponible
+      if (mapasActualizados.length > 0) {
+        const primerMapa = mapasActualizados[0];
+        setMapaSeleccionadoId(primerMapa.id_mapa);
+        await loadMapa(primerMapa.id_mapa);
+      }
+
+      toast({
+        title: 'Mapa eliminado',
+        description: 'El mapa se ha eliminado correctamente',
+      });
+    } catch (err) {
+      console.error('Error al eliminar mapa:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'No se pudo eliminar el mapa',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -661,6 +728,20 @@ const MapPage = () => {
                   {mapasDisponibles.find(m => m.id_mapa === mapaSeleccionadoId)?.activo 
                     ? 'Mapa activo' 
                     : 'Activar mapa'}
+                </Button>
+                <Button
+                  onClick={handleEliminarMapa}
+                  disabled={
+                    !mapaSeleccionadoId || 
+                    mapasDisponibles.find(m => m.id_mapa === mapaSeleccionadoId)?.activo ||
+                    mapasDisponibles.length === 1
+                  }
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar mapa
                 </Button>
               </div>
             )}
@@ -751,6 +832,16 @@ const MapPage = () => {
             </Button>
           </div>
         </div>
+
+        {/* Mensaje informativo - Modo Edición */}
+        {editorMode === 'edit' && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Edit3 className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900">
+              <strong>Click normal:</strong> Colocar objeto seleccionado | <strong>Ctrl+Click:</strong> Eliminar objeto | Selecciona objetos de la paleta para colocarlos
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Mensaje informativo - Modo Asignación */}
         {editorMode === 'assign' && (
@@ -964,30 +1055,21 @@ const MapPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Modal de puntos de reposición */}
-        {showShelfModal && selectedMueble && (
-          <ShelfModal
-            open={showShelfModal}
-            onClose={() => setShowShelfModal(false)}
-            muebleNombre={selectedMueble.nombre}
-            filas={selectedMueble.filas}
-            columnas={selectedMueble.columnas}
-            puntos={selectedMueble.puntos}
-            onSelectPunto={handleSelectPunto}
-          />
-        )}
-
-        {/* Modal de búsqueda de productos */}
-        {showProductModal && (
-          <ProductSearchModal
-            open={showProductModal}
-            onClose={() => {
-              setShowProductModal(false);
-              setSelectedPunto(null);
-            }}
-            onSelectProduct={handleSelectProduct}
-          />
-        )}
+        {/* Modal de Asignación de Productos a Mueble */}
+        <MuebleAssignmentModal
+          open={showAssignmentModal}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setSelectedMueble(null);
+          }}
+          mueble={selectedMueble}
+          onSuccess={() => {
+            // Recargar el mapa para reflejar los cambios
+            if (editorState.mapa) {
+              loadMapa(editorState.mapa.id_mapa);
+            }
+          }}
+        />
       </div>
     </AdminLayout>
   );

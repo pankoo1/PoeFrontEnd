@@ -63,14 +63,15 @@ export class MapaService {
    * Obtener catálogo de objetos (paleta) para el editor
    */
   static async obtenerPaleta(): Promise<ObjetoMapa[]> {
-    const response = await fetchApi(`/objetos`, {
+    const response = await fetchApi(`/mapa/objetos`, {
       method: 'GET',
     });
     // Mapear la respuesta del backend al formato esperado por el frontend
     return response.map((obj: any) => ({
       id_objeto: obj.id_objeto,
       nombre: obj.nombre,
-      tipo: obj.tipo.nombre.toLowerCase(), // 'mueble', 'muro', 'salida', etc.
+      // Usar nombre_tipo si existe, sino nombre (compatibilidad)
+      tipo: (obj.tipo.nombre_tipo || obj.tipo.nombre).toLowerCase(), // 'mueble', 'muro', 'salida', etc.
       es_caminable: obj.tipo.caminable ?? false,
       id_tipo: obj.tipo.id, // Guardar el id_tipo para uso posterior
       ancho: 1, // Por defecto
@@ -84,7 +85,7 @@ export class MapaService {
    * Transforma la respuesta del backend en el formato que MapCanvas necesita
    */
   static async obtenerVistaGrafica(idMapa: number): Promise<{ vistaGrafica: VistaGraficaMapa; ubicaciones: UbicacionObjeto[] }> {
-    const response = await fetchApi(`/vista-grafica?id_mapa=${idMapa}`, {
+    const response = await fetchApi(`/mapa/vista-grafica?id_mapa=${idMapa}`, {
       method: 'GET',
     });
 
@@ -184,7 +185,7 @@ export class MapaService {
    */
   static async obtenerMapaActivo(): Promise<Mapa | null> {
     try {
-      const response = await fetchApi(`/activo`, {
+      const response = await fetchApi(`/mapa/activo`, {
         method: 'GET',
       });
       if (!response || !response.id) return null;
@@ -284,9 +285,75 @@ export class MapaService {
    * Obtener vista de reposición con puntos completos
    */
   static async obtenerVistaReposicion(idMapa?: number): Promise<any> {
-    const url = idMapa ? `/reposicion?id_mapa=${idMapa}` : `/reposicion`;
+    const url = idMapa ? `/mapa/reposicion?id_mapa=${idMapa}` : `/mapa/reposicion`;
     const response = await fetchApi(url, {
       method: 'GET',
+    });
+    return response;
+  }
+
+  /**
+   * Obtener objetos disponibles para un mapa específico
+   * Filtra solo los objetos relevantes para el mapa actual
+   * GET /mapa/{id_mapa}/objetos
+   */
+  static async obtenerObjetosPorMapa(idMapa: number): Promise<ObjetoMapa[]> {
+    const response = await fetchApi(`/mapa/${idMapa}/objetos`, {
+      method: 'GET',
+    });
+    return response.map((obj: any) => ({
+      id_objeto: obj.id_objeto,
+      nombre: obj.nombre,
+      tipo: (obj.tipo.nombre_tipo || obj.tipo.nombre).toLowerCase(),
+      es_caminable: obj.tipo.caminable ?? false,
+      id_tipo: obj.tipo.id,
+      ancho: 1,
+      alto: 1,
+      id_empresa: 0
+    }));
+  }
+
+  /**
+   * Verificar disponibilidad de un punto de reposición
+   * Retorna si está ocupado por una tarea activa
+   * GET /puntos/{id_punto}/disponibilidad
+   */
+  static async verificarDisponibilidadPunto(idPunto: number): Promise<{
+    disponible: boolean;
+    mensaje: string;
+    tarea_conflictiva?: {
+      id_tarea: number;
+      nombre_tarea: string;
+      estado: string;
+      usuario_asignado?: string;
+    };
+  }> {
+    const response = await fetchApi(`/puntos/${idPunto}/disponibilidad`, {
+      method: 'GET',
+    });
+    return response;
+  }
+
+  /**
+   * Asignar usuario a un punto de reposición
+   * POST /puntos/asignar
+   */
+  static async asignarUsuarioAPunto(idUsuario: number, idPunto: number): Promise<any> {
+    const response = await fetchApi('/puntos/asignar', {
+      method: 'POST',
+      body: JSON.stringify({ id_usuario: idUsuario, id_punto: idPunto }),
+    });
+    return response;
+  }
+
+  /**
+   * Desasignar usuario de un punto de reposición
+   * DELETE /puntos/desasignar
+   */
+  static async desasignarUsuarioDePunto(idPunto: number): Promise<any> {
+    const response = await fetchApi('/puntos/desasignar', {
+      method: 'DELETE',
+      body: JSON.stringify({ id_punto: idPunto }),
     });
     return response;
   }

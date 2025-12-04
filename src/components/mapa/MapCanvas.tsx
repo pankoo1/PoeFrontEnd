@@ -4,7 +4,7 @@ import type { VistaGraficaMapa, ObjetoMapa, ObjetoNuevo, UbicacionObjeto } from 
 interface MapCanvasProps {
   mapa: VistaGraficaMapa | null;
   ubicaciones: UbicacionObjeto[];
-  onCellClick?: (x: number, y: number) => void;
+  onCellClick?: (x: number, y: number, event?: { ctrlKey?: boolean }) => void;
   onObjectPlace?: (x: number, y: number, objeto: ObjetoMapa | ObjetoNuevo) => void;
   draggedObject: (ObjetoMapa | ObjetoNuevo) | null;
   highlightedCells?: { x: number; y: number }[];
@@ -176,7 +176,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     const y = Math.floor((e.clientY - rect.top) / cellSize);
 
     if (x >= 0 && x < mapa.ancho && y >= 0 && y < mapa.alto) {
-      onCellClick?.(x, y);
+      onCellClick?.(x, y, { ctrlKey: e.ctrlKey });
     }
   };
 
