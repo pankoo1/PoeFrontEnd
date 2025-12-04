@@ -41,6 +41,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       },
+      '/mapa/reponedor/vista': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
       '/reponedor/vista': {
         target: 'http://localhost:8000',
         changeOrigin: true,

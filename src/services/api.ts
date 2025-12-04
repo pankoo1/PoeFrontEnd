@@ -1361,7 +1361,7 @@ export class ApiService {
     // Método para obtener el mapa del reponedor
     static async getMapaReponedorVista(idMapa?: number): Promise<any> {
         try {
-            const response = await fetch(`${API_URL}/reponedor/vista${idMapa ? `?id_mapa=${idMapa}` : ''}`, {
+            const response = await fetch(`${API_URL}/mapa/reponedor/vista${idMapa ? `?id_mapa=${idMapa}` : ''}`, {
                 headers: {
                     'Authorization': `Bearer ${this.getToken()}`
                 }
@@ -2247,7 +2247,7 @@ export class ApiService {
 // Nuevas funciones para obtener el mapa según el rol
 export async function getMapaReponedor(token: string, idMapa?: number) {
   const params = idMapa ? `?id_mapa=${idMapa}` : '';
-  const response = await fetch(`${API_URL}/reponedor/vista${params}`, {
+  const response = await fetch(`${API_URL}/mapa/reponedor/vista${params}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
