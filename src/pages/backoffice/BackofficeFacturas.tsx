@@ -39,11 +39,15 @@ const BackofficeFacturas: React.FC = () => {
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [crearData, setCrearData] = useState<FacturaCreate>({
     id_empresa: 0,
-    concepto: '',
+    id_plan: 0,
+    numero_factura: '',
     fecha_emision: new Date().toISOString().split('T')[0],
     fecha_vencimiento: '',
-    items: [],
-    notas: '',
+    subtotal: 0,
+    iva: 0,
+    total: 0,
+    descripcion: '',
+    periodo_facturado: '',
   });
 
   // Modal de edición
@@ -160,8 +164,8 @@ const BackofficeFacturas: React.FC = () => {
 
   const crearFactura = async () => {
     try {
-      if (crearData.items.length === 0) {
-        alert('⚠️ Debe agregar al menos un ítem a la factura');
+      if (!crearData.id_empresa || !crearData.id_plan || crearData.subtotal <= 0 || crearData.total <= 0) {
+        alert('⚠️ Debe completar todos los campos requeridos (empresa, plan, montos)');
         return;
       }
       await ApiService.crearFactura(crearData);
@@ -169,11 +173,15 @@ const BackofficeFacturas: React.FC = () => {
       setShowCrearModal(false);
       setCrearData({
         id_empresa: 0,
-        concepto: '',
+        id_plan: 0,
+        numero_factura: '',
         fecha_emision: new Date().toISOString().split('T')[0],
         fecha_vencimiento: '',
-        items: [],
-        notas: '',
+        subtotal: 0,
+        iva: 0,
+        total: 0,
+        descripcion: '',
+        periodo_facturado: '',
       });
       await cargarDatos();
     } catch (error) {
@@ -342,9 +350,9 @@ const BackofficeFacturas: React.FC = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2">Número</th>
-                  <th className="text-left p-2">Empresa</th>
-                  <th className="text-left p-2">Concepto</th>
-                  <th className="text-left p-2">Monto</th>
+                  <th className="text-left p-2">Empresa (ID)</th>
+                  <th className="text-left p-2">Periodo</th>
+                  <th className="text-left p-2">Total</th>
                   <th className="text-left p-2">Estado</th>
                   <th className="text-left p-2">Emisión</th>
                   <th className="text-left p-2">Vencimiento</th>
@@ -355,10 +363,19 @@ const BackofficeFacturas: React.FC = () => {
                 {facturasFiltradas.map((factura) => (
                   <tr key={factura.id_factura} className="border-b hover:bg-muted/50">
                     <td className="p-2 font-mono text-sm">{factura.numero_factura}</td>
-                    <td className="p-2 font-medium">{factura.nombre_empresa || 'N/A'}</td>
-                    <td className="p-2">{factura.concepto || factura.periodo_facturado || 'N/A'}</td>
+                    <td className="p-2">
+                      {factura.nombre_empresa ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{factura.nombre_empresa}</div>
+                          <div className="text-muted-foreground text-xs">ID: {factura.id_empresa}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-mono">ID: {factura.id_empresa}</span>
+                      )}
+                    </td>
+                    <td className="p-2 text-sm">{factura.periodo_facturado || '-'}</td>
                     <td className="p-2 font-bold text-lg">
-                      ${(factura.monto_total || factura.total)?.toFixed(2) || '0.00'}
+                      ${factura.total.toLocaleString()}
                     </td>
                     <td className="p-2">{getEstadoBadge(factura.estado)}</td>
                     <td className="p-2 text-sm text-muted-foreground">
@@ -494,16 +511,24 @@ const BackofficeFacturas: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedFactura.items.map((item, idx) => (
-                        <tr key={idx} className="border-t">
-                          <td className="p-2">{item.descripcion}</td>
-                          <td className="text-right p-2">{item.cantidad}</td>
-                          <td className="text-right p-2">${item.precio_unitario.toFixed(2)}</td>
-                          <td className="text-right p-2 font-medium">
-                            ${item.subtotal.toFixed(2)}
+                      {Array.isArray(selectedFactura.items) && selectedFactura.items.length > 0 ? (
+                        selectedFactura.items.map((item, idx) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-2">{item.descripcion}</td>
+                            <td className="text-right p-2">{item.cantidad}</td>
+                            <td className="text-right p-2">${item.precio_unitario.toFixed(2)}</td>
+                            <td className="text-right p-2 font-medium">
+                              ${item.subtotal.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="p-2 text-center text-muted-foreground">
+                            No hay ítems en esta factura.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -567,6 +592,22 @@ const BackofficeFacturas: React.FC = () => {
           )}
 
           <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (selectedFactura) {
+                  try {
+                    await ApiService.descargarPDFFactura(selectedFactura.id_factura);
+                  } catch (error) {
+                    console.error('Error al descargar PDF:', error);
+                    alert('❌ Error al descargar el PDF');
+                  }
+                }
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Descargar PDF
+            </Button>
             <Button
               variant="outline"
               onClick={() => {
@@ -697,26 +738,39 @@ const BackofficeFacturas: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label>ID Empresa</Label>
-              <Input
-                type="number"
-                value={crearData.id_empresa}
-                onChange={(e) => setCrearData({ ...crearData, id_empresa: parseInt(e.target.value) })}
-                placeholder="ID de la empresa"
-              />
-            </div>
-            <div>
-              <Label>Concepto</Label>
-              <Input
-                value={crearData.concepto}
-                onChange={(e) => setCrearData({ ...crearData, concepto: e.target.value })}
-                placeholder="Ej: Suscripción mensual"
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Fecha de emisión</Label>
+                <Label>ID Empresa *</Label>
+                <Input
+                  type="number"
+                  value={crearData.id_empresa || ''}
+                  onChange={(e) => setCrearData({ ...crearData, id_empresa: parseInt(e.target.value) || 0 })}
+                  placeholder="ID de la empresa"
+                />
+              </div>
+              <div>
+                <Label>ID Plan *</Label>
+                <Input
+                  type="number"
+                  value={crearData.id_plan || ''}
+                  onChange={(e) => setCrearData({ ...crearData, id_plan: parseInt(e.target.value) || 0 })}
+                  placeholder="ID del plan"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Número de factura (opcional)</Label>
+              <Input
+                value={crearData.numero_factura || ''}
+                onChange={(e) => setCrearData({ ...crearData, numero_factura: e.target.value })}
+                placeholder="Se generará automáticamente si se deja vacío"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Fecha de emisión *</Label>
                 <Input
                   type="date"
                   value={crearData.fecha_emision}
@@ -724,7 +778,7 @@ const BackofficeFacturas: React.FC = () => {
                 />
               </div>
               <div>
-                <Label>Fecha de vencimiento</Label>
+                <Label>Fecha de vencimiento *</Label>
                 <Input
                   type="date"
                   value={crearData.fecha_vencimiento}
@@ -732,19 +786,68 @@ const BackofficeFacturas: React.FC = () => {
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Subtotal (CLP) *</Label>
+                <Input
+                  type="number"
+                  value={crearData.subtotal || ''}
+                  onChange={(e) => {
+                    const subtotal = parseInt(e.target.value) || 0;
+                    const iva = Math.round(subtotal * 0.19);
+                    const total = subtotal + iva;
+                    setCrearData({ ...crearData, subtotal, iva, total });
+                  }}
+                  placeholder="100000"
+                />
+              </div>
+              <div>
+                <Label>IVA (CLP) *</Label>
+                <Input
+                  type="number"
+                  value={crearData.iva || ''}
+                  onChange={(e) => {
+                    const iva = parseInt(e.target.value) || 0;
+                    const total = crearData.subtotal + iva;
+                    setCrearData({ ...crearData, iva, total });
+                  }}
+                  placeholder="19000"
+                />
+              </div>
+              <div>
+                <Label>Total (CLP) *</Label>
+                <Input
+                  type="number"
+                  value={crearData.total || ''}
+                  onChange={(e) => setCrearData({ ...crearData, total: parseInt(e.target.value) || 0 })}
+                  placeholder="119000"
+                />
+              </div>
+            </div>
+
             <div>
-              <Label>Notas</Label>
+              <Label>Descripción (opcional)</Label>
               <Textarea
-                value={crearData.notas || ''}
-                onChange={(e) => setCrearData({ ...crearData, notas: e.target.value })}
-                rows={3}
-                placeholder="Notas adicionales..."
+                value={crearData.descripcion || ''}
+                onChange={(e) => setCrearData({ ...crearData, descripcion: e.target.value })}
+                rows={2}
+                placeholder="Descripción de la factura..."
               />
             </div>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-              <p className="text-sm">
-                ℹ️ Después de crear la factura, deberás agregarle items desde el detalle de la factura.
+            <div>
+              <Label>Periodo facturado (opcional)</Label>
+              <Input
+                value={crearData.periodo_facturado || ''}
+                onChange={(e) => setCrearData({ ...crearData, periodo_facturado: e.target.value })}
+                placeholder="Ej: Diciembre 2025"
+              />
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-800">
+                💡 El IVA se calcula automáticamente al ingresar el subtotal (19%)
               </p>
             </div>
           </div>
@@ -755,7 +858,7 @@ const BackofficeFacturas: React.FC = () => {
             </Button>
             <Button
               onClick={crearFactura}
-              disabled={!crearData.id_empresa || !crearData.concepto || !crearData.fecha_vencimiento}
+              disabled={!crearData.id_empresa || !crearData.id_plan || !crearData.fecha_vencimiento || crearData.subtotal <= 0}
             >
               Crear factura
             </Button>

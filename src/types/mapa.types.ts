@@ -37,6 +37,7 @@ export interface ObjetoNuevo {
   alto: number;
   filas: number;
   columnas: number;
+  direccion?: 'T' | 'N' | 'S' | 'E' | 'O';
 }
 
 export interface UbicacionObjeto {

@@ -517,24 +517,22 @@ export interface ConsumoRecursos {
 }
 
 export interface LogAuditoria {
-    id_log: number;
-    usuario_id?: number;
-    usuario_nombre?: string;
-    usuario_rol?: string;
-    empresa_id?: number;
-    empresa_nombre?: string;
-    entidad: string;
-    id_entidad: number;
-    accion: string;
-    valores_anteriores?: Record<string, any>;
-    valores_nuevos?: Record<string, any>;
-    ip_address?: string;
-    user_agent?: string;
-    timestamp: string;
-    descripcion?: string;
-}
-
-export interface EstadisticasAuditoria {
+  id_log: number;
+  id_usuario: number;
+  nombre_usuario: string;
+  usuario_rol?: string;
+  id_empresa?: number;
+  nombre_empresa?: string;
+  accion: string;
+  entidad: string;
+  id_entidad: number;
+  nombre_entidad?: string;
+  datos_anteriores?: Record<string, any>;
+  datos_nuevos?: Record<string, any>;
+  ip_origen?: string;
+  user_agent?: string;
+  fecha: string;
+}export interface EstadisticasAuditoria {
     total_logs: number;
     logs_ultimas_24h: number;
     logs_ultima_semana?: number;
@@ -612,15 +610,17 @@ export interface CotizacionListItem {
 
 export interface CotizacionUpdate {
     nombre_contacto?: string;
-    email_contacto?: string;
-    telefono_contacto?: string;
-    empresa_solicitante?: string;
-    plan_id?: number;
-    cantidad_usuarios?: number;
-    cantidad_tareas?: number;
-    cantidad_proyectos?: number;
-    precio_mensual?: number;
+    email?: string;
+    telefono?: string;
+    empresa?: string;
+    cargo?: string;
+    cantidad_supervisores?: number;
+    cantidad_reponedores?: number;
+    cantidad_productos?: number;
+    integraciones_requeridas?: string;
+    comentarios?: string;
     precio_sugerido?: number;
+    precio_final?: number;
     features_sugeridos?: string;
     notas_internas?: string;
     estado?: string;
@@ -703,15 +703,15 @@ export interface FacturaGenerar {
 
 export interface FacturaCreate {
     id_empresa: number;
-    concepto: string;
+    id_plan: number;
+    numero_factura?: string;
     fecha_emision: string;
     fecha_vencimiento: string;
-    items: Array<{
-        descripcion: string;
-        cantidad: number;
-        precio_unitario: number;
-    }>;
-    notas?: string;
+    subtotal: number;
+    iva: number;
+    total: number;
+    descripcion?: string;
+    periodo_facturado?: string;
 }
 
 export interface FacturaUpdate {
@@ -1807,11 +1807,12 @@ export class ApiService {
         idCotizacion: number,
         nuevoEstado: string
     ): Promise<{ mensaje: string }> {
+        // Enviar nuevo_estado como query param, no en el body
+        const url = `/cotizaciones/${idCotizacion}/cambiar-estado?nuevo_estado=${encodeURIComponent(nuevoEstado)}`;
         return await this.fetchApi<{ mensaje: string }>(
-            `/cotizaciones/${idCotizacion}/cambiar-estado`,
+            url,
             {
                 method: 'POST',
-                body: JSON.stringify({ nuevo_estado: nuevoEstado }),
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -1820,10 +1821,30 @@ export class ApiService {
     }
 
     // 8) Convertir cotización aprobada en empresa + plan (SuperAdmin)
-    static async convertirCotizacion(idCotizacion: number): Promise<CotizacionConvertidaResponse> {
+    static async convertirCotizacion(
+        idCotizacion: number,
+        data: {
+            nombre_empresa: string;
+            rut_empresa: string;
+            direccion?: string;
+            ciudad?: string;
+            region?: string;
+            admin_nombre: string;
+            admin_correo: string;
+            admin_contraseña: string;
+            cantidad_supervisores: number;
+            cantidad_reponedores: number;
+            cantidad_productos?: number;
+            cantidad_puntos?: number;
+            precio_mensual: number;
+            features?: any;
+            fecha_inicio?: string;
+            fecha_vencimiento?: string;
+        }
+    ): Promise<CotizacionConvertidaResponse> {
         return await this.fetchApi<CotizacionConvertidaResponse>(
             `/cotizaciones/${idCotizacion}/convertir`,
-            { method: 'POST' }
+            { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }
         );
     }
 
@@ -1983,6 +2004,37 @@ export class ApiService {
                 }
             }
         );
+    }
+
+    // 13) Descargar PDF de factura
+    static async descargarPDFFactura(idFactura: number): Promise<void> {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No hay token de autenticación');
+        }
+
+        const url = `${API_URL}/facturas/${idFactura}/pdf`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar PDF: ${response.status}`);
+        }
+
+        // Crear un blob con el PDF
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Factura_${idFactura}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
     }
 
     // ============ FIN MÉTODOS DE FACTURACIÓN ============

@@ -45,6 +45,20 @@ const BackofficeCotizaciones: React.FC = () => {
 
   // Modal de conversión
   const [showConvertirModal, setShowConvertirModal] = useState(false);
+  const [convertirData, setConvertirData] = useState({
+    nombre_empresa: '',
+    rut_empresa: '',
+    direccion: '',
+    ciudad: '',
+    region: '',
+    admin_nombre: '',
+    admin_correo: '',
+    admin_contraseña: '',
+    cantidad_supervisores: 0,
+    cantidad_reponedores: 0,
+    precio_mensual: 0,
+    features: {} as any
+  });
 
   useEffect(() => {
     cargarDatos();
@@ -79,14 +93,17 @@ const BackofficeCotizaciones: React.FC = () => {
   const abrirEdicion = (cotizacion: CotizacionResponse) => {
     setEditData({
       nombre_contacto: cotizacion.nombre_contacto,
-      email_contacto: cotizacion.email,
-      telefono_contacto: cotizacion.telefono,
-      empresa_solicitante: cotizacion.empresa,
-      plan_id: cotizacion.plan_id,
-      cantidad_usuarios: cotizacion.cantidad_usuarios,
-      cantidad_tareas: cotizacion.cantidad_tareas,
-      cantidad_proyectos: cotizacion.cantidad_proyectos,
-      precio_mensual: cotizacion.precio_mensual,
+      email: cotizacion.email,
+      telefono: cotizacion.telefono,
+      empresa: cotizacion.empresa,
+      cargo: cotizacion.cargo,
+      cantidad_supervisores: cotizacion.cantidad_supervisores,
+      cantidad_reponedores: cotizacion.cantidad_reponedores,
+      cantidad_productos: cotizacion.cantidad_productos,
+      integraciones_requeridas: cotizacion.integraciones_requeridas,
+      comentarios: cotizacion.comentarios,
+      precio_sugerido: cotizacion.precio_sugerido,
+      precio_final: cotizacion.precio_final,
       notas_internas: cotizacion.notas_internas,
     });
     setShowEditModal(true);
@@ -121,17 +138,45 @@ const BackofficeCotizaciones: React.FC = () => {
     }
   };
 
+  const abrirModalConvertir = () => {
+    if (!selectedCotizacion) return;
+    // Pre-llenar con datos de la cotización
+    setConvertirData({
+      nombre_empresa: selectedCotizacion.empresa || '',
+      rut_empresa: '',
+      direccion: '',
+      ciudad: '',
+      region: '',
+      admin_nombre: selectedCotizacion.nombre_contacto || '',
+      admin_correo: selectedCotizacion.email || '',
+      admin_contraseña: '',
+      cantidad_supervisores: selectedCotizacion.cantidad_supervisores || 0,
+      cantidad_reponedores: selectedCotizacion.cantidad_reponedores || 0,
+      precio_mensual: selectedCotizacion.precio_final || selectedCotizacion.precio_sugerido || 0,
+      features: selectedCotizacion.features_sugeridos || {}
+    });
+    setShowConvertirModal(true);
+  };
+
   const convertir = async () => {
     if (!selectedCotizacion) return;
+    
+    // Validar campos requeridos
+    if (!convertirData.nombre_empresa || !convertirData.rut_empresa || !convertirData.admin_nombre || 
+        !convertirData.admin_correo || !convertirData.admin_contraseña) {
+      alert('❌ Por favor complete todos los campos requeridos');
+      return;
+    }
+
     try {
-      const resultado = await ApiService.convertirCotizacion(selectedCotizacion.id_cotizacion);
+      const resultado = await ApiService.convertirCotizacion(selectedCotizacion.id_cotizacion, convertirData);
       alert(`✅ Cotización convertida exitosamente:\n\nEmpresa ID: ${resultado.id_empresa}\nPlan ID: ${resultado.id_plan}\n\n${resultado.mensaje}`);
       setShowConvertirModal(false);
       setShowDetailModal(false);
       await cargarDatos();
     } catch (error) {
       console.error('Error al convertir cotización:', error);
-      alert('❌ Error al convertir cotización. Verifique que tenga estado "aprobada"');
+      alert('❌ Error al convertir cotización. Verifique los datos ingresados.');
     }
   };
 
@@ -286,9 +331,8 @@ const BackofficeCotizaciones: React.FC = () => {
                   <th className="text-left p-2">ID</th>
                   <th className="text-left p-2">Empresa</th>
                   <th className="text-left p-2">Contacto</th>
-                  <th className="text-left p-2">Email</th>
-                  <th className="text-left p-2">Plan</th>
-                  <th className="text-left p-2">Precio</th>
+                  <th className="text-left p-2">Recursos</th>
+                  <th className="text-left p-2">Precio Sugerido</th>
                   <th className="text-left p-2">Estado</th>
                   <th className="text-left p-2">Fecha</th>
                   <th className="text-left p-2">Acciones</th>
@@ -299,17 +343,24 @@ const BackofficeCotizaciones: React.FC = () => {
                   <tr key={cotizacion.id_cotizacion} className="border-b hover:bg-muted/50">
                     <td className="p-2 font-mono text-sm">{cotizacion.id_cotizacion}</td>
                     <td className="p-2 font-medium">{cotizacion.empresa}</td>
-                    <td className="p-2">{cotizacion.nombre_contacto}</td>
-                    <td className="p-2 text-sm text-muted-foreground">{cotizacion.email_contacto}</td>
                     <td className="p-2">
-                      <Badge variant="outline">{cotizacion.plan_nombre}</Badge>
+                      <div className="text-sm">
+                        <div className="font-medium">{cotizacion.nombre_contacto}</div>
+                        <div className="text-muted-foreground text-xs">{cotizacion.email}</div>
+                      </div>
+                    </td>
+                    <td className="p-2 text-sm">
+                      <div className="flex gap-2">
+                        <Badge variant="secondary">{cotizacion.cantidad_supervisores} Sup.</Badge>
+                        <Badge variant="secondary">{cotizacion.cantidad_reponedores} Rep.</Badge>
+                      </div>
                     </td>
                     <td className="p-2 font-semibold">
-                      ${cotizacion.precio_mensual ? cotizacion.precio_mensual.toFixed(2) : '0.00'}
+                      ${cotizacion.precio_sugerido ? cotizacion.precio_sugerido.toLocaleString() : cotizacion.precio_final ? cotizacion.precio_final.toLocaleString() : '0'}
                     </td>
                     <td className="p-2">{getEstadoBadge(cotizacion.estado)}</td>
                     <td className="p-2 text-sm text-muted-foreground">
-                      {new Date(cotizacion.fecha_solicitud).toLocaleDateString()}
+                      {new Date(cotizacion.fecha_creacion).toLocaleDateString()}
                     </td>
                     <td className="p-2">
                       <Button
@@ -373,11 +424,11 @@ const BackofficeCotizaciones: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedCotizacion.email_contacto}</p>
+                  <p className="font-medium">{selectedCotizacion.email}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Teléfono</Label>
-                  <p className="font-medium">{selectedCotizacion.telefono_contacto || 'N/A'}</p>
+                  <p className="font-medium">{selectedCotizacion.telefono || 'N/A'}</p>
                 </div>
               </div>
 
@@ -387,18 +438,18 @@ const BackofficeCotizaciones: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   <div className="p-3 bg-muted rounded">
                     <Users className="h-4 w-4 mb-1 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Usuarios</p>
-                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_usuarios}</p>
+                    <p className="text-sm text-muted-foreground">Supervisores</p>
+                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_supervisores}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded">
+                    <Users className="h-4 w-4 mb-1 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Reponedores</p>
+                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_reponedores}</p>
                   </div>
                   <div className="p-3 bg-muted rounded">
                     <FileText className="h-4 w-4 mb-1 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Tareas</p>
-                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_tareas}</p>
-                  </div>
-                  <div className="p-3 bg-muted rounded">
-                    <FileText className="h-4 w-4 mb-1 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Proyectos</p>
-                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_proyectos}</p>
+                    <p className="text-sm text-muted-foreground">Productos</p>
+                    <p className="text-lg font-bold">{selectedCotizacion.cantidad_productos ?? 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -406,13 +457,13 @@ const BackofficeCotizaciones: React.FC = () => {
               {/* Plan y precio */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">Plan seleccionado</Label>
-                  <p className="font-medium">{selectedCotizacion.plan_nombre}</p>
+                  <Label className="text-muted-foreground">Precio sugerido</Label>
+                  <p className="font-medium">${selectedCotizacion.precio_sugerido?.toFixed(2) ?? 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Precio mensual</Label>
+                  <Label className="text-muted-foreground">Precio final</Label>
                   <p className="text-2xl font-bold text-green-600">
-                    ${selectedCotizacion.precio_mensual?.toFixed(2) || '0.00'}
+                    ${selectedCotizacion.precio_final?.toFixed(2) ?? 'N/A'}
                   </p>
                 </div>
               </div>
@@ -441,7 +492,7 @@ const BackofficeCotizaciones: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <Label className="text-muted-foreground">Fecha de solicitud</Label>
-                  <p>{new Date(selectedCotizacion.fecha_solicitud).toLocaleString()}</p>
+                  <p>{new Date(selectedCotizacion.fecha_creacion).toLocaleString()}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Última actualización</Label>
@@ -461,7 +512,7 @@ const BackofficeCotizaciones: React.FC = () => {
               Editar cotización
             </Button>
             {selectedCotizacion?.estado === 'aprobada' && (
-              <Button onClick={() => setShowConvertirModal(true)} className="bg-green-600">
+              <Button onClick={abrirModalConvertir} className="bg-green-600">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Convertir en empresa
               </Button>
@@ -484,57 +535,138 @@ const BackofficeCotizaciones: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Empresa solicitante</Label>
-                <Input
-                  value={editData.empresa_solicitante || ''}
-                  onChange={(e) => setEditData({ ...editData, empresa_solicitante: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Nombre de contacto</Label>
-                <Input
-                  value={editData.nombre_contacto || ''}
-                  onChange={(e) => setEditData({ ...editData, nombre_contacto: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={editData.email_contacto || ''}
-                  onChange={(e) => setEditData({ ...editData, email_contacto: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Teléfono</Label>
-                <Input
-                  value={editData.telefono_contacto || ''}
-                  onChange={(e) => setEditData({ ...editData, telefono_contacto: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Cantidad de usuarios</Label>
-                <Input
-                  type="number"
-                  value={editData.cantidad_usuarios || ''}
-                  onChange={(e) => setEditData({ ...editData, cantidad_usuarios: parseInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label>Precio mensual</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editData.precio_mensual || ''}
-                  onChange={(e) => setEditData({ ...editData, precio_mensual: parseFloat(e.target.value) })}
-                />
+            {/* Información de contacto */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Información de Contacto</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Empresa solicitante</Label>
+                  <Input
+                    value={editData.empresa || ''}
+                    onChange={(e) => setEditData({ ...editData, empresa: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Nombre de contacto</Label>
+                  <Input
+                    value={editData.nombre_contacto || ''}
+                    onChange={(e) => setEditData({ ...editData, nombre_contacto: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={editData.email || ''}
+                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Teléfono</Label>
+                  <Input
+                    value={editData.telefono || ''}
+                    onChange={(e) => setEditData({ ...editData, telefono: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Cargo</Label>
+                  <Input
+                    value={editData.cargo || ''}
+                    onChange={(e) => setEditData({ ...editData, cargo: e.target.value })}
+                    placeholder="Ej: Gerente de Operaciones"
+                  />
+                </div>
               </div>
             </div>
 
+            {/* Recursos solicitados (influyen en el precio) */}
             <div>
-              <Label>Notas internas</Label>
+              <h3 className="font-semibold text-sm mb-2">Recursos Solicitados</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Cantidad de supervisores</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editData.cantidad_supervisores || ''}
+                    onChange={(e) => setEditData({ ...editData, cantidad_supervisores: parseInt(e.target.value) || undefined })}
+                  />
+                </div>
+                <div>
+                  <Label>Cantidad de reponedores</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editData.cantidad_reponedores || ''}
+                    onChange={(e) => setEditData({ ...editData, cantidad_reponedores: parseInt(e.target.value) || undefined })}
+                  />
+                </div>
+                <div>
+                  <Label>Cantidad de productos</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editData.cantidad_productos || ''}
+                    onChange={(e) => setEditData({ ...editData, cantidad_productos: parseInt(e.target.value) || undefined })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Requerimientos adicionales */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Requerimientos Adicionales</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label>Integraciones requeridas</Label>
+                  <Input
+                    value={editData.integraciones_requeridas || ''}
+                    onChange={(e) => setEditData({ ...editData, integraciones_requeridas: e.target.value })}
+                    placeholder="Ej: SAP, API personalizada, etc."
+                  />
+                </div>
+                <div>
+                  <Label>Comentarios del cliente</Label>
+                  <Textarea
+                    value={editData.comentarios || ''}
+                    onChange={(e) => setEditData({ ...editData, comentarios: e.target.value })}
+                    rows={3}
+                    placeholder="Comentarios y requerimientos especiales del cliente"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Precios */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Precios</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Precio sugerido ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editData.precio_sugerido || ''}
+                    onChange={(e) => setEditData({ ...editData, precio_sugerido: parseFloat(e.target.value) || undefined })}
+                    placeholder="Precio sugerido automático"
+                  />
+                </div>
+                <div>
+                  <Label>Precio final ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editData.precio_final || ''}
+                    onChange={(e) => setEditData({ ...editData, precio_final: parseFloat(e.target.value) || undefined })}
+                    placeholder="Precio final acordado"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notas internas */}
+            <div>
+              <Label>Notas internas (solo SuperAdmin)</Label>
               <Textarea
                 value={editData.notas_internas || ''}
                 onChange={(e) => setEditData({ ...editData, notas_internas: e.target.value })}
@@ -588,25 +720,148 @@ const BackofficeCotizaciones: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de confirmación de conversión */}
+      {/* Modal de conversión con formulario */}
       <Dialog open={showConvertirModal} onOpenChange={setShowConvertirModal}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Convertir cotización en empresa</DialogTitle>
             <DialogDescription>
-              Esta acción creará una nueva empresa con el plan seleccionado y marcará la cotización como convertida.
+              Complete los datos necesarios para crear la empresa y el plan
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-sm">
-              ⚠️ Esta acción no se puede deshacer. Se creará:
-            </p>
-            <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-              <li>Una nueva empresa con los datos de la cotización</li>
-              <li>Un plan activo con los recursos especificados</li>
-              <li>La cotización se marcará como "convertida"</li>
-            </ul>
+          <div className="space-y-4">
+            {/* Datos de la empresa */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Datos de la Empresa</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre de la empresa *</Label>
+                  <Input
+                    value={convertirData.nombre_empresa}
+                    onChange={(e) => setConvertirData({ ...convertirData, nombre_empresa: e.target.value })}
+                    placeholder="Ej: Empresa SpA"
+                  />
+                </div>
+                <div>
+                  <Label>RUT de la empresa *</Label>
+                  <Input
+                    value={convertirData.rut_empresa}
+                    onChange={(e) => setConvertirData({ ...convertirData, rut_empresa: e.target.value })}
+                    placeholder="Ej: 12345678-9"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label>Dirección (opcional)</Label>
+                  <Input
+                    value={convertirData.direccion}
+                    onChange={(e) => setConvertirData({ ...convertirData, direccion: e.target.value })}
+                    placeholder="Ej: Av. Principal 123"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Ciudad (opcional)</Label>
+                  <Input
+                    value={convertirData.ciudad}
+                    onChange={(e) => setConvertirData({ ...convertirData, ciudad: e.target.value })}
+                    placeholder="Ej: Santiago"
+                  />
+                </div>
+                <div>
+                  <Label>Región (opcional)</Label>
+                  <Input
+                    value={convertirData.region}
+                    onChange={(e) => setConvertirData({ ...convertirData, region: e.target.value })}
+                    placeholder="Ej: Metropolitana"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Datos del administrador */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Datos del Administrador</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre del administrador *</Label>
+                  <Input
+                    value={convertirData.admin_nombre}
+                    onChange={(e) => setConvertirData({ ...convertirData, admin_nombre: e.target.value })}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div>
+                  <Label>Correo del administrador *</Label>
+                  <Input
+                    type="email"
+                    value={convertirData.admin_correo}
+                    onChange={(e) => setConvertirData({ ...convertirData, admin_correo: e.target.value })}
+                    placeholder="admin@empresa.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Contraseña inicial *</Label>
+                <Input
+                  type="password"
+                  value={convertirData.admin_contraseña}
+                  onChange={(e) => setConvertirData({ ...convertirData, admin_contraseña: e.target.value })}
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+            </div>
+
+            {/* Recursos del plan (solo lectura - desde cotización) */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Recursos del Plan (desde cotización)</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Supervisores</Label>
+                  <Input
+                    type="number"
+                    value={convertirData.cantidad_supervisores}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <Label>Reponedores</Label>
+                  <Input
+                    type="number"
+                    value={convertirData.cantidad_reponedores}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <Label>Precio mensual ($)</Label>
+                  <Input
+                    type="number"
+                    value={convertirData.precio_mensual}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ℹ️ Estos valores se toman de la cotización y no pueden modificarse. Para cambiarlos, edita la cotización primero.
+              </p>
+            </div>
+
+            {/* Advertencia */}
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-sm font-medium">⚠️ Esta acción creará:</p>
+              <ul className="list-disc list-inside text-sm mt-2 space-y-1">
+                <li>Una nueva empresa con los datos ingresados</li>
+                <li>Un plan activo con los recursos especificados</li>
+                <li>Un usuario administrador con acceso completo</li>
+                <li>La cotización se marcará como "convertida"</li>
+              </ul>
+            </div>
           </div>
 
           <DialogFooter>
@@ -615,7 +870,7 @@ const BackofficeCotizaciones: React.FC = () => {
             </Button>
             <Button onClick={convertir} className="bg-green-600">
               <CheckCircle className="h-4 w-4 mr-2" />
-              Confirmar conversión
+              Confirmar y crear empresa
             </Button>
           </DialogFooter>
         </DialogContent>

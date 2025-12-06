@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { Package, CheckCircle, MapPin, Play, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Package, CheckCircle, MapPin, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService, Tarea } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,7 +43,6 @@ const ReponedorTareas = () => {
   const [error, setError] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
-  const [generandoRuta, setGenerandoRuta] = useState<number | null>(null);
 
   // Función para cargar tareas
   const cargarTareas = async () => {
@@ -59,47 +58,7 @@ const ReponedorTareas = () => {
     }
   };
 
-  // Función para comenzar una tarea
-  const comenzarTarea = async (idTarea: number) => {
-    try {
-      setGenerandoRuta(idTarea);
-      
-      // Primero iniciar la tarea (cambiar estado a en_progreso)
-      await ApiService.iniciarTarea(idTarea);
-      
-      // Luego generar la ruta optimizada usando el nuevo endpoint POST
-      await ApiService.generarRutaOptimizada(idTarea, 'vecino_mas_cercano');
-      
-      // Obtener la ruta visual para navegar al mapa
-      const rutaOptimizada = await ApiService.obtenerRutaVisual(idTarea);
-      
-      toast({
-        title: "¡Tarea iniciada!",
-        description: "Ruta optimizada generada. Te llevaremos al mapa interactivo.",
-      });
 
-      // Actualizar el estado local de la tarea
-      setTareas((prevTareas) =>
-        prevTareas.map((t) =>
-          t.id_tarea === idTarea ? { ...t, estado: 'en_progreso' } : t
-        )
-      );
-
-      // Navegar al mapa con la ruta optimizada
-      navigate(`/reponedor-map?tarea=${idTarea}&mostrar_ruta=true`, {
-        state: { rutaOptimizada }
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo generar la ruta optimizada.",
-        variant: "destructive",
-      });
-    } finally {
-      setGenerandoRuta(null);
-    }
-  };
 
   // Función para reiniciar una tarea completada
   const reiniciarTarea = async (idTarea: number) => {
@@ -293,45 +252,22 @@ const ReponedorTareas = () => {
                                   onClick={() => reiniciarTarea(tarea.id_tarea)}
                                   className="border-2 border-warning/30 hover:bg-warning/10 hover:border-warning/50 transition-all duration-200 text-warning"
                                 >
-                                  <Play className="w-4 h-4 mr-2" />
+                                  <RefreshCw className="w-4 h-4 mr-2" />
                                   Reiniciar
                                 </Button>
                               </>
                             )}
                             
-                            {/* Botón para comenzar tarea (solo si está pendiente) */}
-                            {tarea.estado && tarea.estado.toLowerCase() === 'pendiente' && (
+                            {/* Botón para ver en mapa (pendiente o en progreso) */}so) */}
+                            {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => comenzarTarea(tarea.id_tarea)}
-                                disabled={generandoRuta === tarea.id_tarea}
-                                className="border-2 border-info/30 hover:bg-info/10 hover:border-info/50 transition-all duration-200 text-info"
-                              >
-                                {generandoRuta === tarea.id_tarea ? (
-                                  <>
-                                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-info border-t-transparent"></div>
-                                    Generando ruta...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Comenzar Tarea
-                                  </>
-                                )}
-                              </Button>
-                            )}
-
-                            {/* Botón para ver ruta (si está en progreso) */}
-                            {tarea.estado && tarea.estado.toLowerCase() === 'en_progreso' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/reponedor-map?tarea=${tarea.id_tarea}&mostrar_ruta=true`)}
+                                onClick={() => navigate(`/reponedor-map?tarea=${tarea.id_tarea}`)}
                                 className="border-2 border-accent/30 hover:bg-accent/10 hover:border-accent/50 transition-all duration-200 text-accent"
                               >
                                 <MapPin className="w-4 h-4 mr-2" />
-                                Ver Ruta en Mapa
+                                Ver en Mapa
                               </Button>
                             )}
                             

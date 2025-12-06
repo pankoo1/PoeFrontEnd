@@ -490,7 +490,7 @@ const MapPage = () => {
         nombre: objeto.nombre,
         filas: objeto.filas,
         columnas: objeto.columnas,
-        direccion: 'T' // Top por defecto
+        direccion: objeto.direccion || 'T'
       });
 
       // Obtener el id_tipo correcto para muebles desde la paleta actual

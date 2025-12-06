@@ -11,7 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Package } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, AlertCircle, Package, Compass } from 'lucide-react';
 import type { ObjetoNuevo } from '@/types/mapa.types';
 
 interface CreateFurnitureModalProps {
@@ -32,7 +39,8 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
     filas: '',
     columnas: '',
     ancho: '',
-    alto: ''
+    alto: '',
+    direccion: 'T' as 'T' | 'N' | 'S' | 'E' | 'O'
   });
 
   const handleChange = (field: string, value: string) => {
@@ -97,7 +105,8 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         columnas: parseInt(formData.columnas),
         ancho: parseInt(formData.ancho),
         alto: parseInt(formData.alto),
-        es_caminable: false
+        es_caminable: false,
+        direccion: formData.direccion
       };
 
       await onSubmit(nuevoObjeto);
@@ -108,7 +117,8 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         filas: '',
         columnas: '',
         ancho: '',
-        alto: ''
+        alto: '',
+        direccion: 'T'
       });
       onClose();
     } catch (err) {
@@ -125,7 +135,8 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         filas: '',
         columnas: '',
         ancho: '',
-        alto: ''
+        alto: '',
+        direccion: 'T'
       });
       setError(null);
       onClose();
@@ -160,6 +171,33 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
                 disabled={loading}
                 className="border-slate-200 focus:border-blue-500"
               />
+            </div>
+
+            {/* Dirección */}
+            <div className="space-y-2">
+              <Label htmlFor="direccion" className="text-slate-700 font-medium flex items-center gap-2">
+                <Compass className="w-4 h-4 text-blue-600" />
+                Dirección de la Cara del Mueble *
+              </Label>
+              <Select
+                value={formData.direccion}
+                onValueChange={(value) => handleChange('direccion', value)}
+                disabled={loading}
+              >
+                <SelectTrigger className="border-slate-200 focus:border-blue-500">
+                  <SelectValue placeholder="Selecciona la dirección" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="T">Default / Todas direcciones</SelectItem>
+                  <SelectItem value="N">⬆️ Norte</SelectItem>
+                  <SelectItem value="S">⬇️ Sur</SelectItem>
+                  <SelectItem value="E">➡️ Este</SelectItem>
+                  <SelectItem value="O">⬅️ Oeste</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                Dirección hacia donde mira la cara del mueble para acceso de reposición
+              </p>
             </div>
 
             {/* Divisiones (Filas y Columnas) */}
