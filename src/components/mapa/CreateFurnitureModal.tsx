@@ -38,8 +38,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
     nombre: '',
     filas: '',
     columnas: '',
-    ancho: '',
-    alto: '',
     direccion: 'T' as 'T' | 'N' | 'S' | 'E' | 'O'
   });
 
@@ -55,8 +53,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
 
     const filas = parseInt(formData.filas);
     const columnas = parseInt(formData.columnas);
-    const ancho = parseInt(formData.ancho);
-    const alto = parseInt(formData.alto);
 
     if (isNaN(filas) || filas < 1) {
       return 'Las filas deben ser un número mayor a 0';
@@ -66,20 +62,8 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
       return 'Las columnas deben ser un número mayor a 0';
     }
 
-    if (isNaN(ancho) || ancho < 1) {
-      return 'El ancho debe ser un número mayor a 0';
-    }
-
-    if (isNaN(alto) || alto < 1) {
-      return 'El alto debe ser un número mayor a 0';
-    }
-
     if (filas > 10 || columnas > 10) {
       return 'Las filas y columnas no pueden exceder 10';
-    }
-
-    if (ancho > 50 || alto > 50) {
-      return 'El ancho y alto no pueden exceder 50 celdas';
     }
 
     return null;
@@ -103,8 +87,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         nombre: formData.nombre.trim(),
         filas: parseInt(formData.filas),
         columnas: parseInt(formData.columnas),
-        ancho: parseInt(formData.ancho),
-        alto: parseInt(formData.alto),
         es_caminable: false,
         direccion: formData.direccion
       };
@@ -116,8 +98,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         nombre: '',
         filas: '',
         columnas: '',
-        ancho: '',
-        alto: '',
         direccion: 'T'
       });
       onClose();
@@ -134,8 +114,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
         nombre: '',
         filas: '',
         columnas: '',
-        ancho: '',
-        alto: '',
         direccion: 'T'
       });
       setError(null);
@@ -242,73 +220,6 @@ export const CreateFurnitureModal: React.FC<CreateFurnitureModalProps> = ({
                 </p>
               </div>
             </div>
-
-            {/* Dimensiones (Ancho y Alto) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ancho" className="text-slate-700 font-medium">
-                  Ancho (celdas) *
-                </Label>
-                <Input
-                  id="ancho"
-                  type="number"
-                  min="1"
-                  max="50"
-                  placeholder="Ej: 5"
-                  value={formData.ancho}
-                  onChange={(e) => handleChange('ancho', e.target.value)}
-                  disabled={loading}
-                  className="border-slate-200 focus:border-blue-500"
-                />
-                <p className="text-xs text-slate-500">
-                  Ancho en el mapa (1-50)
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="alto" className="text-slate-700 font-medium">
-                  Alto (celdas) *
-                </Label>
-                <Input
-                  id="alto"
-                  type="number"
-                  min="1"
-                  max="50"
-                  placeholder="Ej: 3"
-                  value={formData.alto}
-                  onChange={(e) => handleChange('alto', e.target.value)}
-                  disabled={loading}
-                  className="border-slate-200 focus:border-blue-500"
-                />
-                <p className="text-xs text-slate-500">
-                  Alto en el mapa (1-50)
-                </p>
-              </div>
-            </div>
-
-            {/* Preview visual */}
-            {formData.ancho && formData.alto && (
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-xs font-medium text-slate-700 mb-2">
-                  Vista previa:
-                </p>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="bg-blue-500 rounded"
-                    style={{
-                      width: `${Math.min(parseInt(formData.ancho) * 8, 80)}px`,
-                      height: `${Math.min(parseInt(formData.alto) * 8, 80)}px`
-                    }}
-                  />
-                  <div className="text-xs text-slate-600">
-                    <p>Tamaño: {formData.ancho}×{formData.alto} celdas</p>
-                    {formData.filas && formData.columnas && (
-                      <p>Divisiones: {formData.filas}×{formData.columnas}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Error alert */}
             {error && (

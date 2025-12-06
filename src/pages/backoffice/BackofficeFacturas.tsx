@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ApiService, FacturaListItem, FacturaResponse, FacturaStats, FacturaCreate, FacturaUpdate, FacturaRegistrarPago } from '@/services/api';
+import { ApiService, FacturaListItem, FacturaResponse, FacturaStats, FacturaCreate, FacturaRegistrarPago } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,10 +50,6 @@ const BackofficeFacturas: React.FC = () => {
     periodo_facturado: '',
   });
 
-  // Modal de edición
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState<FacturaUpdate>({});
-
   // Modal de registro de pago
   const [showPagoModal, setShowPagoModal] = useState(false);
   const [pagoData, setPagoData] = useState<FacturaRegistrarPago>({
@@ -89,28 +85,6 @@ const BackofficeFacturas: React.FC = () => {
       setShowDetailModal(true);
     } catch (error) {
       console.error('Error al cargar detalle:', error);
-    }
-  };
-
-  const abrirEdicion = (factura: FacturaResponse) => {
-    setEditData({
-      concepto: factura.concepto,
-      fecha_vencimiento: factura.fecha_vencimiento,
-      notas: factura.notas,
-    });
-    setShowEditModal(true);
-  };
-
-  const guardarEdicion = async () => {
-    if (!selectedFactura) return;
-    try {
-      await ApiService.actualizarFactura(selectedFactura.id_factura, editData);
-      setShowEditModal(false);
-      await cargarDatos();
-      const actualizada = await ApiService.getFactura(selectedFactura.id_factura);
-      setSelectedFactura(actualizada);
-    } catch (error) {
-      console.error('Error al actualizar factura:', error);
     }
   };
 
@@ -608,14 +582,6 @@ const BackofficeFacturas: React.FC = () => {
               <FileText className="h-4 w-4 mr-2" />
               Descargar PDF
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (selectedFactura) abrirEdicion(selectedFactura);
-              }}
-            >
-              Editar factura
-            </Button>
             <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
               Cerrar
             </Button>
@@ -623,50 +589,7 @@ const BackofficeFacturas: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de edición */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Factura</DialogTitle>
-            <DialogDescription>
-              Modifica la información de la factura
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label>Concepto</Label>
-              <Input
-                value={editData.concepto || ''}
-                onChange={(e) => setEditData({ ...editData, concepto: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Fecha de vencimiento</Label>
-              <Input
-                type="date"
-                value={editData.fecha_vencimiento || ''}
-                onChange={(e) => setEditData({ ...editData, fecha_vencimiento: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Notas</Label>
-              <Textarea
-                value={editData.notas || ''}
-                onChange={(e) => setEditData({ ...editData, notas: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={guardarEdicion}>Guardar cambios</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Modal de registro de pago */}
       <Dialog open={showPagoModal} onOpenChange={setShowPagoModal}>

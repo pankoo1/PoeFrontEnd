@@ -8,6 +8,8 @@ import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
 import { Producto, CreateProductoData, UpdateProductoData } from '@/types/producto';
+import { LimitePlanDialog } from '@/components/plan/LimitePlanDialog';
+import { ErrorLimitePlan } from '@/types/plan.types';
 
 interface ProductFormProps {
   onProductAdded?: (producto: Producto) => void;
@@ -29,6 +31,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
+  const [limitError, setLimitError] = useState<ErrorLimitePlan | null>(null);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
   const [formData, setFormData] = useState<CreateProductoData>({
     nombre: '',
     categoria: '',
@@ -101,13 +105,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
       }
 
       handleClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al procesar producto:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo procesar el producto",
-        variant: "destructive",
-      });
+      
+      // Verificar si es un error de límite de plan (HTTP 402) solo en modo create
+      if (mode === 'create' && error?.response?.status === 402 && ApiService.isLimitePlanError(error.response.data)) {
+        setLimitError(error.response.data.detail);
+        setShowLimitDialog(true);
+        handleClose(); // Cerrar el formulario
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "No se pudo procesar el producto",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +160,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      {renderTrigger()}
-      <DialogContent className="max-w-md">
+    <>
+      <LimitePlanDialog 
+        open={showLimitDialog}
+        onOpenChange={setShowLimitDialog}
+        error={limitError}
+      />
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        {renderTrigger()}
+        <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Agregar Nuevo Producto' : 'Editar Producto'}
@@ -252,6 +271,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 };
 

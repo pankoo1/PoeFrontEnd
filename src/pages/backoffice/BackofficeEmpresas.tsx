@@ -356,7 +356,7 @@ const BackofficeEmpresas = () => {
                               <Eye className="h-4 w-4" />
                             </Button>
                             
-                            {empresa.estado === 'suspendido' ? (
+                            {empresa.estado === 'suspendido' || empresa.estado === 'inactivo' ? (
                               <Button
                                 variant="outline"
                                 size="sm"

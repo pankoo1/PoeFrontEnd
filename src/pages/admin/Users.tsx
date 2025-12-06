@@ -31,7 +31,12 @@ const Users = () => {
     try {
       setIsLoading(true);
       const loadedUsers = await ApiService.getUsuarios();
-      setUsers(loadedUsers);
+      const currentUserId = ApiService.getCurrentUserId();
+      // No mostrar al usuario de la sesión en la tabla
+      const filtered = currentUserId
+        ? loadedUsers.filter(user => user.id_usuario !== currentUserId)
+        : loadedUsers;
+      setUsers(filtered);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
       toast({
@@ -51,7 +56,11 @@ const Users = () => {
       rol: newUser.rol || 'Reponedor' // Valor por defecto en caso de que no venga
     };
     
-    setUsers(prevUsers => [...prevUsers, userWithRole]);
+    setUsers(prevUsers => {
+      const currentUserId = ApiService.getCurrentUserId();
+      const next = [...prevUsers, userWithRole];
+      return currentUserId ? next.filter(u => u.id_usuario !== currentUserId) : next;
+    });
     
     // Forzar una actualización de la tabla
     await loadUsers();

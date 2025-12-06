@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { Map, AlertCircle, Trash2, MapPin, Target, RefreshCw } from 'lucide-react';
+import { Map as MapIcon, AlertCircle, Trash2, MapPin, Target, RefreshCw } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/map.service';
 import { ApiService } from '@/services/api';
@@ -47,8 +47,10 @@ const SupervisorMapPage = () => {
   const [selectedLocation, setSelectedLocation] = useState<UbicacionFisica | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [productosDelMueble, setProductosDelMueble] = useState<Array<{
-    punto: any;
-    cantidad: number;
+    puntos: any[];
+    idProducto: number;
+    nombreProducto: string;
+    cantidadTotal: number;
   }>>([]);
   const { toast } = useToast();
 
@@ -157,26 +159,42 @@ const SupervisorMapPage = () => {
       return;
     }
 
-    // Inicializar lista de productos del mueble con cantidad 0
-    const productosInit = puntosConProducto.map(punto => ({
-      punto: punto,
-      cantidad: 0
-    }));
+    // Agrupar puntos por producto
+    const productosAgrupados = new Map<number, {
+      idProducto: number;
+      nombreProducto: string;
+      puntos: any[];
+      cantidadTotal: number;
+    }>();
 
+    puntosConProducto.forEach(punto => {
+      const idProducto = punto.producto.id_producto;
+      if (!productosAgrupados.has(idProducto)) {
+        productosAgrupados.set(idProducto, {
+          idProducto,
+          nombreProducto: punto.producto.nombre,
+          puntos: [],
+          cantidadTotal: 0
+        });
+      }
+      productosAgrupados.get(idProducto)!.puntos.push(punto);
+    });
+
+    const productosInit = Array.from(productosAgrupados.values());
     setProductosDelMueble(productosInit);
     setSelectedLocation(ubicacion);
     setDialogOpen(true);
   };
 
-  const actualizarCantidadProducto = (idPunto: number, cantidad: number) => {
+  const actualizarCantidadProducto = (idProducto: number, cantidadTotal: number) => {
     setProductosDelMueble(prev => prev.map(item => 
-      item.punto.id_punto === idPunto ? { ...item, cantidad: Math.max(0, cantidad) } : item
+      item.idProducto === idProducto ? { ...item, cantidadTotal: Math.max(0, cantidadTotal) } : item
     ));
   };
 
   const agregarProductosALaTarea = () => {
     // Filtrar solo los productos con cantidad > 0
-    const productosConCantidad = productosDelMueble.filter(item => item.cantidad > 0);
+    const productosConCantidad = productosDelMueble.filter(item => item.cantidadTotal > 0);
 
     if (productosConCantidad.length === 0) {
       toast({
@@ -187,15 +205,27 @@ const SupervisorMapPage = () => {
       return;
     }
 
-    // Agregar a puntos seleccionados
-    const nuevosProductos = productosConCantidad.map(item => ({
-      punto: item.punto,
-      cantidad: item.cantidad,
-      x: selectedLocation?.x || 0,
-      y: selectedLocation?.y || 0,
-      mueble: selectedLocation?.mueble,
-      objeto: selectedLocation?.objeto
-    }));
+    // Distribuir la cantidad total entre los puntos de cada producto
+    const nuevosProductos: any[] = [];
+    
+    productosConCantidad.forEach(producto => {
+      const cantidadPorPunto = Math.floor(producto.cantidadTotal / producto.puntos.length);
+      const cantidadRestante = producto.cantidadTotal % producto.puntos.length;
+      
+      producto.puntos.forEach((punto, index) => {
+        // Distribuir cantidad: reparte equitativamente y agrega 1 unidad extra a los primeros puntos si hay resto
+        const cantidad = cantidadPorPunto + (index < cantidadRestante ? 1 : 0);
+        
+        nuevosProductos.push({
+          punto: punto,
+          cantidad: cantidad,
+          x: selectedLocation?.x || 0,
+          y: selectedLocation?.y || 0,
+          mueble: selectedLocation?.mueble,
+          objeto: selectedLocation?.objeto
+        });
+      });
+    });
 
     setPuntosSeleccionados(prev => {
       // Evitar duplicados
@@ -207,7 +237,7 @@ const SupervisorMapPage = () => {
 
     toast({
       title: "Productos agregados",
-      description: `${productosConCantidad.length} producto(s) agregado(s) a la tarea`,
+      description: `${productosConCantidad.length} producto(s) distribuido(s) entre los puntos de reposición`,
     });
 
     // Cerrar diálogo
@@ -337,7 +367,7 @@ const SupervisorMapPage = () => {
           <Card className="border-slate-100 shadow-sm bg-white">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Map className="w-5 h-5 text-blue-600" />
+                  <MapIcon className="w-5 h-5 text-blue-600" />
                   <div>
                     <CardTitle className="text-lg">Mapa del Supermercado</CardTitle>
                     <p className="text-sm text-slate-600">Haz clic en las ubicaciones para gestionar productos</p>
@@ -416,8 +446,8 @@ const SupervisorMapPage = () => {
                 <div className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-blue-600" />
                   <div>
-                    <CardTitle className="text-lg">Puntos Seleccionados</CardTitle>
-                    <p className="text-sm text-slate-600">Crea tareas para reponedores</p>
+                    <CardTitle className="text-lg">Productos Seleccionados</CardTitle>
+                    <p className="text-sm text-slate-600">Revisa y crea tareas para reponedores</p>
                   </div>
                 </div>
               </CardHeader>
@@ -427,46 +457,90 @@ const SupervisorMapPage = () => {
                     <div className="text-center py-8">
                       <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">
-                        Selecciona puntos en el mapa para crear una tarea
+                        Selecciona productos en el mapa para crear una tarea
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {puntosSeleccionados.map((punto) => (
-                        <div 
-                          key={punto.punto?.id_punto} 
-                          className="p-4 bg-gradient-to-r from-card to-card/80 border-2 border-primary/20 rounded-xl hover:border-primary/40 transition-all duration-200"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium">
-                              Estantería {punto.punto?.estanteria}, Nivel {punto.punto?.nivel}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => eliminarPunto(punto.punto!.id_punto)}
-                              className="hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                      {(() => {
+                        // Agrupar puntos por producto
+                        const productosAgrupados = new Map<number, {
+                          idProducto: number;
+                          nombreProducto: string;
+                          puntos: typeof puntosSeleccionados;
+                          cantidadTotal: number;
+                        }>();
+
+                        puntosSeleccionados.forEach(punto => {
+                          if (punto.punto?.producto) {
+                            const idProducto = punto.punto.producto.id_producto;
+                            if (!productosAgrupados.has(idProducto)) {
+                              productosAgrupados.set(idProducto, {
+                                idProducto,
+                                nombreProducto: punto.punto.producto.nombre,
+                                puntos: [],
+                                cantidadTotal: 0
+                              });
+                            }
+                            const grupo = productosAgrupados.get(idProducto)!;
+                            grupo.puntos.push(punto);
+                            grupo.cantidadTotal += punto.cantidad;
+                          }
+                        });
+
+                        return Array.from(productosAgrupados.values()).map((producto) => (
+                          <div 
+                            key={producto.idProducto} 
+                            className="p-4 bg-gradient-to-r from-card to-card/80 border-2 border-primary/20 rounded-xl hover:border-primary/40 transition-all duration-200"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <p className="font-semibold text-base mb-1">
+                                  {producto.nombreProducto}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {producto.puntos.length} ubicación{producto.puntos.length !== 1 ? 'es' : ''}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-blue-600">
+                                  {producto.cantidadTotal}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  unidades
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Detalles de cada punto */}
+                            <div className="space-y-2 mt-3 pt-3 border-t border-slate-200">
+                              {producto.puntos.map((punto) => (
+                                <div 
+                                  key={punto.punto?.id_punto}
+                                  className="flex items-center justify-between text-sm bg-slate-50 p-2 rounded"
+                                >
+                                  <span className="text-xs text-muted-foreground">
+                                    Nivel {punto.punto?.nivel}, Est. {punto.punto?.estanteria}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-xs">
+                                      {punto.cantidad} uds
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+                                      onClick={() => eliminarPunto(punto.punto!.id_punto)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          {punto.punto?.producto && (
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Producto: {punto.punto.producto.nombre}
-                            </p>
-                          )}
-                          <div className="flex items-center space-x-2">
-                            <Label className="text-xs">Cantidad:</Label>
-                            <Input
-                              type="number"
-                              value={punto.cantidad}
-                              onChange={(e) => actualizarCantidad(punto.punto!.id_punto, parseInt(e.target.value))}
-                              className="w-20 border-2 border-primary/20 focus:border-primary/50"
-                              min="1"
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   )}
                 </div>
@@ -521,7 +595,7 @@ const SupervisorMapPage = () => {
                 Productos en {selectedLocation?.objeto?.nombre || 'Mueble de Reposición'}
               </DialogTitle>
               <DialogDescription>
-                Ingresa la cantidad a reponer para cada producto
+                Ingresa la cantidad total a reponer. Se distribuirá automáticamente entre todos los puntos
               </DialogDescription>
             </DialogHeader>
             
@@ -531,40 +605,47 @@ const SupervisorMapPage = () => {
                   No hay productos asignados en este mueble
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {productosDelMueble.map((item) => (
+                <div className="space-y-4">
+                  {productosDelMueble.map((producto) => (
                     <div 
-                      key={item.punto.id_punto}
-                      className="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-300 transition-all"
+                      key={producto.idProducto}
+                      className="p-5 border-2 border-slate-200 rounded-lg hover:border-blue-300 transition-all bg-gradient-to-r from-slate-50 to-white"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="font-semibold text-lg mb-1">
-                            {item.punto.producto?.nombre}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold text-lg">
+                            {producto.nombreProducto}
                           </div>
-                          <div className="text-sm text-muted-foreground mb-2">
-                            Ubicación: Nivel {item.punto.nivel}, Estantería {item.punto.estanteria}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="bg-slate-100 px-2 py-1 rounded">
-                              {item.punto.producto?.categoria}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {item.punto.producto?.unidad_cantidad} {item.punto.producto?.unidad_tipo}
-                            </span>
-                          </div>
+                          <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                            {producto.puntos.length} punto{producto.puntos.length !== 1 ? 's' : ''}
+                          </span>
                         </div>
                         
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm font-medium">Cantidad:</Label>
+                        {/* Mostrar ubicaciones de los puntos */}
+                        <div className="text-sm text-muted-foreground space-y-1 mb-3">
+                          {producto.puntos.map((punto, idx) => (
+                            <div key={punto.id_punto} className="ml-2">
+                              • Ubicación {idx + 1}: Nivel {punto.nivel}, Estantería {punto.estanteria}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Input de cantidad total */}
+                        <div className="flex items-center gap-3 pt-3 border-t">
+                          <Label className="text-sm font-semibold min-w-fit">Cantidad Total:</Label>
                           <Input
                             type="number"
-                            value={item.cantidad}
-                            onChange={(e) => actualizarCantidadProducto(item.punto.id_punto, parseInt(e.target.value) || 0)}
-                            className="w-24 border-2 border-primary/20 focus:border-primary/50"
+                            value={producto.cantidadTotal}
+                            onChange={(e) => actualizarCantidadProducto(producto.idProducto, parseInt(e.target.value) || 0)}
+                            className="flex-1 border-2 border-primary/20 focus:border-primary/50"
                             min="0"
                             placeholder="0"
                           />
+                          {producto.cantidadTotal > 0 && (
+                            <span className="text-xs text-muted-foreground bg-amber-50 px-2 py-1 rounded whitespace-nowrap">
+                              ÷ {producto.puntos.length} = ~{Math.floor(producto.cantidadTotal / producto.puntos.length)} c/u
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -586,9 +667,9 @@ const SupervisorMapPage = () => {
                 <Button
                   onClick={agregarProductosALaTarea}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  disabled={productosDelMueble.every(item => item.cantidad === 0)}
+                  disabled={productosDelMueble.every(item => item.cantidadTotal === 0)}
                 >
-                  Agregar a Tarea ({productosDelMueble.filter(item => item.cantidad > 0).length})
+                  Agregar a Tarea ({productosDelMueble.filter(item => item.cantidadTotal > 0).length})
                 </Button>
               </div>
             </div>

@@ -1,4 +1,12 @@
 import { API_ENDPOINTS, API_URL } from '@/config/api';
+import { 
+    PlanEmpresa, 
+    PlanConUso, 
+    ErrorLimitePlan, 
+    CreatePlanData, 
+    UpdatePlanData,
+    ValidacionRecurso 
+} from '@/types/plan.types';
 
 // Tipos
 export interface LoginCredentials {
@@ -170,6 +178,115 @@ export interface PrediccionHistorialResponse {
 export interface ActualizarEstadoRequest {
     estado: EstadoPrediccion;
     notas?: string;
+}
+
+// ============================================
+// INTERFACES PARA VISTA SEMANAL REPONEDOR
+// ============================================
+
+export interface ProductoTarea {
+    id_producto: number;
+    nombre: string;
+    categoria: string;
+    cantidad: number;
+}
+
+export interface TareaSemanal {
+    id_tarea: number;
+    estado_id: number;
+    fecha_creacion: string;
+    fecha_hora_completada: string | null;
+    total_productos: number;
+    productos: ProductoTarea[];
+}
+
+export interface DiaSemanal {
+    fecha: string;
+    dia_nombre: string;
+    tareas: TareaSemanal[];
+    total_tareas: number;
+    tareas_por_estado: Record<string, number>;
+}
+
+export interface CalendarioSemanal {
+    lunes: DiaSemanal;
+    martes: DiaSemanal;
+    miercoles: DiaSemanal;
+    jueves: DiaSemanal;
+    viernes: DiaSemanal;
+    sabado: DiaSemanal;
+    domingo: DiaSemanal;
+}
+
+export interface EstadisticasSemana {
+    total_tareas: number;
+    total_productos: number;
+    dias_con_tareas: number;
+    tareas_por_estado: Record<string, number>;
+    promedio_tareas_por_dia: number;
+    promedio_productos_por_tarea: number;
+}
+
+export interface ReponedorInfo {
+    id: number;
+    nombre: string;
+    correo: string;
+}
+
+export interface PeriodoSemanal {
+    fecha_inicio: string;
+    fecha_fin: string;
+    semana: string;
+}
+
+export interface ResumenSemanalData {
+    reponedor: ReponedorInfo;
+    periodo: PeriodoSemanal;
+    calendario: CalendarioSemanal;
+    estadisticas: EstadisticasSemana;
+}
+
+export interface ResumenSemanalResponse {
+    success: boolean;
+    message: string;
+    data: ResumenSemanalData;
+}
+
+export interface SemanaDisponible {
+    fecha_inicio: string;
+    fecha_fin: string;
+    descripcion: string;
+    total_tareas: number;
+}
+
+export interface SemanasDisponiblesData {
+    semanas: SemanaDisponible[];
+    total: number;
+}
+
+export interface SemanasDisponiblesResponse {
+    success: boolean;
+    message: string;
+    data: SemanasDisponiblesData;
+}
+
+export interface PeriodoActividad {
+    fecha_primera_tarea: string | null;
+    fecha_ultima_tarea: string | null;
+}
+
+export interface EstadisticasGeneralesData {
+    total_tareas: number;
+    total_productos_repuestos: number;
+    tareas_por_estado: Record<string, number>;
+    periodo_actividad: PeriodoActividad;
+    promedio_productos_por_tarea: number;
+}
+
+export interface EstadisticasGeneralesResponse {
+    success: boolean;
+    message: string;
+    data: EstadisticasGeneralesData;
 }
 
 // Interfaces para ruta optimizada
@@ -878,7 +995,23 @@ export class ApiService {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error en respuesta:', errorText);
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                
+                // Intentar parsear el error como JSON
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { message: errorText };
+                }
+                
+                // Crear error con información detallada
+                const error: any = new Error(`Error ${response.status}: ${response.statusText}`);
+                error.response = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: errorData
+                };
+                throw error;
             }
 
             // Si la respuesta está vacía, retornar null
@@ -2292,6 +2425,121 @@ export class ApiService {
                 method: 'PATCH',
                 body: JSON.stringify(request)
             }
+        );
+    }
+
+    // ============================================
+    // ENDPOINTS DE PLANES Y LÍMITES DE SUSCRIPCIÓN
+    // ============================================
+
+    /**
+     * Obtener el plan de la empresa del usuario actual
+     * Incluye información de uso y validaciones de límites
+     */
+    static async obtenerMiPlan(): Promise<PlanConUso> {
+        return await this.fetchApi<PlanConUso>('/api/v1/planes/mi-plan', {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Obtener plan de una empresa específica (solo SuperAdmin)
+     */
+    static async obtenerPlanPorEmpresa(idEmpresa: number): Promise<PlanConUso> {
+        return await this.fetchApi<PlanConUso>(`/api/v1/planes/empresa/${idEmpresa}`, {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Crear plan para una empresa (solo SuperAdmin)
+     */
+    static async crearPlan(data: CreatePlanData): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>('/api/v1/planes/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    /**
+     * Actualizar plan existente (solo SuperAdmin)
+     */
+    static async actualizarPlan(idPlan: number, data: UpdatePlanData): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    /**
+     * Activar plan de una empresa (solo SuperAdmin)
+     */
+    static async activarPlan(idPlan: number): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}/activar`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * Desactivar plan de una empresa (solo SuperAdmin)
+     */
+    static async desactivarPlan(idPlan: number): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}/desactivar`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * Verificar si un error es de límite de plan excedido (HTTP 402)
+     */
+    static isLimitePlanError(error: any): error is { detail: ErrorLimitePlan } {
+        return error?.detail?.error === 'plan_limit_exceeded';
+    }
+
+    /**
+     * Obtener mensaje amigable de error de límite de plan
+     */
+    static getMensajeLimitePlan(error: any): string | null {
+        if (this.isLimitePlanError(error)) {
+            return error.detail.sugerencia || error.detail.mensaje;
+        }
+        return null;
+    }
+
+    // ============================================
+    // ENDPOINTS DE VISTA SEMANAL REPONEDOR
+    // ============================================
+
+    /**
+     * Obtener resumen semanal de tareas del reponedor autenticado
+     * @param fechaInicio Fecha de inicio de semana (YYYY-MM-DD). Si no se especifica, usa semana actual
+     */
+    static async obtenerResumenSemanal(fechaInicio?: string): Promise<ResumenSemanalResponse> {
+        const params = fechaInicio ? `?fecha_inicio=${fechaInicio}` : '';
+        return await this.fetchApi<ResumenSemanalResponse>(
+            `/reponedor/resumen-semanal${params}`,
+            { method: 'GET' }
+        );
+    }
+
+    /**
+     * Obtener lista de semanas disponibles con tareas
+     * @param limite Número máximo de semanas a retornar (1-52)
+     */
+    static async obtenerSemanasDisponibles(limite: number = 12): Promise<SemanasDisponiblesResponse> {
+        return await this.fetchApi<SemanasDisponiblesResponse>(
+            `/reponedor/semanas-disponibles?limite=${limite}`,
+            { method: 'GET' }
+        );
+    }
+
+    /**
+     * Obtener estadísticas generales históricas del reponedor
+     */
+    static async obtenerEstadisticasGenerales(): Promise<EstadisticasGeneralesResponse> {
+        return await this.fetchApi<EstadisticasGeneralesResponse>(
+            `/reponedor/resumen-semanal/estadisticas`,
+            { method: 'GET' }
         );
     }
 }
