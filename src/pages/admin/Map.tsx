@@ -347,15 +347,42 @@ const MapPage = () => {
 
   const handleMuebleClick = async (mueble: ObjetoMapa) => {
     try {
+      console.log('🔍 handleMuebleClick - Mueble clickeado:', mueble);
+      console.log('🔍 handleMuebleClick - Estado del mapa:', editorState.mapa);
+      console.log('🔍 handleMuebleClick - ID mapa a consultar:', editorState.mapa?.id_mapa);
+      
       // Obtener los puntos del mueble desde el backend
       const response = await MapaService.obtenerVistaReposicion(editorState.mapa!.id_mapa);
       
-      // Buscar el mueble en la respuesta por nombre
-      const ubicacionMueble = response.ubicaciones.find((u: any) => 
-        u.objeto?.nombre === mueble.nombre && u.mueble
-      );
+      console.log('🔍 handleMuebleClick - Response completo:', response);
+      console.log('🔍 handleMuebleClick - Ubicaciones:', response.ubicaciones);
+      
+      // Buscar el mueble en la respuesta por nombre o id_objeto
+      const ubicacionMueble = response.ubicaciones.find((u: any) => {
+        const coincideNombre = u.objeto?.nombre === mueble.nombre;
+        const coincideId = u.objeto?.id_objeto === mueble.id_objeto;
+        const tieneMueble = !!u.mueble;
+        
+        console.log('🔍 Comparando ubicación:', {
+          ubicacion: u,
+          coincideNombre,
+          coincideId,
+          tieneMueble,
+          nombreUbicacion: u.objeto?.nombre,
+          nombreBuscado: mueble.nombre,
+          idUbicacion: u.objeto?.id_objeto,
+          idBuscado: mueble.id_objeto
+        });
+        
+        return (coincideNombre || coincideId) && tieneMueble;
+      });
+
+      console.log('🔍 handleMuebleClick - Ubicación mueble encontrada:', ubicacionMueble);
 
       if (ubicacionMueble && ubicacionMueble.mueble) {
+        console.log('🔍 handleMuebleClick - Mueble data:', ubicacionMueble.mueble);
+        console.log('🔍 handleMuebleClick - Puntos de reposición:', ubicacionMueble.mueble.puntos_reposicion);
+        
         setSelectedMueble({
           nombre: mueble.nombre,
           filas: ubicacionMueble.mueble.filas,
@@ -364,6 +391,7 @@ const MapPage = () => {
         });
         setShowAssignmentModal(true);
       } else {
+        console.error('❌ No se encontró el mueble en la respuesta');
         toast({
           title: 'Mueble sin puntos',
           description: 'Este mueble no tiene puntos de reposición configurados',

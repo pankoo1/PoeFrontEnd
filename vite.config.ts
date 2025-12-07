@@ -9,11 +9,13 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      '/api/v1': {
-        target: 'http://localhost:8000',
+      // Proxy de /api/v1 eliminado. Las peticiones irán directo al backend en la nube.
+      // Proxy para backend en Azure
+      '/api-ext': {
+        target: 'https://poe-backend-app.salmonforest-f5212699.canadacentral.azurecontainerapps.io',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1')
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api-ext/, '')
       },
       // Proxy para endpoints sin /api/v1
       '/mapa': {
@@ -86,4 +88,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+}))

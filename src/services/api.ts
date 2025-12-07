@@ -1352,6 +1352,14 @@ export class ApiService {
         });
     }
 
+    // Validar y regenerar puntos de reposición de un mueble
+    static async validarYRegenerarPuntos(idObjeto: number): Promise<any> {
+        console.log('Validando y regenerando puntos para mueble:', idObjeto);
+        return await this.fetchApi(`/muebles/${idObjeto}/validar-y-regenerar-puntos`, {
+            method: 'POST',
+        });
+    }
+
     // Métodos para tareas
     static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
         console.log('🔍 ApiService.getTareasSupervisor - Iniciando petición:', {
@@ -2437,7 +2445,7 @@ export class ApiService {
      * Incluye información de uso y validaciones de límites
      */
     static async obtenerMiPlan(): Promise<PlanConUso> {
-        return await this.fetchApi<PlanConUso>('/api/v1/planes/mi-plan', {
+        return await this.fetchApi<PlanConUso>('/planes/mi-plan', {
             method: 'GET'
         });
     }
@@ -2446,7 +2454,7 @@ export class ApiService {
      * Obtener plan de una empresa específica (solo SuperAdmin)
      */
     static async obtenerPlanPorEmpresa(idEmpresa: number): Promise<PlanConUso> {
-        return await this.fetchApi<PlanConUso>(`/api/v1/planes/empresa/${idEmpresa}`, {
+        return await this.fetchApi<PlanConUso>(`/planes/empresa/${idEmpresa}`, {
             method: 'GET'
         });
     }
@@ -2455,7 +2463,7 @@ export class ApiService {
      * Crear plan para una empresa (solo SuperAdmin)
      */
     static async crearPlan(data: CreatePlanData): Promise<PlanEmpresa> {
-        return await this.fetchApi<PlanEmpresa>('/api/v1/planes/', {
+        return await this.fetchApi<PlanEmpresa>('/planes/', {
             method: 'POST',
             body: JSON.stringify(data)
         });
@@ -2465,7 +2473,7 @@ export class ApiService {
      * Actualizar plan existente (solo SuperAdmin)
      */
     static async actualizarPlan(idPlan: number, data: UpdatePlanData): Promise<PlanEmpresa> {
-        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}`, {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}`, {
             method: 'PATCH',
             body: JSON.stringify(data)
         });
@@ -2475,7 +2483,7 @@ export class ApiService {
      * Activar plan de una empresa (solo SuperAdmin)
      */
     static async activarPlan(idPlan: number): Promise<PlanEmpresa> {
-        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}/activar`, {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}/activar`, {
             method: 'PATCH'
         });
     }
@@ -2484,7 +2492,7 @@ export class ApiService {
      * Desactivar plan de una empresa (solo SuperAdmin)
      */
     static async desactivarPlan(idPlan: number): Promise<PlanEmpresa> {
-        return await this.fetchApi<PlanEmpresa>(`/api/v1/planes/${idPlan}/desactivar`, {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}/desactivar`, {
             method: 'PATCH'
         });
     }

@@ -53,6 +53,13 @@ const TareaForm = () => {
     setSelectedProducts(prev => prev.filter(p => p.producto.id_producto !== id_producto));
   };
 
+  const resetForm = () => {
+    setFormData({ reponedor: '', estado: 'sin_asignar' });
+    setSelectedProducts([]);
+    setProductoToAdd(null);
+    setCantidadToAdd('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validar que haya al menos un producto
