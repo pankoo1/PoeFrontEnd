@@ -117,7 +117,7 @@ const ReponedoresPage = () => {
             <DialogHeader>
               <DialogTitle>Registrar Nuevo Reponedor</DialogTitle>
             </DialogHeader>
-            <UserForm onUserAdded={handleReponedorAdded} />
+            <UserForm onUserAdded={handleReponedorAdded} isSupervisor={true} buttonLabel="Registrar Reponedor" />
           </DialogContent>
         </Dialog>
       </header>

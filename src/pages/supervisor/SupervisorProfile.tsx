@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Home, Shield, Settings } from 'lucide-react';
+import { User, Home, Shield, Mail, UserCircle2, Briefcase, CheckCircle, Clock, Activity } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService } from '@/services/api';
-import { Badge } from "@/components/ui/badge";
 import { useNavigateToDashboard } from '@/hooks/useNavigateToDashboard';
-import Logo from '@/components/shared/Logo';
+import SupervisorLayout from '@/components/layout/SupervisorLayout';
 
 interface ProfileData {
   nombre: string;
@@ -51,190 +50,184 @@ const SupervisorProfile = () => {
     }
   };
 
-  const getRolBadgeVariant = (rol: string) => {
-    switch (rol.toLowerCase()) {
-      case 'supervisor':
-        return 'bg-primary/20 text-primary border-primary/40';
-      case 'reponedor':
-        return 'bg-secondary/20 text-secondary border-secondary/40';
-      case 'administrador':
-        return 'bg-destructive/20 text-destructive border-destructive/40';
-      default:
-        return 'bg-muted/20 text-muted-foreground border-muted/40';
-    }
+  const getEstadoColor = (estado: string) => {
+    return estado.toLowerCase() === 'activo'
+      ? 'bg-green-100 text-green-800 border-green-200'
+      : 'bg-red-100 text-red-800 border-red-200';
   };
 
-  const getEstadoBadgeVariant = (estado: string) => {
-    switch (estado.toLowerCase()) {
-      case 'activo':
-        return 'bg-success/20 text-success border-success/40';
-      case 'inactivo':
-        return 'bg-destructive/20 text-destructive border-destructive/40';
-      default:
-        return 'bg-warning/20 text-warning border-warning/40';
-    }
-  };
+  const userName = profileData.nombre || 'Supervisor';
+
   return (
-    <>
-      {/* Background fijo que cubre toda la pantalla */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.80) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <div className="min-h-screen relative z-10">
-        {/* Header con diseño unificado */}
-        <header className="border-b shadow-sm rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80 mx-6 mt-6">
-          <div className="container mx-auto px-6 py-6 flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-3 bg-primary/20 rounded-xl border-2 border-primary/30 shadow-lg">
-                <Logo size="lg" showText={true} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Mi Perfil (Supervisor)
-                </h1>
-                <p className="text-base text-muted-foreground mt-1">
-                  Gestiona tu información personal y configuraciones
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={navigateToDashboard}
-                className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={navigateToDashboard}
-                className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
+    <SupervisorLayout>
+      {/* HEADER */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 shadow-sm z-10">
+        <h2 className="text-2xl font-bold text-slate-800">Mi Perfil</h2>
+        
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden md:block">
+            <p className="text-sm font-bold text-slate-700">{userName}</p>
+            <p className="text-xs text-slate-500">Supervisor</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold shadow-lg">
+            {userName.charAt(0).toUpperCase()}
+          </div>
+        </div>
+      </header>
+
+      {/* SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 bg-slate-50">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-slate-600">Cargando datos del perfil...</p>
             </div>
           </div>
-        </header>
-
-        <main className="container mx-auto px-6 py-8">
-          {/* Banner informativo */}
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 border border-primary/40 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-primary/40 rounded-xl">
-                <Shield className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Perfil de Supervisor</h2>
-                <p className="text-muted-foreground">Información personal del supervisor (solo lectura)</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <Card className="card-supermarket hover:shadow-2xl transition-all duration-300 bg-white/90 backdrop-blur-md">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-4 bg-primary/30 rounded-xl">
-                      <User className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl">Información Personal</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">Datos de tu cuenta de supervisor</p>
-                    </div>
+        ) : (
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header Card con Avatar */}
+            <Card className="border-slate-200 bg-gradient-to-br from-purple-50 to-pink-50">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-6">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-500 to-pink-600 flex items-center justify-center text-white text-4xl font-bold shadow-xl">
+                    {profileData.nombre.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm font-medium">Solo lectura</span>
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-slate-800 mb-1">{profileData.nombre}</h1>
+                    <p className="text-slate-600 flex items-center gap-2 mb-3">
+                      <Mail className="w-4 h-4" />
+                      {profileData.correo}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        {profileData.rol}
+                      </Badge>
+                      <Badge className={getEstadoColor(profileData.estado)}>
+                        {profileData.estado.toLowerCase() === 'activo' ? (
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                        ) : (
+                          <Clock className="w-3 h-3 mr-1" />
+                        )}
+                        {profileData.estado}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="flex justify-center mb-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                    <p className="text-muted-foreground">Cargando datos del perfil...</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
-                      <Input
-                        id="name"
-                        value={profileData.nombre}
-                        disabled={true}
-                        className="bg-muted/50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.correo}
-                        disabled={true}
-                        className="bg-muted/50"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="role" className="text-sm font-medium text-foreground">Rol del Sistema</Label>
-                        <div className="flex items-center space-x-2">
-                          <Shield className="w-4 h-4 text-muted-foreground" />
-                          <Badge 
-                            variant="outline"
-                            className={getRolBadgeVariant(profileData.rol)}
-                          >
-                            {profileData.rol}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="status" className="text-sm font-medium text-foreground">Estado de la Cuenta</Label>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${profileData.estado.toLowerCase() === 'activo' ? 'bg-success' : 'bg-destructive'}`}></div>
-                          <Badge 
-                            variant="outline"
-                            className={getEstadoBadgeVariant(profileData.estado)}
-                          >
-                            {profileData.estado}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Información adicional */}
-                    <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Shield className="w-5 h-5 text-primary" />
-                        <h3 className="font-semibold text-foreground">Información de Seguridad</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Tu perfil está en modo solo lectura para mantener la integridad y seguridad del sistema.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Los datos de perfil son gestionados centralmente. Para cualquier cambio, contacta al administrador del sistema.
-                      </p>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
+
+            {/* Información Personal */}
+            <Card className="border-slate-200">
+              <CardHeader className="bg-slate-50/50">
+                <CardTitle className="flex items-center gap-2">
+                  <UserCircle2 className="w-5 h-5 text-primary" />
+                  Información Personal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Nombre Completo
+                    </Label>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <p className="text-slate-800 font-medium">{profileData.nombre}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Correo Electrónico
+                    </Label>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <p className="text-slate-800 font-medium">{profileData.correo}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Información de Cuenta */}
+            <Card className="border-slate-200">
+              <CardHeader className="bg-slate-50/50">
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Información de Cuenta
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                      <Briefcase className="w-4 h-4" />
+                      Rol en el Sistema
+                    </Label>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        {profileData.rol}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                      <Activity className="w-4 h-4" />
+                      Estado de Cuenta
+                    </Label>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <Badge className={getEstadoColor(profileData.estado)}>
+                        {profileData.estado.toLowerCase() === 'activo' ? (
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                        ) : (
+                          <Clock className="w-3 h-3 mr-1" />
+                        )}
+                        {profileData.estado}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Nota Informativa */}
+            <Card className="border-purple-200 bg-purple-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Shield className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-purple-900 mb-1">Información de Seguridad</h3>
+                    <p className="text-sm text-purple-700 mb-2">
+                      Tu perfil está en modo solo lectura para mantener la integridad y seguridad del sistema.
+                    </p>
+                    <p className="text-xs text-purple-600">
+                      Los datos de perfil son gestionados centralmente. Para cualquier cambio, contacta al administrador del sistema.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Botón de Volver */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={navigateToDashboard}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Volver al Dashboard
+              </Button>
+            </div>
           </div>
-        </main>
+        )}
       </div>
-    </>
+    </SupervisorLayout>
   );
 };
 

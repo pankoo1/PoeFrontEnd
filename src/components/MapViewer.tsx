@@ -186,7 +186,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 // NUEVO: Manejo de la estructura de muebles_rutas del endpoint
                 // MEJORA 1: Dibujar rutas segmentadas por mueble con gradientes
                 if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {
-                    let posicionActual = { x: 0, y: 0 }; // Punto de inicio
+                    // Obtener punto de inicio desde las coordenadas globales (primer punto de la ruta)
+                    const puntoInicioReal = rutaOptimizada.coordenadas_ruta_global && rutaOptimizada.coordenadas_ruta_global.length > 0
+                        ? rutaOptimizada.coordenadas_ruta_global[0]
+                        : { x: 0, y: 0 };
+                    let posicionActual = { x: puntoInicioReal.x, y: puntoInicioReal.y }; // Punto de inicio real
                         let puntosConexion: Array<{ x: number, y: number, color: string }> = []; // Para dibujar después
                         
                         // PASO 1: Dibujar todas las líneas de ruta primero
@@ -236,6 +240,40 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                                 posicionActual = { x: ultimoPaso.x, y: ultimoPaso.y };
                             }
                         });
+                        
+                        // PASO 1.5: Dibujar punto de inicio (desde punto de partida real)
+                        const startX = puntoInicioReal.x * cellW + cellW / 2;
+                        const startY = puntoInicioReal.y * cellH + cellH / 2;
+                        
+                        // Círculo principal con gradiente corporativo
+                        const startGradient = ctx.createRadialGradient(startX-2, startY-2, 0, startX, startY, 12);
+                        startGradient.addColorStop(0, 'hsl(158, 64%, 60%)'); // Verde claro
+                        startGradient.addColorStop(0.7, 'hsl(158, 64%, 52%)'); // Verde corporativo
+                        startGradient.addColorStop(1, 'hsl(158, 64%, 45%)');   // Verde oscuro
+                        
+                        ctx.fillStyle = startGradient;
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Borde elegante
+                        ctx.strokeStyle = 'hsl(0, 0%, 100%)'; // Blanco
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        // Icono de inicio
+                        ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('🏠', startX, startY);
+                        
+                        // Etiqueta "INICIO"
+                        ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
+                        ctx.font = 'bold 10px Arial';
+                        ctx.fillText('INICIO', startX, startY + 25);
                         
                         // PASO 2: Dibujar puntos de conexión encima de las líneas
                         puntosConexion.forEach((punto) => {
@@ -328,41 +366,75 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                             }
                         });
                         ctx.stroke();
-                    
-                    // MEJORA 2: Punto de inicio simple
-                    const startX = 0 * cellW + cellW / 2;
-                    const startY = 0 * cellH + cellH / 2;
-                    
-                    // Círculo principal con gradiente corporativo
-                    const startGradient = ctx.createRadialGradient(startX-2, startY-2, 0, startX, startY, 12);
-                    startGradient.addColorStop(0, 'hsl(158, 64%, 60%)'); // Verde claro
-                    startGradient.addColorStop(0.7, 'hsl(158, 64%, 52%)'); // Verde corporativo
-                    startGradient.addColorStop(1, 'hsl(158, 64%, 45%)');   // Verde oscuro
-                    
-                    ctx.fillStyle = startGradient;
-                    ctx.beginPath();
-                    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Borde elegante
-                    ctx.strokeStyle = 'hsl(0, 0%, 100%)'; // Blanco
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
-                    ctx.stroke();
-                    
-                    // Icono de inicio
-                    ctx.fillStyle = 'hsl(0, 0%, 100%)';
-                    ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('🏠', startX, startY);
-                    
-                    // Etiqueta "INICIO"
-                    ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
-                    ctx.font = 'bold 10px Arial';
-                    ctx.fillText('INICIO', startX, startY + 25);
-                }
+                        
+                        // Dibujar punto de INICIO (primer punto de la ruta)
+                        const startX = coordenadas[0].x * cellW + cellW / 2;
+                        const startY = coordenadas[0].y * cellH + cellH / 2;
+                        
+                        // Círculo principal con gradiente corporativo
+                        const startGradient = ctx.createRadialGradient(startX-2, startY-2, 0, startX, startY, 12);
+                        startGradient.addColorStop(0, 'hsl(158, 64%, 60%)'); // Verde claro
+                        startGradient.addColorStop(0.7, 'hsl(158, 64%, 52%)'); // Verde corporativo
+                        startGradient.addColorStop(1, 'hsl(158, 64%, 45%)');   // Verde oscuro
+                        
+                        ctx.fillStyle = startGradient;
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Borde elegante
+                        ctx.strokeStyle = 'hsl(0, 0%, 100%)'; // Blanco
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        // Icono de inicio
+                        ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('🏠', startX, startY);
+                        
+                        // Etiqueta "INICIO"
+                        ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
+                        ctx.font = 'bold 10px Arial';
+                        ctx.fillText('INICIO', startX, startY + 25);
+                        
+                        // Dibujar punto FINAL (último punto de la ruta)
+                        const finalX = coordenadas[coordenadas.length - 1].x * cellW + cellW / 2;
+                        const finalY = coordenadas[coordenadas.length - 1].y * cellH + cellH / 2;
+                        
+                        // Punto FINAL con estilo distintivo (verde éxito)
+                        const finalGradient = ctx.createRadialGradient(finalX, finalY, 0, finalX, finalY, 12);
+                        finalGradient.addColorStop(0, 'hsl(120, 65%, 75%)'); // Verde éxito claro
+                        finalGradient.addColorStop(0.7, 'hsl(120, 65%, 55%)'); // Verde éxito medio
+                        finalGradient.addColorStop(1, 'hsl(120, 65%, 35%)'); // Verde éxito oscuro
+                        
+                        ctx.fillStyle = finalGradient;
+                        ctx.beginPath();
+                        ctx.arc(finalX, finalY, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Borde blanco grueso
+                        ctx.strokeStyle = 'hsl(0, 0%, 100%)';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(finalX, finalY, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        // Icono de finalización
+                        ctx.fillStyle = 'hsl(0, 0%, 100%)';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('✓', finalX, finalY);
+                        
+                        // Etiqueta "FIN"
+                        ctx.fillStyle = 'hsl(215, 25%, 27%)'; // Color foreground
+                        ctx.font = 'bold 10px Arial';
+                        ctx.fillText('FIN', finalX, finalY + 25);
+                    }
                     
                     // MEJORA 3: Dibujar marcadores de destino (solo si hay muebles_rutas)
                     if (rutaOptimizada.muebles_rutas && rutaOptimizada.muebles_rutas.length > 0) {

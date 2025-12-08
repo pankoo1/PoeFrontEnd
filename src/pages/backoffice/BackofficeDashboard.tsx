@@ -255,17 +255,26 @@ const BackofficeDashboard = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3">
                   <h3 className="text-lg font-bold mb-4 text-slate-800">Usuarios por Rol</h3>
                   <div className="space-y-3">
-                    {Object.entries(metricas.usuarios_por_rol).map(([rol, cantidad]) => (
-                      <div key={rol} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Users size={20} className="text-blue-600" />
+                    {Object.entries(metricas.usuarios_por_rol)
+                      .filter(([rol]) => !['superadmin', 'super_admin'].includes(rol.toLowerCase()))
+                      .map(([rol, cantidad]) => {
+                        const rolNames: { [key: string]: string } = {
+                          'admin': 'Administrador',
+                          'supervisor': 'Supervisor',
+                          'reponedor': 'Reponedor'
+                        };
+                        return (
+                          <div key={rol} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Users size={20} className="text-blue-600" />
+                              </div>
+                              <span className="font-medium text-slate-700">{rolNames[rol.toLowerCase()] || rol}</span>
+                            </div>
+                            <span className="text-2xl font-bold text-slate-800">{cantidad}</span>
                           </div>
-                          <span className="font-medium text-slate-700 capitalize">{rol}s</span>
-                        </div>
-                        <span className="text-2xl font-bold text-slate-800">{cantidad}</span>
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
                 </div>
 

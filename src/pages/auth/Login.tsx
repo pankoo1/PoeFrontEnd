@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/shared/Logo';
-import { ShoppingCart, Truck, MapPin } from 'lucide-react';
+import { ShieldCheck, Radar, Route, Sparkles } from 'lucide-react';
 
 const Login = () => {
   const [correo, setCorreo] = useState('');
@@ -61,188 +61,120 @@ const Login = () => {
 
   return (
     <>
-      {/* Background fijo que cubre toda la pantalla - mismo que Dashboard */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.80) 50%, rgba(255, 255, 255, 0.70) 100%), url('/POE.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
+      <div className="fixed inset-0 z-0 bg-slate-950">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/70 via-slate-900/60 to-blue-900/70" />
+        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(120,119,198,0.20), transparent 35%), radial-gradient(circle at 80% 0%, rgba(59,130,246,0.15), transparent 30%), radial-gradient(circle at 50% 80%, rgba(14,165,233,0.18), transparent 35%)" }} />
+      </div>
 
-      <div className="min-h-screen relative z-10 flex items-center justify-center p-6">
-        {/* Elementos decorativos de fondo modernos */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-32 h-32 bg-gradient-to-br from-primary/30 to-secondary/20 rounded-full blur-3xl"></div>
-          </div>
-          <div className="absolute top-3/4 right-1/4 transform translate-x-1/2 translate-y-1/2">
-            <div className="w-24 h-24 bg-gradient-to-br from-accent/30 to-primary/20 rounded-full blur-2xl"></div>
-          </div>
-          <div className="absolute bottom-1/4 left-1/3 transform -translate-x-1/2 translate-y-1/2">
-            <div className="w-20 h-20 bg-gradient-to-br from-success/30 to-accent/20 rounded-full blur-xl"></div>
-          </div>
-        </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-10 lg:px-12">
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-10 items-center">
+          {/* Panel izquierdo: narrativa y beneficios */}
+          <div className="hidden lg:flex flex-col gap-6 text-white">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 shadow-lg">
+                <Logo size="lg" showText={false} />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-200/80">Plataforma POE</p>
+                <h1 className="text-3xl font-semibold leading-tight">Optimiza tiendas, rutas y stock en una sola vista</h1>
+              </div>
+            </div>
 
-        <div className="w-full max-w-7xl mx-auto flex items-center justify-center lg:justify-between relative z-10 gap-12">
-          {/* Sección izquierda para el logo */}
-          <div className="hidden lg:flex flex-1 items-center justify-center max-w-lg">
-            <div className="text-center space-y-6">
-              {/* Aquí irá tu imagen de logo */}
-              <div className="flex justify-center">
-                <div className="w-72 h-72 bg-gradient-to-br from-primary/30 via-secondary/15 to-accent/20 rounded-3xl border-2 border-primary/20 backdrop-blur-sm shadow-2xl flex items-center justify-center">
-                  {/* Placeholder para tu logo - reemplaza con tu imagen */}
-                  <div className="text-center space-y-3">
-                    <Logo size="2xl" showText={false} />
-                    <div className="space-y-1">
-                      <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                        Sistema POE
-                      </h1>
-                      <p className="text-base text-muted-foreground font-medium">
-                        Optimización de Rutas
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        para Supermercados
-                      </p>
-                    </div>
+            <p className="text-base text-slate-200/80 leading-relaxed max-w-xl">
+              Accede al backoffice unificado para orquestar rutas, supervisar reposición y controlar el inventario en tiempo real. Diseñado para retail exigente con visibilidad total y decisiones rápidas.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 max-w-xl">
+              {[{
+                icon: <ShieldCheck className="w-5 h-5" />, label: 'Seguridad multi-tenant', desc: 'Contexto de empresa y roles protegidos'
+              }, {
+                icon: <Radar className="w-5 h-5" />, label: 'Monitoreo vivo', desc: 'Estado de tareas y reposición en segundos'
+              }, {
+                icon: <Route className="w-5 h-5" />, label: 'Rutas optimizadas', desc: 'Menos pasillos, más reposición'
+              }, {
+                icon: <Sparkles className="w-5 h-5" />, label: 'UX consistente', desc: 'UI alineada con módulos y landing'
+              }].map((item, idx) => (
+                <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 shadow-md">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <span className="p-2 rounded-xl bg-white/10 border border-white/10">{item.icon}</span>
+                    {item.label}
                   </div>
+                  <p className="text-xs text-slate-200/80 mt-2 leading-relaxed">{item.desc}</p>
                 </div>
-              </div>
-              
-              {/* Descripción adicional */}
-              <div className="space-y-4 max-w-sm mx-auto">
-                <h2 className="text-xl font-bold text-foreground">
-                  Gestión Inteligente de Inventario
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Optimiza las rutas de reposición, mejora la eficiencia operativa y mantén tu supermercado funcionando de manera perfecta.
-                </p>
-                <div className="flex items-center justify-center space-x-4 pt-3">
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center mb-2">
-                      <Truck className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Rutas Optimizadas</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-2">
-                      <MapPin className="w-5 h-5 text-secondary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Mapeo Inteligente</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center mb-2">
-                      <ShoppingCart className="w-5 h-5 text-accent" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Control Total</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Sección derecha para el formulario de login */}
-          <div className="w-full lg:w-auto lg:min-w-[420px] lg:max-w-md">
-            <Card className="w-full card-supermarket relative z-10 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/30 backdrop-blur-md bg-white/90 shadow-2xl">
-              <CardHeader className="space-y-6 text-center pb-6">
-                <div className="space-y-3">
-                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                    Iniciar Sesión
-                  </CardTitle>
-                  <CardDescription className="text-base text-muted-foreground bg-muted/30 rounded-lg px-4 py-2 backdrop-blur-sm">
-                    Accede a tu cuenta del sistema POE
-                  </CardDescription>
+          {/* Panel derecho: formulario */}
+          <div className="w-full">
+            <Card className="relative overflow-hidden border border-white/10 bg-slate-900/70 backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-blue-400/5 to-cyan-400/10" />
+              <CardHeader className="relative z-10 space-y-2 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-white/10 border border-white/10">
+                    <Logo size="md" showText={false} />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-200/70">Acceso</p>
+                    <CardTitle className="text-2xl font-bold text-white">Inicia sesión</CardTitle>
+                  </div>
                 </div>
+                <p className="text-sm text-slate-200/80 leading-relaxed">
+                  Ingresa con tus credenciales para administrar operaciones, rutas y equipos dentro de POE.
+                </p>
               </CardHeader>
-              <CardContent className="space-y-6 px-6 pb-6">
+
+              <CardContent className="relative z-10 space-y-6 pt-2 pb-8 px-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-3">
-                    <Label htmlFor="correo" className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <span>Correo Electrónico</span>
-                    </Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="correo" className="text-sm font-semibold text-slate-100">Correo</Label>
                     <Input
                       id="correo"
                       type="email"
-                      placeholder="ejemplo@empresa.com"
+                      autoComplete="username"
+                      placeholder="admin@empresa.com"
                       value={correo}
                       onChange={(e) => setCorreo(e.target.value)}
                       required
-                      className="h-12 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
+                      className="h-11 text-base border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="contraseña" className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                      <span>Contraseña</span>
-                    </Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="contraseña" className="text-sm font-semibold text-slate-100">Contraseña</Label>
                     <Input
                       id="contraseña"
                       type="password"
+                      autoComplete="current-password"
                       placeholder="••••••••"
                       value={contraseña}
                       onChange={(e) => setContraseña(e.target.value)}
                       required
-                      className="h-12 text-base border-2 border-border/50 bg-white/70 backdrop-blur-sm rounded-xl focus:border-secondary focus:bg-white/90 transition-all duration-200 hover:bg-white/80"
+                      className="h-11 text-base border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     />
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 text-base font-semibold rounded-xl bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
+
+                  <Button
+                    type="submit"
                     disabled={isLoading}
+                    className="w-full h-11 text-base font-semibold rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-slate-950 hover:brightness-110 transition-all duration-200 shadow-lg shadow-blue-900/40"
                   >
-                    {isLoading ? (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Iniciando sesión...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <Truck className="w-4 h-4" />
-                        <span>Iniciar Sesión</span>
-                      </div>
-                    )}
+                    {isLoading ? 'Iniciando sesión…' : 'Entrar a POE'}
                   </Button>
                 </form>
 
-                {/* Credenciales de prueba compactas */}
-                <div className="border-t border-border/30 pt-6">
-                  <div className="bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 rounded-xl p-4 space-y-4 backdrop-blur-sm border border-border/20">
-                    <div className="text-center">
-                      <p className="font-semibold text-sm text-primary mb-2">Credenciales de Prueba</p>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="bg-gradient-to-r from-primary/15 to-primary/25 p-3 rounded-lg border border-primary/30 backdrop-blur-sm hover:from-primary/20 hover:to-primary/30 transition-all duration-200 cursor-pointer group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">👑</span>
-                            <span className="font-medium text-primary text-sm">Admin</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">admin@poe.com</span>
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-r from-secondary/15 to-secondary/25 p-3 rounded-lg border border-secondary/30 backdrop-blur-sm hover:from-secondary/20 hover:to-secondary/30 transition-all duration-200 cursor-pointer group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">🏗️</span>
-                            <span className="font-medium text-secondary text-sm">Supervisor</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">supervisor@poe.com</span>
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-r from-accent/15 to-accent/25 p-3 rounded-lg border border-accent/30 backdrop-blur-sm hover:from-accent/20 hover:to-accent/30 transition-all duration-200 cursor-pointer group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">📦</span>
-                            <span className="font-medium text-accent text-sm">Reponedor</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">reponedor@poe.com</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+                  <p className="text-xs uppercase tracking-[0.15em] text-slate-200/70">¿Eres nuevo?</p>
+                  <p className="text-sm text-slate-200/80 leading-relaxed">
+                    Conoce la propuesta completa de POE, casos de uso y beneficios en la landing principal.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full h-10 bg-white text-slate-900 hover:bg-slate-100 font-semibold"
+                    onClick={() => navigate('/')}
+                  >
+                    Ir a la landing
+                  </Button>
                 </div>
               </CardContent>
             </Card>

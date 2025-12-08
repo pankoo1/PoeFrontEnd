@@ -41,7 +41,7 @@ export interface CrearMuebleCompletoRequest {
   nombre: string;
   filas: number;
   columnas: number;
-  direccion?: 'T' | 'I' | 'D'; // Top, Izquierda, Derecha
+  direccion?: 'T' | 'N' | 'S' | 'E' | 'O'; // T: Todas, N: Norte, S: Sur, E: Este, O: Oeste
 }
 
 /**

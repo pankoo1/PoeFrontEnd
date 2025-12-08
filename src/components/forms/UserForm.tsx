@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ApiService, CreateUsuarioData, CreateReponedorData, Usuario } from '@/services/api';
+import { LimitePlanDialog } from '@/components/plan/LimitePlanDialog';
+import { ErrorLimitePlan } from '@/types/plan.types';
 
 interface UserFormProps {
   onUserAdded: (user: Usuario) => void;
@@ -18,6 +20,8 @@ const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usua
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [limitError, setLimitError] = useState<ErrorLimitePlan | null>(null);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
@@ -82,26 +86,41 @@ const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usua
         estado: 'activo'
       });
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear usuario:', error);
-      toast({
-        title: "Error al crear usuario",
-        description: error instanceof Error ? error.message : "Ha ocurrido un error al crear el usuario",
-        variant: "destructive",
-      });
+      
+      // Verificar si es un error de límite de plan (HTTP 402)
+      if (error?.response?.status === 402 && ApiService.isLimitePlanError(error.response.data)) {
+        setLimitError(error.response.data.detail);
+        setShowLimitDialog(true);
+        setIsOpen(false); // Cerrar el formulario
+      } else {
+        toast({
+          title: "Error al crear usuario",
+          description: error instanceof Error ? error.message : "Ha ocurrido un error al crear el usuario",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          {buttonLabel}
-        </Button>
-      </DialogTrigger>
+    <>
+      <LimitePlanDialog 
+        open={showLimitDialog}
+        onOpenChange={setShowLimitDialog}
+        error={limitError}
+      />
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            {buttonLabel}
+          </Button>
+        </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -196,6 +215,7 @@ const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usua
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 };
 

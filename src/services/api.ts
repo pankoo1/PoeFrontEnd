@@ -1,4 +1,12 @@
 import { API_ENDPOINTS, API_URL } from '@/config/api';
+import { 
+    PlanEmpresa, 
+    PlanConUso, 
+    ErrorLimitePlan, 
+    CreatePlanData, 
+    UpdatePlanData,
+    ValidacionRecurso 
+} from '@/types/plan.types';
 
 // Tipos
 export interface LoginCredentials {
@@ -170,6 +178,115 @@ export interface PrediccionHistorialResponse {
 export interface ActualizarEstadoRequest {
     estado: EstadoPrediccion;
     notas?: string;
+}
+
+// ============================================
+// INTERFACES PARA VISTA SEMANAL REPONEDOR
+// ============================================
+
+export interface ProductoTarea {
+    id_producto: number;
+    nombre: string;
+    categoria: string;
+    cantidad: number;
+}
+
+export interface TareaSemanal {
+    id_tarea: number;
+    estado_id: number;
+    fecha_creacion: string;
+    fecha_hora_completada: string | null;
+    total_productos: number;
+    productos: ProductoTarea[];
+}
+
+export interface DiaSemanal {
+    fecha: string;
+    dia_nombre: string;
+    tareas: TareaSemanal[];
+    total_tareas: number;
+    tareas_por_estado: Record<string, number>;
+}
+
+export interface CalendarioSemanal {
+    lunes: DiaSemanal;
+    martes: DiaSemanal;
+    miercoles: DiaSemanal;
+    jueves: DiaSemanal;
+    viernes: DiaSemanal;
+    sabado: DiaSemanal;
+    domingo: DiaSemanal;
+}
+
+export interface EstadisticasSemana {
+    total_tareas: number;
+    total_productos: number;
+    dias_con_tareas: number;
+    tareas_por_estado: Record<string, number>;
+    promedio_tareas_por_dia: number;
+    promedio_productos_por_tarea: number;
+}
+
+export interface ReponedorInfo {
+    id: number;
+    nombre: string;
+    correo: string;
+}
+
+export interface PeriodoSemanal {
+    fecha_inicio: string;
+    fecha_fin: string;
+    semana: string;
+}
+
+export interface ResumenSemanalData {
+    reponedor: ReponedorInfo;
+    periodo: PeriodoSemanal;
+    calendario: CalendarioSemanal;
+    estadisticas: EstadisticasSemana;
+}
+
+export interface ResumenSemanalResponse {
+    success: boolean;
+    message: string;
+    data: ResumenSemanalData;
+}
+
+export interface SemanaDisponible {
+    fecha_inicio: string;
+    fecha_fin: string;
+    descripcion: string;
+    total_tareas: number;
+}
+
+export interface SemanasDisponiblesData {
+    semanas: SemanaDisponible[];
+    total: number;
+}
+
+export interface SemanasDisponiblesResponse {
+    success: boolean;
+    message: string;
+    data: SemanasDisponiblesData;
+}
+
+export interface PeriodoActividad {
+    fecha_primera_tarea: string | null;
+    fecha_ultima_tarea: string | null;
+}
+
+export interface EstadisticasGeneralesData {
+    total_tareas: number;
+    total_productos_repuestos: number;
+    tareas_por_estado: Record<string, number>;
+    periodo_actividad: PeriodoActividad;
+    promedio_productos_por_tarea: number;
+}
+
+export interface EstadisticasGeneralesResponse {
+    success: boolean;
+    message: string;
+    data: EstadisticasGeneralesData;
 }
 
 // Interfaces para ruta optimizada
@@ -517,24 +634,22 @@ export interface ConsumoRecursos {
 }
 
 export interface LogAuditoria {
-    id_log: number;
-    usuario_id?: number;
-    usuario_nombre?: string;
-    usuario_rol?: string;
-    empresa_id?: number;
-    empresa_nombre?: string;
-    entidad: string;
-    id_entidad: number;
-    accion: string;
-    valores_anteriores?: Record<string, any>;
-    valores_nuevos?: Record<string, any>;
-    ip_address?: string;
-    user_agent?: string;
-    timestamp: string;
-    descripcion?: string;
-}
-
-export interface EstadisticasAuditoria {
+  id_log: number;
+  id_usuario: number;
+  nombre_usuario: string;
+  usuario_rol?: string;
+  id_empresa?: number;
+  nombre_empresa?: string;
+  accion: string;
+  entidad: string;
+  id_entidad: number;
+  nombre_entidad?: string;
+  datos_anteriores?: Record<string, any>;
+  datos_nuevos?: Record<string, any>;
+  ip_origen?: string;
+  user_agent?: string;
+  fecha: string;
+}export interface EstadisticasAuditoria {
     total_logs: number;
     logs_ultimas_24h: number;
     logs_ultima_semana?: number;
@@ -612,15 +727,17 @@ export interface CotizacionListItem {
 
 export interface CotizacionUpdate {
     nombre_contacto?: string;
-    email_contacto?: string;
-    telefono_contacto?: string;
-    empresa_solicitante?: string;
-    plan_id?: number;
-    cantidad_usuarios?: number;
-    cantidad_tareas?: number;
-    cantidad_proyectos?: number;
-    precio_mensual?: number;
+    email?: string;
+    telefono?: string;
+    empresa?: string;
+    cargo?: string;
+    cantidad_supervisores?: number;
+    cantidad_reponedores?: number;
+    cantidad_productos?: number;
+    integraciones_requeridas?: string;
+    comentarios?: string;
     precio_sugerido?: number;
+    precio_final?: number;
     features_sugeridos?: string;
     notas_internas?: string;
     estado?: string;
@@ -703,15 +820,15 @@ export interface FacturaGenerar {
 
 export interface FacturaCreate {
     id_empresa: number;
-    concepto: string;
+    id_plan: number;
+    numero_factura?: string;
     fecha_emision: string;
     fecha_vencimiento: string;
-    items: Array<{
-        descripcion: string;
-        cantidad: number;
-        precio_unitario: number;
-    }>;
-    notas?: string;
+    subtotal: number;
+    iva: number;
+    total: number;
+    descripcion?: string;
+    periodo_facturado?: string;
 }
 
 export interface FacturaUpdate {
@@ -878,7 +995,23 @@ export class ApiService {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error en respuesta:', errorText);
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                
+                // Intentar parsear el error como JSON
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { message: errorText };
+                }
+                
+                // Crear error con información detallada
+                const error: any = new Error(`Error ${response.status}: ${response.statusText}`);
+                error.response = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: errorData
+                };
+                throw error;
             }
 
             // Si la respuesta está vacía, retornar null
@@ -1216,6 +1349,14 @@ export class ApiService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ id_punto: idPunto }),
+        });
+    }
+
+    // Validar y regenerar puntos de reposición de un mueble
+    static async validarYRegenerarPuntos(idObjeto: number): Promise<any> {
+        console.log('Validando y regenerando puntos para mueble:', idObjeto);
+        return await this.fetchApi(`/muebles/${idObjeto}/validar-y-regenerar-puntos`, {
+            method: 'POST',
         });
     }
 
@@ -1807,11 +1948,12 @@ export class ApiService {
         idCotizacion: number,
         nuevoEstado: string
     ): Promise<{ mensaje: string }> {
+        // Enviar nuevo_estado como query param, no en el body
+        const url = `/cotizaciones/${idCotizacion}/cambiar-estado?nuevo_estado=${encodeURIComponent(nuevoEstado)}`;
         return await this.fetchApi<{ mensaje: string }>(
-            `/cotizaciones/${idCotizacion}/cambiar-estado`,
+            url,
             {
                 method: 'POST',
-                body: JSON.stringify({ nuevo_estado: nuevoEstado }),
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -1820,10 +1962,30 @@ export class ApiService {
     }
 
     // 8) Convertir cotización aprobada en empresa + plan (SuperAdmin)
-    static async convertirCotizacion(idCotizacion: number): Promise<CotizacionConvertidaResponse> {
+    static async convertirCotizacion(
+        idCotizacion: number,
+        data: {
+            nombre_empresa: string;
+            rut_empresa: string;
+            direccion?: string;
+            ciudad?: string;
+            region?: string;
+            admin_nombre: string;
+            admin_correo: string;
+            admin_contraseña: string;
+            cantidad_supervisores: number;
+            cantidad_reponedores: number;
+            cantidad_productos?: number;
+            cantidad_puntos?: number;
+            precio_mensual: number;
+            features?: any;
+            fecha_inicio?: string;
+            fecha_vencimiento?: string;
+        }
+    ): Promise<CotizacionConvertidaResponse> {
         return await this.fetchApi<CotizacionConvertidaResponse>(
             `/cotizaciones/${idCotizacion}/convertir`,
-            { method: 'POST' }
+            { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }
         );
     }
 
@@ -1983,6 +2145,37 @@ export class ApiService {
                 }
             }
         );
+    }
+
+    // 13) Descargar PDF de factura
+    static async descargarPDFFactura(idFactura: number): Promise<void> {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No hay token de autenticación');
+        }
+
+        const url = `${API_URL}/facturas/${idFactura}/pdf`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar PDF: ${response.status}`);
+        }
+
+        // Crear un blob con el PDF
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Factura_${idFactura}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
     }
 
     // ============ FIN MÉTODOS DE FACTURACIÓN ============
@@ -2240,6 +2433,121 @@ export class ApiService {
                 method: 'PATCH',
                 body: JSON.stringify(request)
             }
+        );
+    }
+
+    // ============================================
+    // ENDPOINTS DE PLANES Y LÍMITES DE SUSCRIPCIÓN
+    // ============================================
+
+    /**
+     * Obtener el plan de la empresa del usuario actual
+     * Incluye información de uso y validaciones de límites
+     */
+    static async obtenerMiPlan(): Promise<PlanConUso> {
+        return await this.fetchApi<PlanConUso>('/planes/mi-plan', {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Obtener plan de una empresa específica (solo SuperAdmin)
+     */
+    static async obtenerPlanPorEmpresa(idEmpresa: number): Promise<PlanConUso> {
+        return await this.fetchApi<PlanConUso>(`/planes/empresa/${idEmpresa}`, {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Crear plan para una empresa (solo SuperAdmin)
+     */
+    static async crearPlan(data: CreatePlanData): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>('/planes/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    /**
+     * Actualizar plan existente (solo SuperAdmin)
+     */
+    static async actualizarPlan(idPlan: number, data: UpdatePlanData): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    /**
+     * Activar plan de una empresa (solo SuperAdmin)
+     */
+    static async activarPlan(idPlan: number): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}/activar`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * Desactivar plan de una empresa (solo SuperAdmin)
+     */
+    static async desactivarPlan(idPlan: number): Promise<PlanEmpresa> {
+        return await this.fetchApi<PlanEmpresa>(`/planes/${idPlan}/desactivar`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * Verificar si un error es de límite de plan excedido (HTTP 402)
+     */
+    static isLimitePlanError(error: any): error is { detail: ErrorLimitePlan } {
+        return error?.detail?.error === 'plan_limit_exceeded';
+    }
+
+    /**
+     * Obtener mensaje amigable de error de límite de plan
+     */
+    static getMensajeLimitePlan(error: any): string | null {
+        if (this.isLimitePlanError(error)) {
+            return error.detail.sugerencia || error.detail.mensaje;
+        }
+        return null;
+    }
+
+    // ============================================
+    // ENDPOINTS DE VISTA SEMANAL REPONEDOR
+    // ============================================
+
+    /**
+     * Obtener resumen semanal de tareas del reponedor autenticado
+     * @param fechaInicio Fecha de inicio de semana (YYYY-MM-DD). Si no se especifica, usa semana actual
+     */
+    static async obtenerResumenSemanal(fechaInicio?: string): Promise<ResumenSemanalResponse> {
+        const params = fechaInicio ? `?fecha_inicio=${fechaInicio}` : '';
+        return await this.fetchApi<ResumenSemanalResponse>(
+            `/reponedor/resumen-semanal${params}`,
+            { method: 'GET' }
+        );
+    }
+
+    /**
+     * Obtener lista de semanas disponibles con tareas
+     * @param limite Número máximo de semanas a retornar (1-52)
+     */
+    static async obtenerSemanasDisponibles(limite: number = 12): Promise<SemanasDisponiblesResponse> {
+        return await this.fetchApi<SemanasDisponiblesResponse>(
+            `/reponedor/semanas-disponibles?limite=${limite}`,
+            { method: 'GET' }
+        );
+    }
+
+    /**
+     * Obtener estadísticas generales históricas del reponedor
+     */
+    static async obtenerEstadisticasGenerales(): Promise<EstadisticasGeneralesResponse> {
+        return await this.fetchApi<EstadisticasGeneralesResponse>(
+            `/reponedor/resumen-semanal/estadisticas`,
+            { method: 'GET' }
         );
     }
 }

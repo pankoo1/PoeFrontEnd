@@ -19,7 +19,6 @@ import {
   RefreshCw,
   FileText,
   User,
-  Building2,
   Calendar,
   TrendingUp
 } from 'lucide-react';
@@ -342,7 +341,6 @@ const BackofficeAuditoria = () => {
                       <TableRow>
                         <TableHead>Fecha/Hora</TableHead>
                         <TableHead>Usuario</TableHead>
-                        <TableHead>Empresa</TableHead>
                         <TableHead>Entidad</TableHead>
                         <TableHead>Acción</TableHead>
                         <TableHead>ID Entidad</TableHead>
@@ -353,23 +351,17 @@ const BackofficeAuditoria = () => {
                       {logs.map((log) => (
                         <TableRow key={log.id_log}>
                           <TableCell className="text-sm">
-                            {formatearFecha(log.timestamp)}
+                            {formatearFecha(log.fecha)}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-gray-400" />
                               <div className="text-sm">
-                                <div className="font-medium">{log.usuario_nombre || 'N/A'}</div>
+                                <div className="font-medium">{log.nombre_usuario}</div>
                                 {log.usuario_rol && (
                                   <div className="text-xs text-gray-500">{log.usuario_rol}</div>
                                 )}
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">{log.empresa_nombre || 'N/A'}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -382,7 +374,7 @@ const BackofficeAuditoria = () => {
                             #{log.id_entidad}
                           </TableCell>
                           <TableCell className="text-sm text-gray-600 max-w-xs truncate">
-                            {log.descripcion || 'Sin descripción'}
+                            {log.nombre_entidad || 'Sin descripción'}
                           </TableCell>
                         </TableRow>
                       ))}
