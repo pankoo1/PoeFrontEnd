@@ -35,6 +35,7 @@ const ReportsPage = () => {
   const [formato, setFormato] = useState<'excel' | 'pdf'>('excel');
   const [reponedores, setReponedores] = useState<any[]>([]);
   const [estadisticas, setEstadisticas] = useState<any>(null);
+  const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
     // Inicializar fechas
