@@ -417,13 +417,18 @@ const SupervisorTareas = () => {
                   <div className="grid grid-cols-4 items-start gap-4">
                     <Label className="text-right font-semibold">Productos:</Label>
                     <div className="col-span-3 space-y-2">
-                      {editingTarea.productos.map((producto, index) => (
+                      {/* Agrupar productos por nombre y sumar cantidades */}
+                      {Object.entries(
+                        editingTarea.productos.reduce((acc, producto) => {
+                          const key = producto.nombre || 'Producto sin nombre';
+                          acc[key] = (acc[key] || 0) + (producto.cantidad || 0);
+                          return acc;
+                        }, {})
+                      ).map(([nombre, cantidad], index) => (
                         <div key={index} className="p-3 bg-muted/30 rounded-lg">
-                          <div className="font-medium">{producto.nombre || 'Producto sin nombre'}</div>
+                          <div className="font-medium">{nombre}</div>
                           <div className="text-sm text-muted-foreground">
-                            Cantidad: {producto.cantidad} | 
-                            Ubicación: E{producto.ubicacion.estanteria}-N{producto.ubicacion.nivel} |
-                            Punto: {producto.ubicacion.id_punto}
+                            Cantidad total: {cantidad}
                           </div>
                         </div>
                       ))}

@@ -156,34 +156,37 @@ const SupervisorMapPage = () => {
       return;
     }
 
-    // Agrupar puntos por producto
-    const productosAgrupados = new Map<number, {
-      idProducto: number;
+    // Agrupar puntos por producto (usando nombre como clave única)
+    const productosAgrupados = new Map<string, {
+      idProducto: string;
       nombreProducto: string;
       puntos: any[];
       cantidadTotal: number;
     }>();
 
     puntosConProducto.forEach(punto => {
-      const idProducto = punto.producto.id_producto;
-      if (!productosAgrupados.has(idProducto)) {
-        productosAgrupados.set(idProducto, {
-          idProducto,
-          nombreProducto: punto.producto.nombre,
+      // El backend no envía ID del producto, usamos el nombre como clave única
+      const nombreProducto = punto.producto.nombre;
+      
+      if (!productosAgrupados.has(nombreProducto)) {
+        productosAgrupados.set(nombreProducto, {
+          idProducto: nombreProducto, // Usamos el nombre como ID único
+          nombreProducto,
           puntos: [],
           cantidadTotal: 0
         });
       }
-      productosAgrupados.get(idProducto)!.puntos.push(punto);
+      productosAgrupados.get(nombreProducto)!.puntos.push(punto);
     });
-
+    
     const productosInit = Array.from(productosAgrupados.values());
+    
     setProductosDelMueble(productosInit);
     setSelectedLocation(ubicacion);
     setDialogOpen(true);
   };
 
-  const actualizarCantidadProducto = (idProducto: number, cantidadTotal: number) => {
+  const actualizarCantidadProducto = (idProducto: string, cantidadTotal: number) => {
     setProductosDelMueble(prev => prev.map(item => 
       item.idProducto === idProducto ? { ...item, cantidadTotal: Math.max(0, cantidadTotal) } : item
     ));
@@ -264,7 +267,8 @@ const SupervisorMapPage = () => {
 
     try {
       setCreandoTarea(true);
-      await ApiService.crearTarea({
+      
+      const dataToSend = {
         id_reponedor: reponedorSeleccionado && reponedorSeleccionado !== "sin_asignar" 
           ? parseInt(reponedorSeleccionado) 
           : null,
@@ -273,7 +277,12 @@ const SupervisorMapPage = () => {
           id_punto: punto.punto!.id_punto,
           cantidad: punto.cantidad
         }))
-      });
+      };
+      
+      console.log('Datos a enviar al backend:', dataToSend);
+      console.log('Puntos seleccionados completos:', puntosSeleccionados);
+      
+      await ApiService.crearTarea(dataToSend);
 
       toast({
         title: "Éxito",
@@ -448,66 +457,28 @@ const SupervisorMapPage = () => {
               </CardHeader>
               <CardContent className="p-4 flex-1 overflow-auto bg-white">
                 <div className="w-full h-[700px] bg-slate-50 rounded-lg relative border border-slate-200 shadow-inner">
-                  {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-2xl">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                        <span className="text-lg text-muted-foreground">Cargando mapa...</span>
-                      </div>
-                    </div>
-                  )}
-                  {error && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center p-6 max-w-md">
-                        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2 text-destructive">Error al cargar el mapa</h3>
-                        <p className="text-muted-foreground mb-4">{error}</p>
-                        <div className="space-y-2">
-                          <Button 
-                            variant="outline"
-                            onClick={() => recargarDatos()}
-                            className="border-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Reintentar
-                          </Button>
-                          <br />
-                          <Button 
-                            variant="outline"
-                            onClick={() => navigate('/supervisor-dashboard')}
-                            className="border-2 border-secondary/30 hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200"
-                          >
-                            Volver al Dashboard
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {noPointsAssigned && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80 backdrop-blur-sm">
-                      <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
-                        <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2 text-yellow-800">Sin puntos asignados</h3>
-                        <p className="text-yellow-700 mb-4">
-                          No tienes productos asignados en este mapa. Los muebles se muestran atenuados.
-                        </p>
-                        <p className="text-sm text-yellow-600">
-                          Los muebles resaltados pertenecen a otros supervisores.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {!loading && !error && mapaData && (
-                    <div className="w-full h-[700px]">
-                      <MapViewer
-                        mapa={mapaData}
-                        ubicaciones={ubicaciones}
-                        onObjectClick={handleObjectClick}
-                        className="w-full h-full rounded-2xl"
-                        modoSupervisor={true}
-                      />
-                    </div>
-                  )}
+                {loadingMapa && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                    <span className="text-lg">Cargando mapa...</span>
+                  </div>
+                )}
+                {errorMapa && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-red-500 text-lg">{errorMapa}</span>
+                  </div>
+                )}
+                {!loadingMapa && !errorMapa && mapa && (
+                  <div className="w-full h-full min-h-[350px]">
+                    <MapViewer
+                      mapa={mapa}
+                      ubicaciones={ubicaciones}
+                      puntosSeleccionados={puntosSeleccionados}
+                      onObjectClick={handleObjectClick}
+                      modoSupervisor={true}
+                      className="w-full h-full min-h-[350px]"
+                    />
+                  </div>
+                )}
                 </div>
               </CardContent>
             </Card>
@@ -537,9 +508,9 @@ const SupervisorMapPage = () => {
                   ) : (
                     <div className="space-y-4">
                       {(() => {
-                        // Agrupar puntos por producto y calcular cantidad total por producto
-                        const productosAgrupados = new Map<number, {
-                          idProducto: number;
+                        // Agrupar puntos por producto usando el nombre como clave única
+                        const productosAgrupados = new Map<string, {
+                          idProducto: string;
                           nombreProducto: string;
                           puntos: typeof puntosSeleccionados;
                           cantidadTotal: number;
@@ -547,16 +518,17 @@ const SupervisorMapPage = () => {
 
                         puntosSeleccionados.forEach(punto => {
                           if (punto.punto?.producto) {
-                            const idProducto = punto.punto.producto.id_producto;
-                            if (!productosAgrupados.has(idProducto)) {
-                              productosAgrupados.set(idProducto, {
-                                idProducto,
-                                nombreProducto: punto.punto.producto.nombre,
+                            // Usamos el nombre como ID único ya que el backend no envía id_producto
+                            const nombreProducto = punto.punto.producto.nombre;
+                            if (!productosAgrupados.has(nombreProducto)) {
+                              productosAgrupados.set(nombreProducto, {
+                                idProducto: nombreProducto,
+                                nombreProducto,
                                 puntos: [],
                                 cantidadTotal: 0
                               });
                             }
-                            const grupo = productosAgrupados.get(idProducto)!;
+                            const grupo = productosAgrupados.get(nombreProducto)!;
                             grupo.puntos.push(punto);
                             // Sumar solo la cantidad de este punto específico
                             grupo.cantidadTotal += (punto.cantidad || 0);
@@ -658,7 +630,7 @@ const SupervisorMapPage = () => {
                 Productos en {selectedLocation?.objeto?.nombre || 'Mueble de Reposición'}
               </DialogTitle>
               <DialogDescription>
-                Ingresa la cantidad total a reponer. Se distribuirá automáticamente entre todos los puntos
+                Ingresa la cantidad a reponer para cada producto
               </DialogDescription>
             </DialogHeader>
             
@@ -675,26 +647,14 @@ const SupervisorMapPage = () => {
                       className="p-5 border-2 border-slate-200 rounded-lg hover:border-blue-300 transition-all bg-gradient-to-r from-slate-50 to-white"
                     >
                       <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-4">
                           <div className="font-semibold text-lg">
                             {producto.nombreProducto}
                           </div>
-                          <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
-                            {producto.puntos.length} punto{producto.puntos.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        
-                        {/* Mostrar ubicaciones de los puntos */}
-                        <div className="text-sm text-muted-foreground space-y-1 mb-3">
-                          {producto.puntos.map((punto, idx) => (
-                            <div key={punto.id_punto} className="ml-2">
-                              • Ubicación {idx + 1}: Nivel {punto.nivel}, Estantería {punto.estanteria}
-                            </div>
-                          ))}
                         </div>
 
                         {/* Input de cantidad total */}
-                        <div className="flex items-center gap-3 pt-3 border-t">
+                        <div className="flex items-center gap-3">
                           <Label className="text-sm font-semibold min-w-fit">Cantidad Total:</Label>
                           <Input
                             type="number"

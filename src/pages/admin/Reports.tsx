@@ -32,9 +32,10 @@ const ReportsPage = () => {
   const [fechaFin, setFechaFin] = useState('');
   const [reponedorSeleccionado, setReponedorSeleccionado] = useState('');
   const [loading, setLoading] = useState(false);
-  const [generando, setGenerando] = useState(false);
+  const [formato, setFormato] = useState<'excel' | 'pdf'>('excel');
   const [reponedores, setReponedores] = useState<any[]>([]);
   const [estadisticas, setEstadisticas] = useState<any>(null);
+  const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
     // Inicializar fechas
@@ -52,14 +53,14 @@ const ReportsPage = () => {
     setLoading(true);
     try {
       // Cargar reponedores y estadísticas del backend
-      const [reponedoresData, estadisticasData] = await Promise.all([
-        ApiService.getReponedores(),
+      const [reponedoresResponse, estadisticasData] = await Promise.all([
+        ApiService.getReponedoresReporte(),
         ApiService.getEstadisticasGenerales(fechaInicio, fechaFin)
       ]);
 
-      // Transformar datos de reponedores - SOLO mostrar si el backend devuelve los datos
-      const reponedoresTransformados = Array.isArray(reponedoresData) 
-        ? reponedoresData.map((rep: any) => ({
+      // Usar la propiedad reponedores del response
+      const reponedoresTransformados = Array.isArray(reponedoresResponse.reponedores)
+        ? reponedoresResponse.reponedores.map((rep: any) => ({
             id_usuario: rep.id_usuario,
             nombre_completo: rep.nombre
           }))
@@ -137,28 +138,73 @@ const ReportsPage = () => {
   };
 
   const descargarReporte = async () => {
-    if (!reponedorSeleccionado) {
-      toast({
-        title: 'Error',
-        description: 'Selecciona un reponedor para descargar el reporte',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     try {
-      const blob = await ApiService.descargarReporteReponedor(
-        parseInt(reponedorSeleccionado),
-        'excel',
-        periodo === 'personalizado' ? fechaInicio : undefined,
-        periodo === 'personalizado' ? fechaFin : undefined
-      );
+      let blob;
+      let nombreArchivo;
+      if (tipoReporte === 'productos') {
+        // Calcular fechas según el período seleccionado
+        let fechaInicioFinal = fechaInicio;
+        let fechaFinFinal = fechaFin;
+        if (periodo !== 'personalizado') {
+          const hoy = new Date();
+          let inicio;
+          switch (periodo) {
+            case 'hoy':
+              inicio = new Date(hoy);
+              fechaInicioFinal = hoy.toISOString().split('T')[0];
+              fechaFinFinal = hoy.toISOString().split('T')[0];
+              break;
+            case 'semana':
+              inicio = new Date(hoy);
+              inicio.setDate(hoy.getDate() - 7);
+              fechaInicioFinal = inicio.toISOString().split('T')[0];
+              fechaFinFinal = hoy.toISOString().split('T')[0];
+              break;
+            case 'mes':
+              inicio = new Date(hoy);
+              inicio.setMonth(hoy.getMonth() - 1);
+              fechaInicioFinal = inicio.toISOString().split('T')[0];
+              fechaFinFinal = hoy.toISOString().split('T')[0];
+              break;
+            case 'trimestre':
+              inicio = new Date(hoy);
+              inicio.setMonth(hoy.getMonth() - 3);
+              fechaInicioFinal = inicio.toISOString().split('T')[0];
+              fechaFinFinal = hoy.toISOString().split('T')[0];
+              break;
+            default:
+              fechaInicioFinal = fechaInicio;
+              fechaFinFinal = fechaFin;
+          }
+        }
+        blob = await ApiService.descargarReporteProductos({
+          fecha_inicio: fechaInicioFinal,
+          fecha_fin: fechaFinFinal,
+          limit: 100
+        }, formato);
+        nombreArchivo = `productos_mas_repuestos_${new Date().toISOString().split('T')[0]}.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+      } else if (tipoReporte === 'historial' && reponedorSeleccionado) {
+        blob = await ApiService.descargarReporteReponedor(
+          parseInt(reponedorSeleccionado),
+          formato,
+          periodo === 'personalizado' ? fechaInicio : undefined,
+          periodo === 'personalizado' ? fechaFin : undefined
+        );
+        nombreArchivo = `reporte_reponedor_${reponedorSeleccionado}_${new Date().toISOString().split('T')[0]}.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Selecciona un tipo de reporte válido para descargar.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Crear enlace de descarga
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reporte_reponedor_${reponedorSeleccionado}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = nombreArchivo;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -266,10 +312,10 @@ const ReportsPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="rendimiento">Rendimiento General</SelectItem>
                       <SelectItem value="historial">Historial de Reponedor</SelectItem>
                       <SelectItem value="productos">Productos Más Repuestos</SelectItem>
-                      <SelectItem value="eficiencia">Análisis de Eficiencia</SelectItem>
+                      {/* <SelectItem value="rendimiento">Rendimiento General</SelectItem> */}
+                      {/* <SelectItem value="eficiencia">Análisis de Eficiencia</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>
@@ -365,23 +411,16 @@ const ReportsPage = () => {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  <Button 
-                    onClick={generarReporte}
-                    disabled={generando}
-                    className="w-full bg-slate-900 hover:bg-slate-800"
-                  >
-                    {generando ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generando...
-                      </>
-                    ) : (
-                      <>
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Generar Reporte
-                      </>
-                    )}
-                  </Button>
+                  <Label htmlFor="formato" className="text-slate-700 font-medium">Formato de descarga</Label>
+                  <Select value={formato} onValueChange={v => setFormato(v as 'excel' | 'pdf')}>
+                    <SelectTrigger id="formato" className="mb-2 border-slate-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                      <SelectItem value="pdf">PDF (.pdf)</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button 
                     onClick={descargarReporte}
                     variant="outline"

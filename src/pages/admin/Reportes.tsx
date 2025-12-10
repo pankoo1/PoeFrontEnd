@@ -83,7 +83,8 @@ const ReportesPage = () => {
     try {
       const response = await ApiService.getReponedoresReporte();
       setReponedores(response.reponedores);
-      if (response.reponedores.length > 0 && !reponedorSeleccionado) {
+      // Solo seleccionar automáticamente si el tipo de reporte es rendimiento
+      if (response.reponedores.length > 0 && !reponedorSeleccionado && tipoReporte === 'rendimiento') {
         setReponedorSeleccionado(response.reponedores[0].id_usuario.toString());
       }
     } catch (error) {
@@ -168,7 +169,16 @@ const ReportesPage = () => {
       setIsLoading(true);
       let blob: Blob;
 
-      if (tipoReporte === 'rendimiento' && reponedorSeleccionado) {
+      if (tipoReporte === 'rendimiento') {
+        if (!reponedorSeleccionado) {
+          toast({
+            title: "Selecciona un reponedor",
+            description: "Debes seleccionar un reponedor para exportar el reporte de rendimiento.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
         blob = await ApiService.descargarReporteReponedor(
           parseInt(reponedorSeleccionado),
           'excel',
@@ -176,7 +186,6 @@ const ReportesPage = () => {
           fechaFin
         );
         descargarArchivo(blob, `reporte_reponedor_${reponedorSeleccionado}.xlsx`);
-        
       } else if (tipoReporte === 'productos') {
         blob = await ApiService.descargarReporteProductos(
           {
@@ -187,6 +196,12 @@ const ReportesPage = () => {
           'excel'
         );
         descargarArchivo(blob, `productos_mas_repuestos.xlsx`);
+      } else if (tipoReporte === 'general') {
+        // Aquí podrías agregar la lógica para exportar el reporte general si existe endpoint
+        toast({
+          title: "Funcionalidad pendiente",
+          description: "La exportación del reporte general aún no está implementada.",
+        });
       }
 
       toast({
@@ -408,6 +423,32 @@ const ReportesPage = () => {
                       <SelectContent>
                         {reponedores.map((reponedor) => (
                           <SelectItem key={reponedor.id_usuario} value={reponedor.id_usuario.toString()}>
+                        <Button
+                          onClick={async () => {
+                            try {
+                              const blob = await ApiService.descargarReporteProductos({
+                                fecha_inicio: fechaInicio,
+                                fecha_fin: fechaFin,
+                                limit: 100
+                              }, 'excel');
+                              descargarArchivo(blob, `productos_mas_repuestos.xlsx`);
+                              toast({
+                                title: "Descarga completada",
+                                description: "El reporte de productos más repuestos se ha descargado.",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "No se pudo descargar el reporte de productos.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="bg-success hover:bg-success/90 text-white"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Descargar último reporte de productos
+                        </Button>
                             {reponedor.nombre}
                           </SelectItem>
                         ))}
@@ -461,7 +502,7 @@ const ReportesPage = () => {
               <div className="flex gap-2">
                 <Button 
                   onClick={exportarDatos}
-                  disabled={isLoading}
+                  disabled={isLoading || (tipoReporte === 'rendimiento' && !reponedorSeleccionado)}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
                   {isLoading ? (
