@@ -1,3 +1,4 @@
+// ...existing code...
 import { API_ENDPOINTS, API_URL } from '@/config/api';
 import { 
     PlanEmpresa, 
@@ -1555,10 +1556,17 @@ export class ApiService {
         const params = construirParamsReporteReponedor(
             formato, fechaInicio, fechaFin, estado
         );
-        return await this.fetchApi<Blob>(
+        const response = await fetch(
             `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}/descargar?${params.toString()}`,
-            { method: 'GET' }
+            {
+                method: 'GET',
+                headers: this.getHeaders()
+            }
         );
+        if (!response.ok) {
+            throw new Error(`Error al descargar reporte: ${response.statusText}`);
+        }
+        return await response.blob();
     }
 
     // Obtener estadísticas generales del sistema

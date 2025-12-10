@@ -621,14 +621,15 @@ const ReponedorMapPage = () => {
                   </div>
                 )}
                 {!loading && !error && !noPointsAssigned && mapaData && (
-                  <div className="w-full h-[750px]">
+                  <div className="w-full h-full min-h-[350px]">
                     <MapViewer
                       mapa={mapaData}
                       ubicaciones={ubicaciones}
                       onObjectClick={handleObjectClick}
-                      className="w-full h-full"
+                      className="w-full h-full min-h-[350px]"
                       modoReponedor={true}
                       rutaOptimizada={mostrandoRuta ? rutaOptimizada : null}
+                      salidas={mapaData.salidas || []}
                     />
                   </div>
                 )}
@@ -648,7 +649,7 @@ const ReponedorMapPage = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 max-h-[900px] overflow-y-auto pr-2">
+            <CardContent className="">
               
               {/* Panel de información de ruta optimizada */}
               {mostrandoRuta && rutaOptimizada && (
@@ -779,7 +780,7 @@ const ReponedorMapPage = () => {
                   )}
                 </div>
               )}
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              <div className="grid gap-4 max-h-[750px] overflow-y-auto pr-2">
                 {loadingTareas ? (
                   <div className="text-center text-muted-foreground">Cargando tareas...</div>
                 ) : errorTareas ? (
@@ -790,8 +791,10 @@ const ReponedorMapPage = () => {
                   tareas.map((tarea) => (
                     <div
                       key={tarea.id_tarea}
-                      className="border rounded-lg p-4 transition-all bg-white/80 hover:shadow-lg"
+                      className="border rounded-lg p-4 transition-all bg-white/80 hover:shadow-lg w-full h-full flex flex-col justify-between"
+                      style={{ minWidth: 0 }}
                     >
+                      {/* ...contenido de la card de tarea... */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex flex-col flex-1">
                           <span className="font-bold text-base text-primary">
@@ -805,7 +808,6 @@ const ReponedorMapPage = () => {
                           {getEstadoBadge(tarea.estado)}
                         </div>
                       </div>
-                      
                       <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                         <span>Fecha: {tarea.fecha_creacion ? tarea.fecha_creacion.split('T')[0] : '-'}</span>
                         {tarea.productos && tarea.productos.length > 0 && (
@@ -814,10 +816,8 @@ const ReponedorMapPage = () => {
                           </span>
                         )}
                       </div>
-                      
                       {/* Botones de acción */}
-                      <div className="space-y-2">
-                        
+                      <div className="space-y-2 mt-auto">
                         {/* Botón para generar ruta optimizada */}
                         {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                           <Button
@@ -840,7 +840,6 @@ const ReponedorMapPage = () => {
                             )}
                           </Button>
                         )}
-
                         {/* Botón para completar tarea */}
                         {tarea.estado && ['pendiente', 'en_progreso'].includes(tarea.estado.toLowerCase()) && (
                           <AlertDialog>
@@ -900,7 +899,6 @@ const ReponedorMapPage = () => {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-
                         {/* Mostrar si está completada */}
                         {tarea.estado && tarea.estado.toLowerCase() === 'completada' && (
                           <div className="space-y-2">

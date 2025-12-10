@@ -68,23 +68,29 @@ const ReponedoresPage = () => {
 
     try {
       await ApiService.deleteUsuario(userToDelete.id_usuario);
-      
       // Actualizar el estado local
       setReponedores(prevUsers => prevUsers.filter(user => user.id_usuario !== userToDelete.id_usuario));
-      
       toast({
         title: "Reponedor eliminado",
         description: "El reponedor ha sido eliminado exitosamente",
       });
-
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
-    } catch (error) {
-      toast({
-        title: "Error al eliminar reponedor",
-        description: error instanceof Error ? error.message : "Ha ocurrido un error al eliminar el reponedor",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // Si es 403, mostrar mensaje especial
+      if (error?.response?.status === 403 || error?.message?.includes('403')) {
+        toast({
+          title: "No permitido",
+          description: "No puedes eliminar este reponedor porque tiene tareas asignadas o no tienes permisos suficientes.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Error al eliminar reponedor",
+          description: error instanceof Error ? error.message : "Ha ocurrido un error al eliminar el reponedor",
+          variant: "destructive",
+        });
+      }
     }
   };
 

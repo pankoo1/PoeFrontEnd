@@ -159,7 +159,7 @@ const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usua
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Supervisor">Supervisor</SelectItem>
-                  <SelectItem value="Reponedor">Reponedor</SelectItem>
+                  {/* <SelectItem value="Reponedor">Reponedor</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
