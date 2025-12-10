@@ -1332,7 +1332,7 @@ export class ApiService {
             : `${API_ENDPOINTS.tareas}/supervisor`;
             
         return await this.fetchApi<Tarea[]>(url, { method: 'GET' });
-    }
+     }
 
     static async getTareaById(idTarea: number): Promise<Tarea> {
         return await this.fetchApi<Tarea>(`${API_ENDPOINTS.tareas}/${idTarea}`);
