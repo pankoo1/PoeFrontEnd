@@ -106,7 +106,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       handleClose();
     } catch (error: any) {
-      console.error('Error al procesar producto:', error);
       
       // Verificar si es un error de límite de plan (HTTP 402) solo en modo create
       if (mode === 'create' && error?.response?.status === 402 && ApiService.isLimitePlanError(error.response.data)) {

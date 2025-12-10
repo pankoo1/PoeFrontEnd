@@ -48,7 +48,6 @@ const Login = () => {
           navigate('/dashboard');
       }
     } catch (error) {
-      console.error('Error en login:', error);
       toast({
         title: "Error de autenticación",
         description: error instanceof Error ? error.message : "Credenciales incorrectas",

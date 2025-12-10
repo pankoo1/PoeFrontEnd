@@ -46,7 +46,6 @@ const Dashboard = () => {
       const datos = await ApiService.getDashboardResumen(periodo, fechaSeleccionada || undefined);
       setDashboardData(datos);
     } catch (error) {
-      console.error('Error al cargar dashboard:', error);
       
       // Establecer datos por defecto en caso de error
       setDashboardData({

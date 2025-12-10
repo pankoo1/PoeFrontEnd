@@ -44,7 +44,6 @@ const ReponedorSemanal = () => {
       setResumenSemanal(response.data);
       setSemanaSeleccionada(response.data.periodo.fecha_inicio);
     } catch (err: any) {
-      console.error('Error al cargar resumen semanal:', err);
       setError(err.message || 'Error al cargar el resumen semanal');
       toast({
         title: "Error",
@@ -61,7 +60,6 @@ const ReponedorSemanal = () => {
       const response = await ApiService.obtenerSemanasDisponibles(12);
       setSemanasDisponibles(response.data.semanas);
     } catch (err: any) {
-      console.error('Error al cargar semanas disponibles:', err);
     }
   };
 
@@ -73,7 +71,6 @@ const ReponedorSemanal = () => {
       setResumenSemanal(response.data);
       setSemanaSeleccionada(fechaInicio);
     } catch (err: any) {
-      console.error('Error al cambiar semana:', err);
       toast({
         title: "Error",
         description: "No se pudo cargar la semana seleccionada",

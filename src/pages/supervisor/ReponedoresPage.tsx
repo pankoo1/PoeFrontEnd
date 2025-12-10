@@ -36,7 +36,6 @@ const ReponedoresPage = () => {
       const response = await ApiService.getUsuarios();
       setReponedores(response);
     } catch (error) {
-      console.error('Error al cargar reponedores:', error);
       toast({
         title: "Error al cargar reponedores",
         description: "No se pudieron cargar los reponedores. Por favor, intenta de nuevo.",
@@ -81,7 +80,6 @@ const ReponedoresPage = () => {
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
     } catch (error) {
-      console.error('Error al eliminar reponedor:', error);
       toast({
         title: "Error al eliminar reponedor",
         description: error instanceof Error ? error.message : "Ha ocurrido un error al eliminar el reponedor",

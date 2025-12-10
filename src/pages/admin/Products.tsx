@@ -26,7 +26,6 @@ const ProductsPage = () => {
       const data = await ApiService.getProductos() as { productos: Producto[] };
       setProducts(data.productos);
     } catch (error) {
-      console.error('Error al cargar productos:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los productos",
@@ -66,8 +65,6 @@ const ProductsPage = () => {
         description: `${nombre} ha sido marcado como inactivo`,
       });
     } catch (error: any) {
-      console.error('Error al desactivar producto:', error);
-      
       // Manejo específico del error 409 (producto vinculado a tareas activas)
       if (error.message?.includes('409')) {
         toast({

@@ -40,7 +40,6 @@ const Profile = () => {
       const response = await ApiService.getProfile();
       setProfileData(response);
     } catch (error) {
-      console.error('Error al cargar datos del perfil:', error);
       toast({
         title: "Error al cargar perfil",
         description: "No se pudieron cargar los datos del perfil. Por favor, intenta de nuevo.",

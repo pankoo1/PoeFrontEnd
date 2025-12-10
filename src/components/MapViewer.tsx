@@ -44,7 +44,6 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 setUbicaciones(response.ubicaciones);
             }
         } catch (error) {
-            console.error('Error al cargar el mapa:', error);
             toast({
                 title: 'Error',
                 description: 'No se pudo cargar el mapa',
@@ -687,15 +686,6 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         if (!mapa || ubicaciones.length === 0) return [];
 
         const mueblesUbicaciones = ubicaciones.filter(u => u.mueble);
-        console.log('🗺️ MapViewer - Agrupando muebles:', {
-            totalMuebles: mueblesUbicaciones.length,
-            muebles: mueblesUbicaciones.map(m => ({
-                x: m.x,
-                y: m.y,
-                objeto: m.objeto?.nombre,
-                tipo: m.objeto?.tipo
-            }))
-        });
         
         const pasillos: Array<{
             x: number;
@@ -711,79 +701,66 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             const key = `${mueble.x}-${mueble.y}`;
             if (procesados.has(key)) return;
 
-            // CORREGIDO: Buscar muebles contiguos horizontalmente DEL MISMO OBJETO
-            const pasilloHorizontal = [mueble];
-            let x = mueble.x + 1;
-            while (x < mapa.ancho) {
-                const siguienteMueble = mueblesUbicaciones.find(u => 
-                    u.x === x && 
-                    u.y === mueble.y &&
-                    u.objeto?.nombre === mueble.objeto?.nombre && // Verificar mismo nombre
-                    u.objeto?.tipo === mueble.objeto?.tipo && // Verificar mismo tipo
-                    !!u.objeto && !!mueble.objeto // Verificar que ambos objetos existan
-                );
-                if (siguienteMueble) {
-                    pasilloHorizontal.push(siguienteMueble);
-                    x++;
-                } else {
-                    break;
-                }
+            // Usar BFS para agrupar TODAS las celdas contiguas del mismo mueble
+            const cluster: UbicacionFisica[] = [];
+            const queue: UbicacionFisica[] = [mueble];
+            const visitados = new Set<string>();
+            visitados.add(key);
+
+            while (queue.length > 0) {
+                const current = queue.shift()!;
+                cluster.push(current);
+                procesados.add(`${current.x}-${current.y}`);
+
+                // Buscar vecinos adyacentes (arriba, abajo, izquierda, derecha)
+                const vecinos = [
+                    { x: current.x - 1, y: current.y }, // izquierda
+                    { x: current.x + 1, y: current.y }, // derecha
+                    { x: current.x, y: current.y - 1 }, // arriba
+                    { x: current.x, y: current.y + 1 }, // abajo
+                ];
+
+                vecinos.forEach(({ x, y }) => {
+                    const vecinoKey = `${x}-${y}`;
+                    if (visitados.has(vecinoKey)) return;
+
+                    const vecino = mueblesUbicaciones.find(u => 
+                        u.x === x && 
+                        u.y === y &&
+                        u.objeto?.nombre === mueble.objeto?.nombre &&
+                        u.objeto?.tipo === mueble.objeto?.tipo &&
+                        !!u.objeto && !!mueble.objeto
+                    );
+
+                    if (vecino) {
+                        visitados.add(vecinoKey);
+                        queue.push(vecino);
+                    }
+                });
             }
 
-            // CORREGIDO: Buscar muebles contiguos verticalmente DEL MISMO OBJETO
-            const pasilloVertical = [mueble];
-            let y = mueble.y + 1;
-            while (y < mapa.alto) {
-                const siguienteMueble = mueblesUbicaciones.find(u => 
-                    u.x === mueble.x && 
-                    u.y === y &&
-                    u.objeto?.nombre === mueble.objeto?.nombre && // Verificar mismo nombre
-                    u.objeto?.tipo === mueble.objeto?.tipo && // Verificar mismo tipo
-                    !!u.objeto && !!mueble.objeto // Verificar que ambos objetos existan
-                );
-                if (siguienteMueble) {
-                    pasilloVertical.push(siguienteMueble);
-                    y++;
-                } else {
-                    break;
-                }
-            }
+            // Calcular el rectángulo que abarca todo el cluster
+            const minX = Math.min(...cluster.map(u => u.x));
+            const maxX = Math.max(...cluster.map(u => u.x));
+            const minY = Math.min(...cluster.map(u => u.y));
+            const maxY = Math.max(...cluster.map(u => u.y));
 
-            // Elegir el pasillo más largo (horizontal vs vertical)
-            const pasilloFinal = pasilloHorizontal.length >= pasilloVertical.length 
-                ? pasilloHorizontal 
-                : pasilloVertical;
-            const esHorizontal = pasilloFinal === pasilloHorizontal;
+            const width = maxX - minX + 1;
+            const height = maxY - minY + 1;
 
-            // Marcar como procesados
-            pasilloFinal.forEach(u => {
-                procesados.add(`${u.x}-${u.y}`);
-            });
+            // Determinar si es más horizontal o más vertical
+            const esHorizontal = width > height;
 
-            // Crear el rectángulo del pasillo
             pasillos.push({
-                x: pasilloFinal[0].x,
-                y: pasilloFinal[0].y,
-                width: esHorizontal ? pasilloFinal.length : 1,
-                height: esHorizontal ? 1 : pasilloFinal.length,
-                ubicaciones: pasilloFinal,
+                x: minX,
+                y: minY,
+                width,
+                height,
+                ubicaciones: cluster,
                 esHorizontal
             });
         });
 
-        console.log('🗺️ MapViewer - Pasillos agrupados:', {
-            totalPasillos: pasillos.length,
-            pasillos: pasillos.map(p => ({
-                x: p.x,
-                y: p.y,
-                width: p.width,
-                height: p.height,
-                esHorizontal: p.esHorizontal,
-                objeto: p.ubicaciones[0]?.objeto?.nombre,
-                tipo: p.ubicaciones[0]?.objeto?.tipo,
-                totalUbicaciones: p.ubicaciones.length
-            }))
-        });
 
         return pasillos;
     }, [mapa, ubicaciones]);

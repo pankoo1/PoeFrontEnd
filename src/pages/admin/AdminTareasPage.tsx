@@ -39,7 +39,6 @@ const AdminTareasPage = () => {
         const tareasData = await ApiService.getAllTareas();
         setTareas(tareasData);
       } catch (error: any) {
-        console.error('Error al cargar tareas:', error);
         setErrorTareas('No se pudieron cargar las tareas');
         toast({
           title: "Error",

@@ -123,7 +123,6 @@ const MapPage = () => {
         setLoading(false);
       }
     } catch (err) {
-      console.error('Error al cargar datos iniciales:', err);
       setError('Error al cargar los datos del mapa. Verifica que el backend esté corriendo.');
       setShowNewMapDialog(true);
       setLoading(false);
@@ -138,13 +137,6 @@ const MapPage = () => {
       // Cargar paleta de objetos filtrada por mapa
       const paleta = await MapaService.obtenerObjetosPorMapa(idMapa);
 
-      console.log('🔍 Debug datos cargados:', {
-        ubicaciones: ubicaciones,
-        paleta: paleta,
-        muebleEnUbicaciones: ubicaciones.filter(u => u.tipo_objeto === 'mueble'),
-        muebleEnPaleta: paleta.filter(p => p.tipo === 'mueble'),
-        todosTiposPaleta: paleta.map(p => ({ nombre: p.nombre, tipo: p.tipo, id_tipo: p.id_tipo }))
-      });
 
       setEditorState(prev => ({
         ...prev,
@@ -156,7 +148,6 @@ const MapPage = () => {
 
       setLoading(false);
     } catch (err) {
-      console.error('Error al cargar mapa:', err);
       setError('Error al cargar el mapa');
       setLoading(false);
     }
@@ -217,7 +208,6 @@ const MapPage = () => {
       // Cargar el nuevo mapa
       await loadMapa(nuevoMapa.id_mapa);
     } catch (err) {
-      console.error('Error al crear mapa:', err);
       toast({
         title: 'Error',
         description: 'No se pudo crear el mapa',
@@ -309,7 +299,6 @@ const MapPage = () => {
       const ubicacionClickeada = editorState.ubicaciones.find(u => u.x === x && u.y === y);
       
       if (ubicacionClickeada) {
-        console.log('🔍 Debug ubicación clickeada:', ubicacionClickeada);
         
         // Buscar el objeto por id_objeto o por nombre si no coincide
         let objetoEnCelda = editorState.objetosDisponibles.find(
@@ -323,14 +312,11 @@ const MapPage = () => {
           );
         }
         
-        console.log('🔍 Debug objeto encontrado en paleta:', objetoEnCelda);
-        console.log('🔍 Debug todos los objetos disponibles:', editorState.objetosDisponibles);
         
         // Si es un mueble, abrir modal de puntos (comparación case-insensitive)
         const tipoObjeto = objetoEnCelda?.tipo?.toLowerCase();
         const tipoUbicacion = ubicacionClickeada.tipo_objeto?.toLowerCase();
         
-        console.log('🔍 Debug tipos:', { tipoObjeto, tipoUbicacion });
         
         if (objetoEnCelda && tipoObjeto === 'mueble') {
           handleMuebleClick(objetoEnCelda);
@@ -347,15 +333,10 @@ const MapPage = () => {
 
   const handleMuebleClick = async (mueble: ObjetoMapa) => {
     try {
-      console.log('🔍 handleMuebleClick - Mueble clickeado:', mueble);
-      console.log('🔍 handleMuebleClick - Estado del mapa:', editorState.mapa);
-      console.log('🔍 handleMuebleClick - ID mapa a consultar:', editorState.mapa?.id_mapa);
       
       // Obtener los puntos del mueble desde el backend
       const response = await MapaService.obtenerVistaReposicion(editorState.mapa!.id_mapa);
       
-      console.log('🔍 handleMuebleClick - Response completo:', response);
-      console.log('🔍 handleMuebleClick - Ubicaciones:', response.ubicaciones);
       
       // Buscar el mueble en la respuesta por nombre o id_objeto
       const ubicacionMueble = response.ubicaciones.find((u: any) => {
@@ -363,25 +344,12 @@ const MapPage = () => {
         const coincideId = u.objeto?.id_objeto === mueble.id_objeto;
         const tieneMueble = !!u.mueble;
         
-        console.log('🔍 Comparando ubicación:', {
-          ubicacion: u,
-          coincideNombre,
-          coincideId,
-          tieneMueble,
-          nombreUbicacion: u.objeto?.nombre,
-          nombreBuscado: mueble.nombre,
-          idUbicacion: u.objeto?.id_objeto,
-          idBuscado: mueble.id_objeto
-        });
         
         return (coincideNombre || coincideId) && tieneMueble;
       });
 
-      console.log('🔍 handleMuebleClick - Ubicación mueble encontrada:', ubicacionMueble);
 
       if (ubicacionMueble && ubicacionMueble.mueble) {
-        console.log('🔍 handleMuebleClick - Mueble data:', ubicacionMueble.mueble);
-        console.log('🔍 handleMuebleClick - Puntos de reposición:', ubicacionMueble.mueble.puntos_reposicion);
         
         setSelectedMueble({
           nombre: mueble.nombre,
@@ -391,7 +359,6 @@ const MapPage = () => {
         });
         setShowAssignmentModal(true);
       } else {
-        console.error('❌ No se encontró el mueble en la respuesta');
         toast({
           title: 'Mueble sin puntos',
           description: 'Este mueble no tiene puntos de reposición configurados',
@@ -399,7 +366,6 @@ const MapPage = () => {
         });
       }
     } catch (error) {
-      console.error('Error al cargar mueble:', error);
       toast({
         title: 'Error',
         description: 'Error al cargar el mueble',
@@ -500,7 +466,6 @@ const MapPage = () => {
         hasUnsavedChanges: false
       }));
     } catch (err) {
-      console.error('Error al guardar layout:', err);
       toast({
         title: 'Error',
         description: err instanceof Error ? err.message : 'Error al guardar el layout',
@@ -585,7 +550,6 @@ const MapPage = () => {
         description: 'El mapa se ha cargado correctamente',
       });
     } catch (err) {
-      console.error('Error al cambiar mapa:', err);
       toast({
         title: 'Error',
         description: 'No se pudo cargar el mapa seleccionado',
@@ -615,7 +579,6 @@ const MapPage = () => {
         description: 'El mapa se ha activado correctamente. Este será el mapa usado para las operaciones.',
       });
     } catch (err) {
-      console.error('Error al activar mapa:', err);
       toast({
         title: 'Error',
         description: 'No se pudo activar el mapa',
@@ -685,7 +648,6 @@ const MapPage = () => {
         description: 'El mapa se ha eliminado correctamente',
       });
     } catch (err) {
-      console.error('Error al eliminar mapa:', err);
       toast({
         title: 'Error',
         description: err instanceof Error ? err.message : 'No se pudo eliminar el mapa',

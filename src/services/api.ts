@@ -564,6 +564,7 @@ export interface EstadisticasProductos {
 
 export interface EmpresaBackoffice {
     id_empresa: number;
+    id_plan: number;
     nombre_empresa: string;
     rut_empresa: string;
     direccion?: string;
@@ -973,28 +974,13 @@ export class ApiService {
             // Asegurarse de que el endpoint comienza con la URL base si no es una URL completa
             const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
 
-            console.log('🔍 fetchApi llamada:', {
-                url,
-                method: options.method || 'GET',
-                headers,
-                body: options.body
-            });
-
             const response = await fetch(url, {
                 ...options,
                 headers,
             });
 
-            console.log('📡 Respuesta recibida:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('❌ Error en respuesta:', errorText);
                 
                 // Intentar parsear el error como JSON
                 let errorData;
@@ -1016,7 +1002,6 @@ export class ApiService {
 
             // Si la respuesta está vacía, retornar null
             const text = await response.text();
-            console.log('📄 Texto de respuesta:', text);
             
             if (!text) {
                 return null as T;
@@ -1033,7 +1018,6 @@ export class ApiService {
                 throw new Error('Respuesta inválida del servidor');
             }
         } catch (error) {
-            console.error('Error en fetchApi:', error);
             if (error instanceof Error) {
                 throw error;
             }
@@ -1075,16 +1059,8 @@ export class ApiService {
             localStorage.setItem('userName', response.user_info.nombre);
             localStorage.setItem('userId', response.user_info.id); // ← Guardar el ID del usuario
             
-            console.log('Login exitoso:', {
-                token: response.access_token,
-                role: userRole,
-                name: response.user_info.nombre,
-                id: response.user_info.id
-            });
-            
             return response;
         } catch (error) {
-            console.error('Error en login:', error);
             this.clearToken(); // Limpiar token en caso de error
             throw error;
         }
@@ -1109,7 +1085,7 @@ export class ApiService {
 
             // Para otros casos, usar el endpoint general
             const response = await this.fetchApi<{ mensaje: string; usuario: Usuario }>(
-                API_ENDPOINTS.usuarios,
+                `${API_ENDPOINTS.usuarios}/`,
                 {
                     method: 'POST',
                     body: JSON.stringify(userData),
@@ -1128,7 +1104,7 @@ export class ApiService {
             const userRole = localStorage.getItem('userRole');
             const endpoint = userRole === 'supervisor' 
                 ? API_ENDPOINTS.supervisor_reponedores 
-                : API_ENDPOINTS.usuarios;
+                : `${API_ENDPOINTS.usuarios}/`;
 
             const response = await this.fetchApi<{ total: number; reponedores?: Usuario[]; usuarios?: Usuario[]; mensaje: string }>(
                 endpoint as string
@@ -1145,7 +1121,6 @@ export class ApiService {
             // Si es admin, la respuesta viene en 'usuarios'
             return response.usuarios || [];
         } catch (error) {
-            console.error('Error al obtener usuarios:', error);
             throw error;
         }
     }
@@ -1158,7 +1133,6 @@ export class ApiService {
             );
             return response.usuarios || [];
         } catch (error) {
-            console.error('Error al obtener supervisores:', error);
             throw error;
         }
     }
@@ -1233,7 +1207,6 @@ export class ApiService {
                 throw new Error(response?.mensaje || 'Error al eliminar el usuario');
             }
         } catch (error) {
-            console.error('Error al eliminar usuario:', error);
             throw new Error(error instanceof Error ? error.message : 'Error al eliminar el usuario');
         }
     }
@@ -1261,7 +1234,6 @@ export class ApiService {
             );
             return response.usuario;
         } catch (error) {
-            console.error('Error al crear reponedor:', error);
             throw error;
         }
     }
@@ -1282,12 +1254,10 @@ export class ApiService {
             }
 
             const data = await response.json();
-            console.log('Respuesta del mapa (single request):', data);
 
             // El endpoint ya incluye los puntos de reposición, no necesitamos hacer llamadas adicionales
             return data;
         } catch (error) {
-            console.error('Error en getMapaReposicion:', error);
             throw error;
         }
     }
@@ -1311,13 +1281,6 @@ export class ApiService {
     }
 
     static async asignarProductoAPunto(idProducto: number, idPunto: number): Promise<any> {
-        console.log('🎯 [API] asignarProductoAPunto llamado con:', {
-            idProducto,
-            idPunto,
-            endpoint: `/puntos/${idPunto}/asignar-producto`,
-            body: { id_producto: idProducto }
-        });
-        
         return await this.fetchApi(
             `/puntos/${idPunto}/asignar-producto`,
             {
@@ -1331,7 +1294,6 @@ export class ApiService {
         if (!idPunto) {
             throw new Error('Se requiere un ID de punto válido para desasignar');
         }
-        console.log('Desasignando producto del punto con ID:', idPunto);
         await this.fetchApi(`/puntos/${idPunto}/desasignar-producto`, {
             method: 'DELETE',
         });
@@ -1342,7 +1304,6 @@ export class ApiService {
         if (!idPunto) {
             throw new Error('Se requiere un ID de punto válido para desasignar');
         }
-        console.log('Desasignando completamente el punto con ID:', idPunto);
         await this.fetchApi('/puntos/desasignar', {
             method: 'DELETE',
             headers: {
@@ -1354,7 +1315,6 @@ export class ApiService {
 
     // Validar y regenerar puntos de reposición de un mueble
     static async validarYRegenerarPuntos(idObjeto: number): Promise<any> {
-        console.log('Validando y regenerando puntos para mueble:', idObjeto);
         return await this.fetchApi(`/muebles/${idObjeto}/validar-y-regenerar-puntos`, {
             method: 'POST',
         });
@@ -1362,13 +1322,6 @@ export class ApiService {
 
     // Métodos para tareas
     static async getTareasSupervisor(estado?: string): Promise<Tarea[]> {
-        console.log('🔍 ApiService.getTareasSupervisor - Iniciando petición:', {
-            estado,
-            token: !!this.getToken(),
-            API_ENDPOINTS_tareas: API_ENDPOINTS.tareas,
-            API_URL: API_URL
-        });
-        
         const params = new URLSearchParams();
         if (estado && estado !== 'todos') {
             params.append('estado', estado);
@@ -1378,21 +1331,8 @@ export class ApiService {
             ? `${API_ENDPOINTS.tareas}/supervisor?${params.toString()}`
             : `${API_ENDPOINTS.tareas}/supervisor`;
             
-        console.log('🔍 ApiService.getTareasSupervisor - URL construida:', {
-            url,
-            startsWith_http: url.startsWith('http'),
-            API_ENDPOINTS_tareas: API_ENDPOINTS.tareas
-        });
-            
-        try {
-            const result = await this.fetchApi<Tarea[]>(url, { method: 'GET' });
-            console.log('🎯 ApiService.getTareasSupervisor - Respuesta exitosa:', result);
-            return result;
-        } catch (error) {
-            console.error('❌ ApiService.getTareasSupervisor - Error:', error);
-            throw error;
-        }
-    }
+        return await this.fetchApi<Tarea[]>(url, { method: 'GET' });
+     }
 
     static async getTareaById(idTarea: number): Promise<Tarea> {
         return await this.fetchApi<Tarea>(`${API_ENDPOINTS.tareas}/${idTarea}`);
@@ -1513,11 +1453,9 @@ export class ApiService {
             }
 
             const data = await response.json();
-            console.log('Respuesta del mapa del reponedor:', data);
 
             return data;
         } catch (error) {
-            console.error('Error en getMapaReponedorVista:', error);
             throw error;
         }
     }
@@ -1594,16 +1532,12 @@ export class ApiService {
         fechaInicio?: string,
         fechaFin?: string,
         estado?: string,
-        limit: number = 100,
+        limit: number = 10,
         offset: number = 0
     ): Promise<HistorialReponedorResponse> {
-        const params = new URLSearchParams();
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        if (estado) params.append('estado', estado);
-        params.append('limit', limit.toString());
-        params.append('offset', offset.toString());
-
+        const params = construirParamsReporteReponedor(
+            undefined, fechaInicio, fechaFin, estado, limit, offset
+        );
         return await this.fetchApi<HistorialReponedorResponse>(
             `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}?${params.toString()}`,
             { method: 'GET' }
@@ -1618,25 +1552,13 @@ export class ApiService {
         fechaFin?: string,
         estado?: string
     ): Promise<Blob> {
-        const params = new URLSearchParams();
-        params.append('formato', formato);
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        if (estado) params.append('estado', estado);
-
-        const response = await fetch(
-            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}/descargar?${params.toString()}`,
-            {
-                method: 'GET',
-                headers: this.getHeaders()
-            }
+        const params = construirParamsReporteReponedor(
+            formato, fechaInicio, fechaFin, estado
         );
-
-        if (!response.ok) {
-            throw new Error(`Error al descargar reporte: ${response.statusText}`);
-        }
-
-        return await response.blob();
+        return await this.fetchApi<Blob>(
+            `${API_ENDPOINTS.reportes}/reponedor/${idReponedor}/descargar?${params.toString()}`,
+            { method: 'GET' }
+        );
     }
 
     // Obtener estadísticas generales del sistema
@@ -2321,71 +2243,6 @@ export class ApiService {
         );
     }
 
-    // Obtener historial de un reponedor
-    static async getHistorialReponedor(
-        idReponedor: number,
-        fechaInicio?: string,
-        fechaFin?: string,
-        estado?: string
-    ): Promise<any> {
-        let url = `/reportes/reponedor/${idReponedor}`;
-        const params = new URLSearchParams();
-        
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        if (estado) params.append('estado', estado);
-        
-        if (params.toString()) url += `?${params.toString()}`;
-        
-        return await this.fetchApi<any>(url, { method: 'GET' });
-    }
-
-    // Obtener estadísticas generales
-    static async getEstadisticasGenerales(
-        fechaInicio?: string,
-        fechaFin?: string
-    ): Promise<any> {
-        let url = `/reportes/estadisticas/general`;
-        const params = new URLSearchParams();
-        
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        
-        if (params.toString()) url += `?${params.toString()}`;
-        
-        return await this.fetchApi<any>(url, { method: 'GET' });
-    }
-
-    // Descargar reporte de reponedor
-    static async descargarReporteReponedor(
-        idReponedor: number,
-        formato: 'excel' | 'pdf' = 'excel',
-        fechaInicio?: string,
-        fechaFin?: string
-    ): Promise<Blob> {
-        let url = `/reportes/reponedor/${idReponedor}/descargar`;
-        const params = new URLSearchParams({ formato });
-        
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
-        
-        url += `?${params.toString()}`;
-        
-        const token = this.getToken();
-        const response = await fetch(`${API_URL}${url}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Error al descargar el reporte');
-        }
-        
-        return await response.blob();
-    }
-
     // ============================================
     // MÉTODOS PARA PREDICCIONES ML
     // ============================================
@@ -2564,4 +2421,23 @@ export async function getMapaReponedor(token: string, idMapa?: number) {
   });
   if (!response.ok) throw new Error('No se pudo obtener el mapa del reponedor');
   return await response.json();
+}
+
+// Función auxiliar para construir parámetros de reporte de reponedor
+function construirParamsReporteReponedor(
+    formato?: 'excel' | 'pdf',
+    fechaInicio?: string,
+    fechaFin?: string,
+    estado?: string,
+    limit?: number,
+    offset?: number
+): URLSearchParams {
+    const params = new URLSearchParams();
+    if (formato) params.append('formato', formato);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+    if (estado) params.append('estado', estado);
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (offset !== undefined) params.append('offset', offset.toString());
+    return params;
 }

@@ -46,17 +46,6 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
 
     // Efecto para cargar productos pre-asignados
     useEffect(() => {
-        console.log('ShelfGrid - Actualizando productos pre-asignados:', {
-            totalPuntos: puntosPreAsignados.length,
-            puntosConProductos: puntosPreAsignados.filter(p => p.producto !== null).length,
-            detalles: puntosPreAsignados.map(p => ({
-                id: p.id_punto,
-                nivel: p.nivel,
-                estanteria: p.estanteria,
-                tieneProducto: !!p.producto,
-                nombreProducto: p.producto?.nombre || 'Sin producto'
-            }))
-        });
         const productosPreAsignados = puntosPreAsignados
             .filter(punto => punto.producto !== null)
             .map(punto => {
@@ -64,7 +53,6 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                 const filaGrid = punto.nivel ? punto.nivel - 1 : punto.fila;
                 const columnaGrid = punto.estanteria ? punto.estanteria - 1 : punto.columna;
                 
-                console.log(`ShelfGrid - Punto ${punto.id_punto}: Backend(${punto.nivel},${punto.estanteria}) -> Grid(${filaGrid},${columnaGrid})`);
                 
                 return {
                     producto: punto.producto!,
@@ -73,13 +61,11 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
                 };
             });
         setProductosAsignados(productosPreAsignados);
-        console.log('ShelfGrid - Productos asignados actualizados:', productosPreAsignados.length);
     }, [puntosPreAsignados]);
 
     // Efecto para resetear el estado interno cuando cambie el mueble actual
     useEffect(() => {
         if (muebleActual) {
-            console.log('ShelfGrid - Mueble actualizado, reseteando estado...');
             setCeldaActiva(null);
             // Los productos pre-asignados se actualizarán automáticamente por el efecto anterior
         }
@@ -87,12 +73,10 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
 
     // Efecto para monitorear cambios en desasignaciones temporales
     useEffect(() => {
-        console.log('ShelfGrid - Desasignaciones temporales cambiaron:', desasignacionesTemporales);
     }, [desasignacionesTemporales]);
 
     // Efecto para monitorear cambios en asignaciones temporales
     useEffect(() => {
-        console.log('ShelfGrid - Asignaciones temporales cambiaron:', asignacionesTemporales);
     }, [asignacionesTemporales]);
 
     const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, fila: number, columna: number) => {
@@ -115,18 +99,9 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             
             const producto = JSON.parse(productoData) as Producto;
             
-            console.log('ShelfGrid - Iniciando drop:', {
-                coordenadasOriginales: { 
-                    filaBase0: fila, 
-                    columnaBase0: columna
-                },
-                producto: producto.nombre,
-                dimensionesGrid: { filas, columnas }
-            });
 
             // Validar que las coordenadas están dentro de los límites
             if (fila < 0 || fila >= filas || columna < 0 || columna >= columnas) {
-                console.error('ShelfGrid - Coordenadas fuera de límites:', { fila, columna, limites: { filas, columnas } });
                 return;
             }
             
@@ -134,15 +109,12 @@ export const ShelfGrid: React.FC<ShelfGridProps> = ({
             setProductosAsignados(prev => {
                 const filtered = prev.filter(p => p.fila !== fila || p.columna !== columna);
                 const nuevaAsignacion = { producto, fila, columna };
-                console.log('ShelfGrid - Nueva asignación (base 0):', nuevaAsignacion);
                 return [...filtered, nuevaAsignacion];
             });
             
             // Llamar al callback del padre con las coordenadas base 0
-            console.log('ShelfGrid - Enviando coordenadas al padre (base 0):', { fila, columna });
             onDrop?.(e, { fila, columna });
         } catch (error) {
-            console.error('ShelfGrid - Error en drop:', error);
         }
     }, [onDrop]);
 

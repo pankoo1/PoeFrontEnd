@@ -74,7 +74,6 @@ const BackofficeCotizaciones: React.FC = () => {
       setCotizaciones(cotizacionesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Error al cargar cotizaciones:', error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,6 @@ const BackofficeCotizaciones: React.FC = () => {
       setSelectedCotizacion(detalle);
       setShowDetailModal(true);
     } catch (error) {
-      console.error('Error al cargar detalle:', error);
     }
   };
 
@@ -120,7 +118,6 @@ const BackofficeCotizaciones: React.FC = () => {
         setSelectedCotizacion(actualizada);
       }
     } catch (error) {
-      console.error('Error al actualizar cotización:', error);
     }
   };
 
@@ -134,7 +131,6 @@ const BackofficeCotizaciones: React.FC = () => {
       const actualizada = await ApiService.getCotizacion(selectedCotizacion.id_cotizacion);
       setSelectedCotizacion(actualizada);
     } catch (error) {
-      console.error('Error al cambiar estado:', error);
     }
   };
 
@@ -175,7 +171,6 @@ const BackofficeCotizaciones: React.FC = () => {
       setShowDetailModal(false);
       await cargarDatos();
     } catch (error) {
-      console.error('Error al convertir cotización:', error);
       alert('❌ Error al convertir cotización. Verifique los datos ingresados.');
     }
   };

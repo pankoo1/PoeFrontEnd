@@ -82,7 +82,6 @@ const BackofficeDashboard = () => {
         description: "Datos del sistema actualizados correctamente.",
       });
     } catch (error) {
-      console.error('Error al cargar métricas:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las métricas del sistema.",

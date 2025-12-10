@@ -59,7 +59,6 @@ const Predicciones = () => {
       setHistorial(response.predicciones);
       setTotalHistorial(response.total);
     } catch (error) {
-      console.error('Error al cargar historial:', error);
       toast({
         title: 'Error',
         description: 'No se pudo cargar el historial de predicciones',
@@ -94,8 +93,6 @@ const Predicciones = () => {
       // Limpiar formulario
       setNotas('');
     } catch (error: any) {
-      console.error('Error al generar predicción:', error);
-      
       let mensaje = 'No se pudo generar la predicción';
       if (error.message?.includes('503')) {
         mensaje = 'El modelo ML no está disponible. Contacte al administrador.';

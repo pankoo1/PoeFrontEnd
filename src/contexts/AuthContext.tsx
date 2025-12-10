@@ -31,7 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await ApiService.login(credentials);
             setUser({ token: response.access_token });
         } catch (error) {
-            console.error('Error en login:', error);
             throw error;
         }
     };

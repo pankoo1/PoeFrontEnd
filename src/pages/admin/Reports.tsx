@@ -68,7 +68,6 @@ const ReportsPage = () => {
       setReponedores(reponedoresTransformados);
       setEstadisticas(estadisticasData);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los datos de reportes',
@@ -108,8 +107,6 @@ const ReportsPage = () => {
           periodo === 'personalizado' ? fechaFin : undefined
         );
         
-        console.log('Historial obtenido:', historial);
-        
         const numTareas = historial?.tareas?.length || 0;
         
         toast({
@@ -123,15 +120,12 @@ const ReportsPage = () => {
           periodo === 'personalizado' ? fechaFin : undefined
         );
         
-        console.log('Estadísticas obtenidas:', stats);
-        
         toast({
           title: 'Reporte generado',
           description: 'El reporte se ha generado correctamente',
         });
       }
     } catch (error) {
-      console.error('Error al generar reporte:', error);
       toast({
         title: 'Error',
         description: 'No se pudo generar el reporte',
@@ -175,7 +169,6 @@ const ReportsPage = () => {
         description: 'El archivo se está descargando',
       });
     } catch (error) {
-      console.error('Error al descargar:', error);
       toast({
         title: 'Error',
         description: 'No se pudo descargar el reporte',

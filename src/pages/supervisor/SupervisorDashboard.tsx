@@ -30,7 +30,6 @@ const SupervisorDashboard = () => {
         setRendimientoReponedores(rendimientoRes.data);
         setEstadisticasProductos(estadisticasRes.data);
       } catch (err: any) {
-        console.error('Error cargando métricas:', err);
         setError(`Error: ${err.message || 'No se pudieron cargar las métricas'}`);
       } finally {
         setLoading(false);

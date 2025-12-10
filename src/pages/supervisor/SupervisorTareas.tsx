@@ -32,13 +32,8 @@ const SupervisorTareas = () => {
   // Verificar autenticación al montar
   useEffect(() => {
     const token = ApiService.getToken();
-    console.log('🔐 SupervisorTareas - Verificación de autenticación:', {
-      tieneToken: !!token,
-      token: token ? `${token.substring(0, 20)}...` : 'No token'
-    });
     
     if (!token) {
-      console.warn('⚠️ SupervisorTareas - Sin token, redirigiendo a login');
       toast({
         title: "Sin autenticación",
         description: "No se encontró token de autenticación. Redirigiendo al login...",
@@ -55,52 +50,10 @@ const SupervisorTareas = () => {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 SupervisorTareas - Iniciando carga de tareas:', {
-        estado,
-        token: !!ApiService.getToken(),
-        url: estado && estado !== 'todos' 
-          ? `${API_ENDPOINTS.tareas}/supervisor?estado=${estado}`
-          : `${API_ENDPOINTS.tareas}/supervisor`
-      });
-
-      // Test simple de conectividad
-      console.log('🌐 Probando conectividad básica...');
-      try {
-        const response = await fetch(`${API_ENDPOINTS.tareas}/supervisor`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${ApiService.getToken()}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        console.log('🌐 Respuesta de conectividad básica:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok
-        });
-      } catch (connectError) {
-        console.error('❌ Error de conectividad básica:', connectError);
-      }
-      
       const tareasData: Tarea[] = await ApiService.getTareasSupervisor(estado);
       setTareas(tareasData);
       
-      console.log('🎯 SupervisorTareas - Tareas cargadas exitosamente:', {
-        total: tareasData.length,
-        estados: tareasData.reduce((acc: any, tarea) => {
-          acc[tarea.estado] = (acc[tarea.estado] || 0) + 1;
-          return acc;
-        }, {}),
-        datos: tareasData
-      });
-      
     } catch (error: any) {
-      console.error('❌ SupervisorTareas - Error al cargar tareas:', {
-        error,
-        message: error.message,
-        status: error.status,
-        response: error.response
-      });
       setError('No se pudieron cargar las tareas');
       
       if (error.message?.includes('403')) {
@@ -127,18 +80,12 @@ const SupervisorTareas = () => {
     try {
       const reponedoresData = await ApiService.getReponedoresAsignados();
       setReponedores(reponedoresData);
-      console.log('🧑‍💼 SupervisorTareas - Reponedores cargados:', reponedoresData);
     } catch (error) {
-      console.error('Error al cargar reponedores:', error);
     }
   };
 
   // Cargar tareas al montar el componente y cuando cambie el filtro
   useEffect(() => {
-    console.log('🔄 SupervisorTareas - useEffect ejecutado:', {
-      filtroEstado,
-      timestamp: new Date().toISOString()
-    });
     cargarTareas(filtroEstado);
     cargarReponedores();
   }, [filtroEstado]);
@@ -181,11 +128,6 @@ const SupervisorTareas = () => {
     }
 
     try {
-      console.log('🔄 Asignando reponedor:', {
-        idTarea: tareaAAsignar.id_tarea,
-        idReponedor: reponedorSeleccionado
-      });
-
       await ApiService.asignarReponedorATarea(
         tareaAAsignar.id_tarea, 
         parseInt(reponedorSeleccionado)
@@ -204,7 +146,6 @@ const SupervisorTareas = () => {
         variant: "default",
       });
     } catch (error) {
-      console.error('Error al asignar reponedor:', error);
       toast({
         title: "Error",
         description: "No se pudo asignar el reponedor a la tarea",

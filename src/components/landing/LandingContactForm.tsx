@@ -121,7 +121,6 @@ const LandingContactForm = () => {
         aceptaPoliticas: false
       });
     } catch (error: any) {
-      console.error('Error al solicitar cotización:', error);
       toast({
         title: "Error al enviar solicitud",
         description: error.message || "Hubo un problema al enviar tu solicitud. Por favor intenta nuevamente.",

@@ -87,7 +87,6 @@ const ReportesPage = () => {
         setReponedorSeleccionado(response.reponedores[0].id_usuario.toString());
       }
     } catch (error) {
-      console.error('Error al cargar reponedores:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los reponedores",
@@ -102,7 +101,6 @@ const ReportesPage = () => {
       const stats = await ApiService.getEstadisticasGenerales();
       setEstadisticasGenerales(stats);
     } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las estadísticas generales",
@@ -155,7 +153,6 @@ const ReportesPage = () => {
         description: `Reporte de ${tipoReporte} generado exitosamente`,
       });
     } catch (error) {
-      console.error('Error al generar reporte:', error);
       toast({
         title: "Error",
         description: "No se pudo generar el reporte",
@@ -197,7 +194,6 @@ const ReportesPage = () => {
         description: "Los datos se están descargando en formato Excel",
       });
     } catch (error) {
-      console.error('Error al exportar datos:', error);
       toast({
         title: "Error",
         description: "No se pudieron exportar los datos",

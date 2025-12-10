@@ -5,7 +5,7 @@ export const API_URL = BASE_URL; // Sin prefijo, igual que el backend desplegado
 
 export const API_ENDPOINTS = {
     login: `${API_URL}/usuarios/token`,
-    usuarios: `${API_URL}/usuarios/`,
+    usuarios: `${API_URL}/usuarios`,
     supervisores: `${API_URL}/usuarios/supervisores`,
     supervisor: `${API_URL}/supervisor`,
     supervisor_reponedores: `${API_URL}/supervisor/reponedores`,

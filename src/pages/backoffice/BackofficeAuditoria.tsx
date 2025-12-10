@@ -50,7 +50,6 @@ const BackofficeAuditoria = () => {
   const cargarLogs = async () => {
     try {
       setIsLoadingLogs(true);
-      console.log('[BackofficeAuditoria] Cargando logs...');
       const datos = await ApiService.getBackofficeAuditoriaLogs(
         undefined, // usuario_id
         undefined, // empresa_id
@@ -61,10 +60,8 @@ const BackofficeAuditoria = () => {
         skip,
         limit
       );
-      console.log('[BackofficeAuditoria] Logs cargados:', datos.length);
       setLogs(datos);
     } catch (error) {
-      console.error('[BackofficeAuditoria] Error al cargar logs:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los logs de auditoría.",
@@ -79,12 +76,9 @@ const BackofficeAuditoria = () => {
   const cargarEstadisticas = async () => {
     try {
       setIsLoadingStats(true);
-      console.log('[BackofficeAuditoria] Cargando estadísticas...');
       const datos = await ApiService.getBackofficeEstadisticasAuditoria();
-      console.log('[BackofficeAuditoria] Estadísticas cargadas:', datos);
       setEstadisticas(datos);
     } catch (error) {
-      console.error('[BackofficeAuditoria] Error al cargar estadísticas:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las estadísticas de auditoría.",
