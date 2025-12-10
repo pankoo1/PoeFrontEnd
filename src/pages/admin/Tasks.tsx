@@ -44,10 +44,9 @@ const TasksPage = () => {
   const cargarTareas = async () => {
     setLoading(true);
     try {
-      const data = await ApiService.getAllTareas();
+      const data = await ApiService.getTareas();
       setTareas(data);
     } catch (error) {
-      console.error('Error al cargar tareas:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron cargar las tareas',

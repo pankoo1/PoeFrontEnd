@@ -67,9 +67,7 @@ const ReponedorMapPage = () => {
       setLoading(true);
       setError(null);
       try {
-        console.log('Iniciando carga del mapa...');
         const data = await MapaService.getMapaReponedorVista();
-        console.log('Datos del mapa recibidos:', data);
         
         if (data.mensaje && !data.mapa) {
           setNoPointsAssigned(true);
@@ -79,7 +77,6 @@ const ReponedorMapPage = () => {
         setMapaData(data.mapa);
         setUbicaciones(data.ubicaciones);
       } catch (err: any) {
-        console.error('Error al cargar el mapa:', err);
         setError(`No se pudo cargar el mapa: ${err.message}`);
         toast({
           variant: "destructive",
@@ -119,12 +116,10 @@ const ReponedorMapPage = () => {
         // Verificar si hay una tarea activa guardada
         const tareaActiva = ApiService.getTareaActiva();
         if (tareaActiva) {
-          console.log('Encontrada tarea activa:', tareaActiva);
           
           // Verificar primero el estado actual de la tarea
           const tareaEsValida = await verificarEstadoTarea(tareaActiva);
           if (!tareaEsValida) {
-            console.log('Tarea no es válida o está completada, limpiando datos');
             ApiService.clearTareaActiva();
             toast({
               title: "Tarea no disponible",
@@ -141,7 +136,6 @@ const ReponedorMapPage = () => {
           if (rutaGuardada) {
             // Verificar el estado de la tarea guardada antes de cargar
             if (rutaGuardada.estado_tarea && rutaGuardada.estado_tarea.toLowerCase() === 'completada') {
-              console.log('Ruta guardada corresponde a una tarea completada, limpiando datos');
               ApiService.clearTareaActiva();
               toast({
                 title: "Tarea completada",
@@ -154,16 +148,13 @@ const ReponedorMapPage = () => {
             setRutaOptimizada(rutaGuardada);
             setMostrandoRuta(true);
             setDetallesCompletados(new Set(detallesGuardados));
-            console.log('Ruta cargada desde localStorage');
           } else {
             // Si no hay ruta en localStorage, consultarla al backend
-            console.log('Consultando ruta al backend...');
             try {
               const rutaData = await ApiService.getRutaOptimizadaPorTarea(tareaActiva);
               if (rutaData && !rutaData.error) {
                 // Verificar el estado de la tarea antes de cargar la ruta
                 if (rutaData.estado_tarea && rutaData.estado_tarea.toLowerCase() === 'completada') {
-                  console.log('La tarea está completada, limpiando datos persistidos');
                   ApiService.clearTareaActiva();
                   toast({
                     title: "Tarea completada",
@@ -176,17 +167,14 @@ const ReponedorMapPage = () => {
                 setRutaOptimizada(rutaData);
                 setMostrandoRuta(true);
                 ApiService.setRutaOptimizada(rutaData);
-                console.log('Ruta cargada desde backend');
               }
             } catch (error) {
-              console.log('No se pudo cargar la ruta desde backend, posiblemente no existe');
               // Limpiar datos si la ruta ya no existe
               ApiService.clearTareaActiva();
             }
           }
         }
       } catch (error) {
-        console.error('Error al cargar datos persistidos:', error);
       } finally {
         setCargandoRutaPersistida(false);
       }
@@ -252,7 +240,6 @@ const ReponedorMapPage = () => {
   const generarRutaOptimizada = async (idTarea: number, algoritmo: string = 'vecino_mas_cercano') => {
     try {
       setGenerandoRuta(true);
-      console.log(`[Frontend] Generando ruta para tarea ${idTarea} con algoritmo ${algoritmo}`);
       
       // Verificar que el usuario esté autenticado
       const token = ApiService.getToken();
@@ -261,7 +248,6 @@ const ReponedorMapPage = () => {
       }
       
       // PASO 1: Generar la ruta usando POST
-      console.log('[Frontend] Paso 1: Generando ruta optimizada (POST)...');
       const generateResponse = await fetch(`${API_URL}/tareas/${idTarea}/ruta-optimizada?algoritmo=${algoritmo}`, {
         method: 'POST',
         headers: {
@@ -296,10 +282,8 @@ const ReponedorMapPage = () => {
         throw new Error(errorMessage);
       }
 
-      console.log('[Frontend] Ruta generada exitosamente');
 
       // PASO 2: Obtener la ruta visual usando GET
-      console.log('[Frontend] Paso 2: Obteniendo ruta visual (GET)...');
       const response = await fetch(`${API_URL}/${idTarea}/ruta-visual`, {
         method: 'GET',
         headers: {
@@ -320,8 +304,6 @@ const ReponedorMapPage = () => {
       }
 
       const rutaData = await response.json();
-      console.log('[Frontend] Ruta visual recibida del backend:', rutaData);
-      console.log('[Frontend] Puntos de visita:', rutaData.puntos_visita);
 
       // Validar la estructura de la respuesta (nueva estructura)
       if (!rutaData.id_ruta || !rutaData.coordenadas_ruta || !rutaData.puntos_visita) {
@@ -331,7 +313,6 @@ const ReponedorMapPage = () => {
       // Adaptar la estructura para compatibilidad con el componente existente
       // Calcular estadísticas desde puntos_visita
       const mueblesUnicos = new Set(rutaData.puntos_visita.map((p: any) => p.nombre_mueble));
-      console.log('[Frontend] Muebles únicos encontrados:', mueblesUnicos);
       const totalProductos = rutaData.puntos_visita.length;
       
       const rutaAdaptada = {
@@ -366,7 +347,6 @@ const ReponedorMapPage = () => {
       });
 
     } catch (error: any) {
-      console.error('[Frontend] Error al generar ruta:', error);
       toast({
         title: "❌ Error",
         description: error.message || "No se pudo generar la ruta optimizada",
@@ -436,7 +416,6 @@ const ReponedorMapPage = () => {
       }
 
     } catch (error: any) {
-      console.error('Error al completar mueble:', error);
       toast({
         title: "Error",
         description: error.message || "No se pudo completar el mueble.",
@@ -504,55 +483,120 @@ const ReponedorMapPage = () => {
       const tareaActual = tareas.find(t => t.id_tarea === idTarea);
       
       if (!tareaActual) {
-        console.log('Tarea no encontrada en la lista actual');
         return false;
       }
       
       if (tareaActual.estado && tareaActual.estado.toLowerCase() === 'completada') {
-        console.log('Tarea está completada según el estado actual');
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Error al verificar estado de tarea:', error);
       return false;
     }
   };
 
   return (
     <ReponedorLayout>
-      {/* HEADER */}
-      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 shadow-sm z-10">
-        <h2 className="text-2xl font-bold text-slate-800">
-          Mapa y Rutas
-        </h2>
-        
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden md:block">
-            <p className="text-sm font-bold text-slate-700">{localStorage.getItem('userName') || 'Reponedor'}</p>
-            <p className="text-xs text-slate-500">Reponedor</p>
+      <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+        {/* HEADER MEJORADO */}
+        <header className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                <Map className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Mapa y Rutas</h1>
+                <p className="text-sm text-slate-600 mt-1">Visualiza tus tareas y genera rutas optimizadas</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden md:block">
+                <p className="text-sm font-bold text-slate-700">{localStorage.getItem('userName') || 'Reponedor'}</p>
+                <p className="text-xs text-slate-500">Reponedor</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
+                {(localStorage.getItem('userName') || 'R').charAt(0).toUpperCase()}
+              </div>
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
-            {(localStorage.getItem('userName') || 'R').charAt(0).toUpperCase()}
+        </header>
+
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Mapa Activo</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {mapaData?.nombre || 'Sin mapa'}
+                    </p>
+                  </div>
+                  <Map className="w-8 h-8 text-indigo-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Tareas Activas</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {tareas.filter(t => t.estado && ['pendiente', 'en_progreso'].includes(t.estado.toLowerCase())).length}
+                    </p>
+                  </div>
+                  <MapPin className="w-8 h-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Ruta Optimizada</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {mostrandoRuta ? 'Activa' : 'Inactiva'}
+                    </p>
+                  </div>
+                  <Route className="w-8 h-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Tareas Completadas</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {tareas.filter(t => t.estado && t.estado.toLowerCase() === 'completada').length}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-emerald-600" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </header>
 
-      {/* SCROLLABLE CONTENT */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50">
-
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
-            {/* Mapa */}
-            <Card className="border-slate-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <Map className="w-5 h-5 text-blue-600" />
+          {/* Editor Layout */}
+          <div className="grid grid-cols-[1fr_350px] gap-6 min-h-[600px]">
+            {/* Canvas del Mapa */}
+            <Card className="border-slate-200 shadow-sm flex flex-col bg-white">
+              <CardHeader className="border-b border-slate-100 flex-shrink-0 bg-white">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Map className="w-5 h-5 text-indigo-600" />
                   Mapa Interactivo
                 </CardTitle>
+                <p className="text-sm text-slate-600 mt-1">Visualiza tus tareas y rutas en el mapa</p>
               </CardHeader>
-            <CardContent className="p-6">
-              <div className="w-full h-[750px] bg-muted rounded-lg relative">
+              <CardContent className="p-4 flex-1 overflow-auto bg-white">
+                <div className="w-full h-[750px] bg-slate-50 rounded-lg relative border border-slate-200 shadow-inner">
                 {loading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50">
                     <span className="text-lg">Cargando mapa...</span>
@@ -591,14 +635,17 @@ const ReponedorMapPage = () => {
               </div>
             </CardContent>
           </Card>
-          {/* Panel lateral: tareas asignadas y control de rutas */}
-          <Card className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-blue-500 text-white">
-                  <MapPin className="w-6 h-6" />
+          {/* Panel Lateral - Tareas y Rutas */}
+          <Card className="border-slate-200 shadow-sm bg-white flex flex-col">
+            <CardHeader className="border-b border-slate-100 bg-gradient-to-br from-indigo-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-600 rounded-lg">
+                  <MapPin className="w-5 h-5 text-white" />
                 </div>
-                <CardTitle className="text-2xl">Tareas y Rutas</CardTitle>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">Tareas y Rutas</CardTitle>
+                  <p className="text-sm text-slate-600">Gestiona tus tareas</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 max-h-[900px] overflow-y-auto pr-2">
@@ -925,6 +972,7 @@ const ReponedorMapPage = () => {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </ReponedorLayout>
   );

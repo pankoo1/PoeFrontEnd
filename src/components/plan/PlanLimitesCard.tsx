@@ -55,7 +55,6 @@ export const PlanLimitesCard: React.FC = () => {
       const data = await ApiService.obtenerMiPlan();
       setPlan(data);
     } catch (error) {
-      console.error('Error al cargar plan:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar la información del plan.",

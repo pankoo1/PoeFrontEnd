@@ -65,7 +65,6 @@ const BackofficeEmpresas = () => {
       setEmpresas(datos);
       setFilteredEmpresas(datos);
     } catch (error) {
-      console.error('Error al cargar empresas:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las empresas.",
@@ -131,7 +130,6 @@ const BackofficeEmpresas = () => {
       setEmpresaSeleccionada(null);
       cargarEmpresas();
     } catch (error) {
-      console.error('Error al suspender empresa:', error);
       toast({
         title: "Error",
         description: "No se pudo suspender la empresa.",
@@ -154,7 +152,6 @@ const BackofficeEmpresas = () => {
       
       cargarEmpresas();
     } catch (error) {
-      console.error('Error al reactivar empresa:', error);
       toast({
         title: "Error",
         description: "No se pudo reactivar la empresa.",
@@ -289,11 +286,13 @@ const BackofficeEmpresas = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>ID</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>RUT</TableHead>
                       <TableHead>Ubicación</TableHead>
                       <TableHead>Contacto</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead>ID Plan</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -301,6 +300,7 @@ const BackofficeEmpresas = () => {
                   <TableBody>
                     {filteredEmpresas.map((empresa) => (
                       <TableRow key={empresa.id_empresa}>
+                        <TableCell className="font-mono text-xs text-gray-500">{empresa.id_empresa}</TableCell>
                         <TableCell className="font-medium">
                           {empresa.nombre_empresa}
                         </TableCell>
@@ -343,6 +343,7 @@ const BackofficeEmpresas = () => {
                             <span className="text-gray-400">Sin plan</span>
                           )}
                         </TableCell>
+                        <TableCell className="font-mono text-xs text-gray-500">{empresa.id_plan ?? '-'}</TableCell>
                         <TableCell>
                           {getEstadoBadge(empresa.estado)}
                         </TableCell>

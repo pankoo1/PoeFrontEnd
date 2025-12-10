@@ -42,7 +42,6 @@ const BackofficeEmpresaDetalle = () => {
       const datos = await ApiService.getBackofficeResumenEmpresa(parseInt(id));
       setResumen(datos);
     } catch (error) {
-      console.error('Error al cargar resumen:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar el resumen de la empresa.",
@@ -62,7 +61,6 @@ const BackofficeEmpresaDetalle = () => {
       const datos = await ApiService.getBackofficeConsumoEmpresa(parseInt(id));
       setConsumo(datos);
     } catch (error) {
-      console.error('Error al cargar consumo:', error);
       // No mostrar error si no tiene plan activo
       setConsumo(null);
     } finally {
@@ -79,7 +77,6 @@ const BackofficeEmpresaDetalle = () => {
       const datos = await ApiService.getBackofficeHistorialEntidad('empresa', parseInt(id), 20);
       setHistorial(datos);
     } catch (error) {
-      console.error('Error al cargar historial:', error);
       setHistorial([]);
     } finally {
       setIsLoadingHistorial(false);

@@ -72,7 +72,6 @@ const BackofficeFacturas: React.FC = () => {
       setFacturas(facturasData);
       setStats(statsData);
     } catch (error) {
-      console.error('Error al cargar facturas:', error);
     } finally {
       setLoading(false);
     }
@@ -84,7 +83,6 @@ const BackofficeFacturas: React.FC = () => {
       setSelectedFactura(detalle);
       setShowDetailModal(true);
     } catch (error) {
-      console.error('Error al cargar detalle:', error);
     }
   };
 
@@ -103,7 +101,6 @@ const BackofficeFacturas: React.FC = () => {
       const actualizada = await ApiService.getFactura(selectedFactura.id_factura);
       setSelectedFactura(actualizada);
     } catch (error) {
-      console.error('Error al registrar pago:', error);
       alert('❌ Error al registrar pago');
     }
   };
@@ -119,7 +116,6 @@ const BackofficeFacturas: React.FC = () => {
         setSelectedFactura(actualizada);
       }
     } catch (error) {
-      console.error('Error al marcar como vencida:', error);
     }
   };
 
@@ -132,7 +128,6 @@ const BackofficeFacturas: React.FC = () => {
       setShowDetailModal(false);
       await cargarDatos();
     } catch (error) {
-      console.error('Error al anular factura:', error);
     }
   };
 
@@ -159,7 +154,6 @@ const BackofficeFacturas: React.FC = () => {
       });
       await cargarDatos();
     } catch (error) {
-      console.error('Error al crear factura:', error);
       alert('❌ Error al crear factura');
     }
   };
@@ -573,7 +567,6 @@ const BackofficeFacturas: React.FC = () => {
                   try {
                     await ApiService.descargarPDFFactura(selectedFactura.id_factura);
                   } catch (error) {
-                    console.error('Error al descargar PDF:', error);
                     alert('❌ Error al descargar el PDF');
                   }
                 }

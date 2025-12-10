@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { Map as MapIcon, AlertCircle, Trash2, MapPin, Target, RefreshCw } from 'lucide-react';
+import { Map as MapIcon, AlertCircle, Trash2, MapPin, Target, RefreshCw, Grid3x3, CheckCircle2 } from 'lucide-react';
 import { MapViewer } from '@/components/MapViewer';
 import { MapaService } from '@/services/map.service';
 import { ApiService } from '@/services/api';
@@ -105,10 +105,7 @@ const SupervisorMapPage = () => {
           title: "Datos recargados",
           description: "El mapa se ha actualizado correctamente",
         });
-      } catch (err) {
-        console.error('Error al cargar datos del mapa:', err);
-        
-        let mensaje = 'Error al cargar los datos del mapa';
+        } catch (err) {        let mensaje = 'Error al cargar los datos del mapa';
         
         if (err instanceof Error) {
           if (err.message.includes('401') || err.message.includes('Unauthorized')) {
@@ -343,39 +340,114 @@ const SupervisorMapPage = () => {
 
   return (
     <SupervisorLayout>
-      {/* Header */}
-      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Mapa de Supervisión</h1>
-          <p className="text-sm text-slate-600">Visualiza y gestiona las ubicaciones del supermercado</p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={() => recargarDatos()}
-          disabled={loading}
-          className="border-slate-200 hover:bg-slate-50"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Recargar
-        </Button>
-      </header>
+      <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        {/* HEADER MEJORADO */}
+        <header className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <MapIcon className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Mapa de Supervisión</h1>
+                <p className="text-sm text-slate-600 mt-1">Gestiona tareas seleccionando productos en el mapa interactivo</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={recargarDatos}
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+              <Button 
+                onClick={() => navigate('/supervisor-dashboard')}
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 shadow-sm"
+              >
+                Volver
+              </Button>
+            </div>
+          </div>
+        </header>
 
-      {/* Content */}
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
-          {/* Mapa */}
-          <Card className="border-slate-100 shadow-sm bg-white">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <MapIcon className="w-5 h-5 text-blue-600" />
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg">Mapa del Supermercado</CardTitle>
-                    <p className="text-sm text-slate-600">Haz clic en las ubicaciones para gestionar productos</p>
+                    <p className="text-sm text-slate-600">Mapa Activo</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {mapaData?.nombre || 'Sin mapa'}
+                    </p>
                   </div>
+                  <MapIcon className="w-8 h-8 text-blue-600" />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Dimensiones</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {mapaData ? `${mapaData.alto}×${mapaData.ancho}` : '—'}
+                    </p>
+                  </div>
+                  <Grid3x3 className="w-8 h-8 text-slate-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Productos Seleccionados</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {puntosSeleccionados.length}
+                    </p>
+                  </div>
+                  <Target className="w-8 h-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Reponedores</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {reponedores.length}
+                    </p>
+                  </div>
+                  <CheckCircle2 className="w-8 h-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          {/* Editor Layout */}
+          <div className="grid grid-cols-[1fr_350px] gap-6 min-h-[600px]">
+            {/* Canvas del Mapa */}
+            <Card className="border-slate-200 shadow-sm flex flex-col bg-white">
+              <CardHeader className="border-b border-slate-100 flex-shrink-0 bg-white">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <MapIcon className="w-5 h-5 text-blue-600" />
+                  Mapa del Supermercado
+                </CardTitle>
+                <p className="text-sm text-slate-600 mt-1">Haz clic en los muebles para gestionar productos</p>
               </CardHeader>
-              <CardContent>
-                <div className="w-full h-[700px] bg-slate-50 rounded-lg relative border border-slate-200">
+              <CardContent className="p-4 flex-1 overflow-auto bg-white">
+                <div className="w-full h-[700px] bg-slate-50 rounded-lg relative border border-slate-200 shadow-inner">
                   {loading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-2xl">
                       <div className="text-center">
@@ -440,14 +512,16 @@ const SupervisorMapPage = () => {
               </CardContent>
             </Card>
 
-            {/* Panel lateral */}
-            <Card className="border-slate-100 shadow-sm bg-white">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-blue-600" />
+            {/* Panel Lateral - Productos Seleccionados */}
+            <Card className="border-slate-200 shadow-sm bg-white flex flex-col">
+              <CardHeader className="border-b border-slate-100 bg-gradient-to-br from-blue-50 to-white">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600 rounded-lg">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <CardTitle className="text-lg">Productos Seleccionados</CardTitle>
-                    <p className="text-sm text-slate-600">Revisa y crea tareas para reponedores</p>
+                    <CardTitle className="text-lg font-semibold text-slate-900">Productos Seleccionados</CardTitle>
+                    <p className="text-sm text-slate-600">Revisa y crea tareas</p>
                   </div>
                 </div>
               </CardHeader>
@@ -463,7 +537,7 @@ const SupervisorMapPage = () => {
                   ) : (
                     <div className="space-y-4">
                       {(() => {
-                        // Agrupar puntos por producto
+                        // Agrupar puntos por producto y calcular cantidad total por producto
                         const productosAgrupados = new Map<number, {
                           idProducto: number;
                           nombreProducto: string;
@@ -484,7 +558,8 @@ const SupervisorMapPage = () => {
                             }
                             const grupo = productosAgrupados.get(idProducto)!;
                             grupo.puntos.push(punto);
-                            grupo.cantidadTotal += punto.cantidad;
+                            // Sumar solo la cantidad de este punto específico
+                            grupo.cantidadTotal += (punto.cantidad || 0);
                           }
                         });
 
@@ -493,7 +568,7 @@ const SupervisorMapPage = () => {
                             key={producto.idProducto} 
                             className="p-4 bg-gradient-to-r from-card to-card/80 border-2 border-primary/20 rounded-xl hover:border-primary/40 transition-all duration-200"
                           >
-                            <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <p className="font-semibold text-base mb-1">
                                   {producto.nombreProducto}
@@ -502,41 +577,29 @@ const SupervisorMapPage = () => {
                                   {producto.puntos.length} ubicación{producto.puntos.length !== 1 ? 'es' : ''}
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <p className="text-lg font-bold text-blue-600">
-                                  {producto.cantidadTotal}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  unidades
-                                </p>
-                              </div>
-                            </div>
-                            
-                            {/* Detalles de cada punto */}
-                            <div className="space-y-2 mt-3 pt-3 border-t border-slate-200">
-                              {producto.puntos.map((punto) => (
-                                <div 
-                                  key={punto.punto?.id_punto}
-                                  className="flex items-center justify-between text-sm bg-slate-50 p-2 rounded"
-                                >
-                                  <span className="text-xs text-muted-foreground">
-                                    Nivel {punto.punto?.nivel}, Est. {punto.punto?.estanteria}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium text-xs">
-                                      {punto.cantidad} uds
-                                    </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
-                                      onClick={() => eliminarPunto(punto.punto!.id_punto)}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-blue-600">
+                                    {producto.cantidadTotal}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    unidades totales
+                                  </p>
                                 </div>
-                              ))}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => {
+                                    // Eliminar todos los puntos de este producto
+                                    producto.puntos.forEach(punto => {
+                                      eliminarPunto(punto.punto!.id_punto);
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ));
@@ -675,6 +738,7 @@ const SupervisorMapPage = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </SupervisorLayout>
   );

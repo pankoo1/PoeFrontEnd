@@ -67,12 +67,9 @@ const MapPage = () => {
     // Función para cargar el mapa completo una sola vez
     const loadMapaCompleto = async () => {
         try {
-            console.log('Cargando mapa completo una sola vez...');
             const data = await ApiService.getMapaReposicion();
             setMapaCompleto(data);
-            console.log('Mapa completo cargado exitosamente');
         } catch (error) {
-            console.error('Error al cargar mapa completo:', error);
             toast({
                 title: "Error",
                 description: "No se pudo cargar el mapa. Intenta recargar la página.",
@@ -86,52 +83,29 @@ const MapPage = () => {
         if (!selectedLocation || !mapaCompleto) return;
         
         try {
-            console.log('Actualizando ubicación desde cache...');
             const ubicacionActualizada = mapaCompleto.ubicaciones.find(
                 (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
             );
             
             if (ubicacionActualizada) {
-                console.log('Ubicación actualizada desde cache:', {
-                    coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
-                    puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
-                    totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0,
-                    puntosDetallados: ubicacionActualizada.mueble?.puntos_reposicion?.map((p: any) => ({
-                        id: p.id_punto,
-                        nivel: p.nivel,
-                        estanteria: p.estanteria,
-                        tieneProducto: !!p.producto,
-                        nombreProducto: p.producto?.nombre || 'Sin producto'
-                    }))
-                });
                 setSelectedLocation(ubicacionActualizada);
                 // Forzar re-render del ShelfGrid
                 setShelfGridKey(prev => prev + 1);
-                console.log('🔄 ShelfGrid key actualizada para forzar re-render:', shelfGridKey + 1);
             }
         } catch (error) {
-            console.error('Error al actualizar ubicación desde cache:', error);
             // En caso de error, intentar recargar desde servidor
             try {
-                console.log('Recargando mapa desde servidor...');
                 const data = await ApiService.getMapaReposicion();
                 setMapaCompleto(data);
                 const ubicacionActualizada = data.ubicaciones.find(
                     (u: any) => u.x === selectedLocation.x && u.y === selectedLocation.y
                 );
                 if (ubicacionActualizada) {
-                    console.log('Ubicación actualizada desde servidor (fallback):', {
-                        coordenadas: `(${ubicacionActualizada.x}, ${ubicacionActualizada.y})`,
-                        puntosConProductos: ubicacionActualizada.mueble?.puntos_reposicion?.filter((p: any) => p.producto).length || 0,
-                        totalPuntos: ubicacionActualizada.mueble?.puntos_reposicion?.length || 0
-                    });
                     setSelectedLocation(ubicacionActualizada);
                     // Forzar re-render del ShelfGrid
                     setShelfGridKey(prev => prev + 1);
-                    console.log('🔄 ShelfGrid key actualizada (fallback) para forzar re-render:', shelfGridKey + 1);
                 }
             } catch (reloadError) {
-                console.error('Error al recargar mapa:', reloadError);
                 toast({
                     title: "Error",
                     description: "No se pudo actualizar la visualización. Intenta recargar la página.",
@@ -146,7 +120,6 @@ const MapPage = () => {
             const data = await ApiService.getProductos() as ProductosResponse;
             setProductos(data.productos || []);
         } catch (error) {
-            console.error('Error al cargar productos:', error);
             toast({
                 title: 'Error',
                 description: 'No se pudieron cargar los productos',
@@ -172,7 +145,6 @@ const MapPage = () => {
             const producto = JSON.parse(productoData) as Producto;
             
             if (!selectedLocation?.mueble) {
-                console.log('No hay mueble seleccionado');
                 toast({
                     title: "Error",
                     description: "No hay mueble seleccionado para asignar el producto",
@@ -185,11 +157,6 @@ const MapPage = () => {
             const idPunto = calcularIdPunto(selectedLocation.mueble, posicion.fila, posicion.columna);
                 
             if (!idPunto) {
-                console.error('No se pudo determinar el punto:', {
-                    mueble: selectedLocation.mueble,
-                    posicion,
-                    puntos_disponibles: selectedLocation.mueble.puntos_reposicion
-                });
                 toast({
                     title: "Error",
                     description: "No se pudo determinar el punto de reposición. Verifica que la posición sea válida.",
@@ -199,7 +166,6 @@ const MapPage = () => {
             }
 
             // **NUEVA LÓGICA: Asignación temporal en lugar de inmediata**
-            console.log('Asignación temporal - Producto:', producto.nombre, 'Punto:', idPunto);
             
             // Agregar a asignaciones temporales
             setAsignaciones(prev => ({
@@ -220,7 +186,6 @@ const MapPage = () => {
             });
 
         } catch (error) {
-            console.error('Error en el drop:', error);
             toast({
                 title: "Error",
                 description: "Error al asignar el producto",
@@ -231,7 +196,6 @@ const MapPage = () => {
 
     const calcularIdPunto = (mueble: any, fila: number, columna: number): string | null => {
         if (!mueble?.puntos_reposicion) {
-            console.error('No hay puntos de reposición en el mueble');
             return null;
         }
 
@@ -248,7 +212,6 @@ const MapPage = () => {
             return punto.id_punto.toString();
         }
         
-        console.error('No se encontró punto para posición:', { fila, columna, nivel, estanteria });
         return null;
     };
 
@@ -294,9 +257,6 @@ const MapPage = () => {
     };
 
     const handleConfirmarTodosLosCambios = async () => {
-        console.log('🚀 [INICIO] Confirmando todos los cambios...');
-        console.log('   - Asignaciones pendientes:', asignaciones);
-        console.log('   - Desasignaciones pendientes:', desasignaciones);
         
         setIsLoading(true);
         let errores = 0;
@@ -304,17 +264,12 @@ const MapPage = () => {
 
         try {
             // Procesar asignaciones
-            console.log('📝 Procesando asignaciones...');
             for (const [idPunto, producto] of Object.entries(asignaciones)) {
                 try {
-                    console.log(`🎯 Asignando producto ${producto.nombre} (ID: ${producto.id_producto}) al punto ${idPunto}...`);
-                    console.log(`ℹ️ El supervisor del producto será asignado automáticamente al punto`);
                     
                     await ApiService.asignarProductoAPunto(producto.id_producto, parseInt(idPunto));
-                    console.log(`✅ Producto ${producto.nombre} asignado correctamente al punto ${idPunto}`);
                     exitos++;
                 } catch (error) {
-                    console.error(`❌ Error al asignar producto ${producto.nombre} al punto ${idPunto}:`, error);
                     errores++;
                 }
             }
@@ -323,10 +278,8 @@ const MapPage = () => {
             for (const idPunto of Object.keys(desasignaciones)) {
                 try {
                     await ApiService.desasignarProductoDePunto(parseInt(idPunto));
-                    console.log(`✅ Producto desasignado correctamente del punto ${idPunto}`);
                     exitos++;
                 } catch (error) {
-                    console.error(`❌ Error al desasignar producto del punto ${idPunto}:`, error);
                     errores++;
                 }
             }
@@ -350,7 +303,6 @@ const MapPage = () => {
             }
 
             // Recargar el mapa completo desde el servidor para reflejar los cambios
-            console.log('🔄 Recargando datos del servidor para reflejar cambios...');
             // Pequeño delay para asegurar que el servidor haya procesado todos los cambios
             await new Promise(resolve => setTimeout(resolve, 500));
             await loadMapaCompleto();
@@ -358,7 +310,6 @@ const MapPage = () => {
             await actualizarUbicacionSeleccionada();
 
         } catch (error) {
-            console.error('Error general al procesar cambios:', error);
             toast({
                 title: "Error",
                 description: "Error inesperado al procesar los cambios",
@@ -373,7 +324,6 @@ const MapPage = () => {
     const handleRecargarVista = async () => {
         setIsLoading(true);
         try {
-            console.log('Recargando vista completa...');
             await loadMapaCompleto();
             await actualizarUbicacionSeleccionada();
             // Incrementar la clave para forzar re-render
@@ -383,7 +333,6 @@ const MapPage = () => {
                 description: "Los datos se han recargado desde el servidor",
             });
         } catch (error) {
-            console.error('Error al recargar vista:', error);
             toast({
                 title: "Error",
                 description: "No se pudo recargar la vista",

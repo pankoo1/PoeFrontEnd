@@ -43,7 +43,6 @@ export const MapaService = {
 
             return data;
         } catch (error) {
-            console.error('Error obteniendo el mapa del supervisor:', error);
             if (error instanceof Error) {
                 throw new Error(`No se pudo obtener el mapa del supervisor: ${error.message}`);
             }
@@ -82,7 +81,6 @@ export const MapaService = {
 
             return data;
         } catch (error) {
-            console.error('Error obteniendo la vista del mapa del supervisor:', error);
             if (error instanceof Error) {
                 throw new Error(`No se pudo obtener la vista del mapa del supervisor: ${error.message}`);
             }
@@ -123,7 +121,6 @@ export const MapaService = {
 
             return await response.json();
         } catch (error) {
-            console.error('Error desasignando producto:', error);
             throw error instanceof Error ? error : new Error('Error desconocido al desasignar producto');
         }
     }

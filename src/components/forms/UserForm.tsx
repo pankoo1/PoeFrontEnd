@@ -87,7 +87,6 @@ const UserForm = ({ onUserAdded, isSupervisor = false, buttonLabel = "Nuevo Usua
       });
       setIsOpen(false);
     } catch (error: any) {
-      console.error('Error al crear usuario:', error);
       
       // Verificar si es un error de límite de plan (HTTP 402)
       if (error?.response?.status === 402 && ApiService.isLimitePlanError(error.response.data)) {

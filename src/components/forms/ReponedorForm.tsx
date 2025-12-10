@@ -23,7 +23,6 @@ const ReponedorForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Nuevo reponedor:', formData);
     toast({
       title: "Reponedor registrado",
       description: `${formData.nombre} ha sido asignado al área de ${formData.area}`,

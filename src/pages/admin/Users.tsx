@@ -38,7 +38,6 @@ const Users = () => {
         : loadedUsers;
       setUsers(filtered);
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
       toast({
         title: "Error al cargar usuarios",
         description: "No se pudieron cargar los usuarios. Por favor, intenta de nuevo.",
@@ -92,7 +91,6 @@ const Users = () => {
       // Recargar la lista de usuarios
       await loadUsers();
     } catch (error) {
-      console.error('Error al eliminar usuario:', error);
       toast({
         title: "Error al eliminar usuario",
         description: error instanceof Error ? error.message : "Ha ocurrido un error al eliminar el usuario",
@@ -137,7 +135,6 @@ const Users = () => {
       setIsEditDialogOpen(false);
       setEditingUser(null);
     } catch (error) {
-      console.error('Error al actualizar usuario:', error);
       toast({
         title: "Error al actualizar usuario",
         description: error instanceof Error ? error.message : "Ha ocurrido un error al actualizar el usuario",
